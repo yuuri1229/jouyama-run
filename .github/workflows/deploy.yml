@@ -1,0 +1,60 @@
+# =========================================================
+# GitHub Pages 自動デプロイ
+# main ブランチに変更をコミット（push）するたびに、
+# サイトを自動でビルドして公開します。
+# 事前に リポジトリの Settings → Pages → Source を
+# 「GitHub Actions」に設定しておいてください。
+# =========================================================
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Node.jsをセットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 依存パッケージをインストール
+        run: npm install
+
+      - name: サイトをビルド
+        run: npm run build
+        env:
+          # リポジトリ名が「ユーザー名.github.io」の場合はベースパス不要、
+          # それ以外（プロジェクトサイト）の場合は /リポジトリ名 を自動設定
+          NEXT_PUBLIC_BASE_PATH: ${{ endsWith(github.event.repository.name, 'github.io') && '' || format('/{0}', github.event.repository.name) }}
+
+      - name: 成果物をアップロード
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: GitHub Pagesへデプロイ
+        id: deployment
+        uses: actions/deploy-pages@v4
