@@ -18,11 +18,7 @@ export default function Header() {
     <header className="site-header">
       <div className="header-inner">
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
-          <span className="brand-name">新潟・城山運動公園</span>
-          <span className="brand-num">
-            24<span className="brand-amp">&amp;</span>12
-          </span>
-          <span className="brand-name">時間走</span>
+          <span className="brand-name">新潟・城山運動公園24&amp;12時間走</span>
         </Link>
 
         <nav className="global-nav" aria-label="グローバルナビゲーション">
