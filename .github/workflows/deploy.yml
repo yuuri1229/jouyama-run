@@ -39,12 +39,25 @@ jobs:
       - name: 依存パッケージをインストール
         run: npm install
 
+      - name: ベースパスを判定
+        id: basepath
+        # public/CNAME があれば独自ドメイン（ルート直下で公開）なのでベースパス不要。
+        # なければ「ユーザー名.github.io」判定 → それ以外は /リポジトリ名 を自動設定
+        # (GitHub Actionsの `&&`/`||` 式は空文字列を偽値として扱うため、
+        #  シェルのif文で明示的に判定する)
+        run: |
+          if [ -f public/CNAME ]; then
+            echo "value=" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.event.repository.name }}" == *.github.io ]]; then
+            echo "value=" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=/${{ github.event.repository.name }}" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: サイトをビルド
         run: npm run build
         env:
-          # public/CNAME があれば独自ドメイン（ルート直下で公開）なのでベースパス不要。
-          # なければ「ユーザー名.github.io」判定 → それ以外は /リポジトリ名 を自動設定
-          NEXT_PUBLIC_BASE_PATH: ${{ hashFiles('public/CNAME') != '' && '' || (endsWith(github.event.repository.name, 'github.io') && '' || format('/{0}', github.event.repository.name)) }}
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.basepath.outputs.value }}
           # microCMS のAPIキー（Settings → Secrets and variables → Actions に登録）
           MICROCMS_API_KEY: ${{ secrets.MICROCMS_API_KEY }}
           # サービスドメインは既定で niigata24h。変更する場合のみ Secrets/Variables で上書き
