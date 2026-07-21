@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;800;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0");
 
 /* =========================================================
@@ -22,6 +22,7 @@
   --night:  #24314B;   /* タイムバンド：夜 */
   --header-h: 68px;
   --radius: 14px;
+  --font-en: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,8 +30,9 @@
 html { scroll-behavior: smooth; scroll-padding-top: calc(var(--header-h) + 8px); }
 
 body {
-  font-family: "Noto Sans JP", -apple-system, BlinkMacSystemFont, "Segoe UI",
-               Roboto, Meiryo, sans-serif;
+  font-family: "Hiragino Sans", "ヒラギノ角ゴシック", "Hiragino Kaku Gothic ProN",
+               "Noto Sans JP", sans-serif;
+  font-weight: 500;
   color: var(--text);
   background: var(--paper);
   line-height: 1.9;
@@ -105,7 +107,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 }
 .brand { display: flex; align-items: baseline; gap: 10px; text-decoration: none; color: var(--ink); }
 .brand-num {
-  font-weight: 900; font-size: 1.6rem; letter-spacing: -.02em;
+  font-weight: 700; font-size: 1.6rem; letter-spacing: -.02em;
   color: var(--pine); line-height: 1;
 }
 .brand-amp { color: var(--maple); font-size: .8em; margin: 0 1px; }
@@ -189,11 +191,11 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 .hero-num {
   display: block;
   font-size: clamp(4.2rem, 14vw, 9rem);
-  font-weight: 900; letter-spacing: -.02em;
+  font-weight: 700; letter-spacing: -.02em;
   text-shadow: 0 4px 30px rgba(0,0,0,.35);
 }
 .hero-num em { font-style: normal; color: var(--pine); font-size: .55em; vertical-align: .12em; margin: 0 .04em; }
-.hero-unit { font-size: .3em; font-weight: 800; letter-spacing: .1em; margin-left: .15em; }
+.hero-unit { font-size: .3em; font-weight: 700; letter-spacing: .1em; margin-left: .15em; }
 .hero-lead { font-size: clamp(.95rem, 1.8vw, 1.1rem); opacity: .95; }
 .hero-actions {
   margin-top: 34px;
@@ -220,12 +222,13 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 .sec-eyebrow {
   display: flex; align-items: center; gap: 8px;
   color: var(--pine-d);
+  font-family: var(--font-en);
   font-weight: 700; font-size: .85rem; letter-spacing: .22em;
 }
 .sec-eyebrow .material-symbols-outlined { font-size: 20px; }
 .sec-title {
   font-size: clamp(1.7rem, 3.6vw, 2.3rem);
-  font-weight: 900; letter-spacing: .04em;
+  font-weight: 700; letter-spacing: .04em;
   margin-top: 6px;
   padding-bottom: 14px;
   border-bottom: 3px solid var(--ink);
@@ -233,7 +236,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 
 .sub-title {
   display: flex; align-items: center; gap: 10px;
-  font-size: 1.25rem; font-weight: 800;
+  font-size: 1.25rem; font-weight: 700;
   margin: 64px 0 22px;
   color: var(--ink);
 }
@@ -294,10 +297,10 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 }
 .race-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; }
 .race-num {
-  font-size: 2.6rem; font-weight: 900; line-height: 1; color: var(--pine);
+  font-size: 2.6rem; font-weight: 700; line-height: 1; color: var(--pine);
   letter-spacing: -.02em;
 }
-.race-num span { font-size: .42em; font-weight: 800; color: var(--ink); margin-left: 4px; letter-spacing: .06em; }
+.race-num span { font-size: .42em; font-weight: 700; color: var(--ink); margin-left: 4px; letter-spacing: .06em; }
 .race-cap {
   background: var(--mist); color: var(--pine);
   font-size: .82rem; font-weight: 700;
@@ -359,7 +362,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   box-shadow: 0 2px 14px rgba(27,34,30,.05);
 }
 .schedule-col h4 {
-  font-size: 1.1rem; font-weight: 800;
+  font-size: 1.1rem; font-weight: 700;
   padding-bottom: 10px; margin-bottom: 14px;
   border-bottom: 2px solid var(--pine);
 }
@@ -383,10 +386,10 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 .course-map img { border-radius: var(--radius); box-shadow: 0 4px 24px rgba(27,34,30,.12); }
 .course-stat { line-height: 1; margin-bottom: 16px; }
 .stat-num {
-  font-size: 4.4rem; font-weight: 900; color: var(--pine);
+  font-size: 4.4rem; font-weight: 700; color: var(--pine);
   letter-spacing: -.03em;
 }
-.stat-unit { font-size: 1.1rem; font-weight: 800; color: var(--ink); margin-left: 6px; }
+.stat-unit { font-size: 1.1rem; font-weight: 700; color: var(--ink); margin-left: 6px; }
 .course-points { list-style: none; margin-top: 20px; }
 .course-points li {
   display: flex; gap: 10px; align-items: flex-start;
@@ -412,15 +415,16 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   content: "24&12";
   position: absolute;
   right: -30px; bottom: -70px;
-  font-size: 17rem; font-weight: 900; line-height: 1;
+  font-size: 17rem; font-weight: 700; line-height: 1;
   color: rgba(255,255,255,.05);
   letter-spacing: -.04em;
   pointer-events: none;
 }
 .entry-inner { position: relative; text-align: center; }
 .entry-title {
+  font-family: var(--font-en);
   font-size: clamp(2.2rem, 5vw, 3.2rem);
-  font-weight: 900; letter-spacing: .16em;
+  font-weight: 700; letter-spacing: .16em;
 }
 .entry-lead { margin-top: 10px; font-weight: 500; opacity: .9; }
 .entry-actions {
@@ -440,7 +444,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 }
 .entry-kit h3 {
   display: flex; align-items: center; gap: 8px;
-  font-size: 1rem; font-weight: 800; margin-bottom: 6px;
+  font-size: 1rem; font-weight: 700; margin-bottom: 6px;
 }
 .entry-kit p { font-size: .93rem; opacity: .9; }
 
@@ -455,7 +459,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   display: flex; align-items: center; gap: 12px;
   list-style: none; cursor: pointer;
   padding: 20px 24px;
-  font-weight: 800; font-size: 1.05rem;
+  font-weight: 700; font-size: 1.05rem;
 }
 .rule summary::-webkit-details-marker { display: none; }
 .rule summary .material-symbols-outlined:first-child { color: var(--pine); }
@@ -502,7 +506,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 }
 .news-article-head time { color: var(--sub); font-weight: 500; letter-spacing: .04em; }
 .news-article-title {
-  font-size: 1.4rem; font-weight: 800;
+  font-size: 1.4rem; font-weight: 700;
   padding-bottom: 14px; margin-bottom: 18px;
   border-bottom: 2px solid var(--pine);
 }
@@ -516,7 +520,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 }
 .footer-inner { text-align: center; }
 .footer-brand { font-size: 1.15rem; font-weight: 700; color: #fff; }
-.footer-brand strong { color: #6FE07A; font-weight: 900; margin: 0 2px; }
+.footer-brand strong { color: #6FE07A; font-weight: 700; margin: 0 2px; }
 .footer-org { margin-top: 10px; font-size: .88rem; }
 .footer-nav {
   margin-top: 26px;
