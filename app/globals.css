@@ -516,7 +516,22 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 .news-article-body ul,
 .news-article-body ol { margin: 0 0 12px 1.4em; }
 .news-article-body a { color: var(--pine-d); text-decoration: underline; }
-.news-article-body img { border-radius: var(--radius); margin: 12px 0; }
+.news-article-body figure { margin: 18px 0; }
+.news-article-body img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 18px 0;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(27, 34, 30, .12);
+}
+.news-article-body figure img { margin: 0; }
+.news-article-body figcaption {
+  margin-top: 8px;
+  font-size: .85rem;
+  color: var(--sub);
+  text-align: center;
+}
 
 /* 最新情報一覧（カード） */
 .news-cards { display: grid; gap: 22px; }
