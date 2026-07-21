@@ -42,9 +42,9 @@ jobs:
       - name: サイトをビルド
         run: npm run build
         env:
-          # リポジトリ名が「ユーザー名.github.io」の場合はベースパス不要、
-          # それ以外（プロジェクトサイト）の場合は /リポジトリ名 を自動設定
-          NEXT_PUBLIC_BASE_PATH: ${{ endsWith(github.event.repository.name, 'github.io') && '' || format('/{0}', github.event.repository.name) }}
+          # public/CNAME があれば独自ドメイン（ルート直下で公開）なのでベースパス不要。
+          # なければ「ユーザー名.github.io」判定 → それ以外は /リポジトリ名 を自動設定
+          NEXT_PUBLIC_BASE_PATH: ${{ hashFiles('public/CNAME') != '' && '' || (endsWith(github.event.repository.name, 'github.io') && '' || format('/{0}', github.event.repository.name)) }}
           # microCMS のAPIキー（Settings → Secrets and variables → Actions に登録）
           MICROCMS_API_KEY: ${{ secrets.MICROCMS_API_KEY }}
           # サービスドメインは既定で niigata24h。変更する場合のみ Secrets/Variables で上書き
