@@ -175,7 +175,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   font-weight: 900; letter-spacing: -.02em;
   text-shadow: 0 4px 30px rgba(0,0,0,.35);
 }
-.hero-num em { font-style: normal; color: var(--maple); font-size: .55em; vertical-align: .12em; margin: 0 .04em; }
+.hero-num em { font-style: normal; color: var(--pine); font-size: .55em; vertical-align: .12em; margin: 0 .04em; }
 .hero-unit { font-size: .3em; font-weight: 800; letter-spacing: .1em; margin-left: .15em; }
 .hero-lead { font-size: clamp(.95rem, 1.8vw, 1.1rem); opacity: .95; }
 .hero-actions {
