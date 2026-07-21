@@ -30,7 +30,7 @@ export default async function HomePage() {
             <ul className="news-list">
               {newsItems.slice(0, NEWS_ON_TOP).map((item) => (
                 <Reveal as="li" key={item.id}>
-                  <Link className="news-link" href={`/news/#${item.id}`}>
+                  <Link className="news-link" href={`/news/${item.id}/`}>
                     <time dateTime={item.date}>{item.dateLabel}</time>
                     <span className="news-tag">{item.tag}</span>
                     <span className="news-text">{item.title}</span>

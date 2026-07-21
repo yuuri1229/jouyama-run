@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Reveal from "../../components/Reveal";
-import NewsBody from "../../components/NewsBody";
-import { getNewsItems } from "../../lib/microcms";
+import { getNewsItems, newsExcerpt } from "../../lib/microcms";
 
 export const metadata = {
   title: "最新情報｜新潟・城山運動公園24＆12時間走",
@@ -32,16 +31,26 @@ export default async function NewsPage() {
           <h1 className="sec-title">最新情報</h1>
         </header>
 
-        {newsItems.map((item) => (
-          <Reveal as="article" className="news-article" id={item.id} key={item.id}>
-            <header className="news-article-head">
-              <time dateTime={item.date}>{item.dateLabel}</time>
-              <span className="news-tag">{item.tag}</span>
-            </header>
-            <h2 className="news-article-title">{item.title}</h2>
-            <NewsBody body={item.body} />
-          </Reveal>
-        ))}
+        <div className="news-cards">
+          {newsItems.map((item) => (
+            <Reveal as="article" className="news-card" key={item.id}>
+              <Link className="news-card-link" href={`/news/${item.id}/`}>
+                <header className="news-card-head">
+                  <time dateTime={item.date}>{item.dateLabel}</time>
+                  {item.tag ? <span className="news-tag">{item.tag}</span> : null}
+                </header>
+                <h2 className="news-card-title">{item.title}</h2>
+                <p className="news-card-excerpt">{newsExcerpt(item)}</p>
+                <span className="news-card-more">
+                  続きを読む
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    arrow_forward
+                  </span>
+                </span>
+              </Link>
+            </Reveal>
+          ))}
+        </div>
 
         <div className="sec-more">
           <Link className="text-arrow" href="/">
