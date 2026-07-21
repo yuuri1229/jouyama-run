@@ -1,12 +1,14 @@
 import Link from "next/link";
 import Hero from "../components/Hero";
 import Reveal from "../components/Reveal";
-import { newsItems } from "../data/news";
+import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
 
 const NEWS_ON_TOP = 3; // トップに表示するお知らせの件数
 
-export default function HomePage() {
+export default async function HomePage() {
+  const newsItems = await getNewsItems();
+
   return (
     <>
       <Hero />
