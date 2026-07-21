@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { SITE } from "../lib/site";
 
 const NAV_ITEMS = [
@@ -11,11 +12,27 @@ const NAV_ITEMS = [
   { href: "/#rules", label: "ルール" },
 ];
 
+const SCROLL_THRESHOLD = 60;
+
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
+  const isHome = pathname === "/";
+
+  useEffect(() => {
+    if (!isHome) return;
+
+    const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
+
+  const isTransparent = isHome && !scrolled;
 
   return (
-    <header className="site-header">
+    <header className={`site-header${isTransparent ? " is-transparent" : ""}`}>
       <div className="header-inner">
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-name">新潟・城山運動公園24&amp;12時間走</span>

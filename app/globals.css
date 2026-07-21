@@ -84,7 +84,19 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   background: rgba(255,255,255,.94);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
+  transition: background-color .3s ease, backdrop-filter .3s ease, border-color .3s ease;
 }
+.site-header.is-transparent {
+  background: transparent;
+  backdrop-filter: none;
+  border-bottom-color: rgba(255,255,255,.32);
+}
+.site-header.is-transparent .brand-name,
+.site-header.is-transparent .global-nav a,
+.site-header.is-transparent .nav-toggle {
+  color: #fff;
+}
+.site-header.is-transparent .global-nav a:hover { color: var(--pine); }
 .header-inner {
   max-width: 1200px; margin: 0 auto;
   height: var(--header-h);
@@ -97,12 +109,16 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   color: var(--pine); line-height: 1;
 }
 .brand-amp { color: var(--maple); font-size: .8em; margin: 0 1px; }
-.brand-name { font-weight: 700; font-size: .92rem; letter-spacing: .02em; }
+.brand-name {
+  font-weight: 700; font-size: .92rem; letter-spacing: .02em;
+  transition: color .3s ease;
+}
 
 .global-nav { display: flex; align-items: center; gap: 26px; }
 .global-nav a {
   color: var(--ink); text-decoration: none;
   font-size: .93rem; font-weight: 500;
+  transition: color .3s ease;
 }
 .global-nav a:hover { color: var(--pine); }
 .global-nav .nav-cta {
@@ -117,6 +133,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   display: none;
   background: none; border: none; cursor: pointer;
   color: var(--ink);
+  transition: color .3s ease;
 }
 .nav-toggle .material-symbols-outlined { font-size: 30px; }
 
