@@ -1,13 +1,18 @@
 import { asset } from "../lib/site";
 
 // data/news.js の body 配列を描画するコンポーネント。
-// type: "p"（段落） / "link"（外部リンク） / "image"（画像）に対応。
+// type: "p"（段落） / "link"（外部リンク） / "image"（画像） / "html"（microCMSのリッチエディタ）に対応。
 export default function NewsBody({ body }) {
   return (
     <div className="news-article-body">
       {body.map((block, i) => {
         if (block.type === "p") {
           return <p key={i}>{block.text}</p>;
+        }
+        if (block.type === "html") {
+          return (
+            <div key={i} dangerouslySetInnerHTML={{ __html: block.html }} />
+          );
         }
         if (block.type === "link") {
           return (
