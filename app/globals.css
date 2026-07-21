@@ -131,6 +131,14 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 .global-nav .nav-cta:hover { background: var(--pine-d); color: #fff; }
 .global-nav .nav-cta .material-symbols-outlined { font-size: 1.05em; }
 
+.header-social { display: flex; align-items: center; gap: 14px; }
+.header-social a {
+  display: flex; color: var(--ink);
+  transition: color .3s ease, opacity .15s ease;
+}
+.header-social a:hover { opacity: .7; }
+.site-header.is-transparent .header-social a { color: #fff; }
+
 .nav-toggle {
   display: none;
   background: none; border: none; cursor: pointer;
@@ -151,6 +159,12 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   border-top: 1px solid var(--line);
 }
 .mobile-nav.is-open { display: flex; }
+.mobile-nav-social {
+  display: flex; align-items: center; gap: 18px;
+  padding: 15px 24px;
+  border-top: 1px solid var(--line);
+}
+.mobile-nav-social a { display: flex; color: var(--ink); }
 
 /* ---------- ヒーロー ---------- */
 .hero {
@@ -582,6 +596,15 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 .footer-brand { font-size: 1.15rem; font-weight: 700; color: #fff; }
 .footer-brand strong { color: #6FE07A; font-weight: 700; margin: 0 2px; }
 .footer-org { margin-top: 10px; font-size: .88rem; }
+.footer-social {
+  display: flex; justify-content: center; align-items: center; gap: 18px;
+  margin-top: 22px;
+}
+.footer-social a {
+  display: flex; color: rgba(255,255,255,.8);
+  transition: color .2s ease;
+}
+.footer-social a:hover { color: #fff; }
 .footer-nav {
   margin-top: 26px;
   display: flex; justify-content: center; gap: 26px; flex-wrap: wrap;

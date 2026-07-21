@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
 
 const NAV_ITEMS = [
@@ -44,6 +45,7 @@ export default function Header() {
               {item.label}
             </Link>
           ))}
+          <SocialLinks className="header-social" />
           <a
             className="nav-cta"
             href={SITE.entryFormUrl}
@@ -88,6 +90,7 @@ export default function Header() {
         >
           エントリーフォーム
         </a>
+        <SocialLinks className="mobile-nav-social" />
       </nav>
     </header>
   );

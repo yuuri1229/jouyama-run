@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
 
 export default function Footer() {
@@ -11,6 +12,7 @@ export default function Footer() {
         <p className="footer-org">
           主催：新潟・城山運動公園24＆12時間走実行委員会（実行委員長　甲斐 愛子）
         </p>
+        <SocialLinks className="footer-social" />
         <nav className="footer-nav" aria-label="フッターメニュー">
           <Link href="/#news">最新情報</Link>
           <Link href="/#outline">大会概要</Link>
