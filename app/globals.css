@@ -492,11 +492,8 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 .breadcrumb a:hover { color: var(--pine); text-decoration: underline; }
 .breadcrumb .material-symbols-outlined { font-size: 16px; }
 
+/* 記事詳細は枠線なしのフラットな表示（カードは一覧ページのみ） */
 .news-article {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  padding: 34px 36px;
   margin-bottom: 26px;
   scroll-margin-top: calc(var(--header-h) + 20px);
 }
