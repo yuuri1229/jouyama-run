@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { asset, SITE } from "../lib/site";
 
-const SLIDE_INTERVAL = 5000; // 切り替え間隔（ミリ秒）
+const SLIDE_INTERVAL = 5000; // 写真の切り替え間隔（ミリ秒）
 
 const SLIDES = [
   asset("/img/hero-1.jpg"),
@@ -29,67 +29,112 @@ export default function Hero() {
 
   return (
     <section className="hero">
-      <div className="hero-slides" aria-hidden="true">
-        {SLIDES.map((src, i) => (
-          <div
-            key={src}
-            className={`hero-slide${i === current ? " is-active" : ""}`}
-            style={{ backgroundImage: `url('${src}')` }}
-          />
-        ))}
-      </div>
-      <div className="hero-shade" />
+      <div className="hero-main">
+        <div className="hero-info">
+          <p className="hero-bib">
+            <span>
+              <b>NIIGATA</b> / JOYAMA PARK
+            </span>
+            <span>
+              <b>2026.11.22 SUN — 11.23 MON</b>
+            </span>
+            <span className="hero-ed">3RD EDITION</span>
+          </p>
 
-      <div className="hero-body">
-        <p className="hero-eyebrow">
-          2026.11.22 <span>SUN</span> — 11.23 <span>MON・祝</span>
-          ｜新潟市西蒲区・城山運動公園
-        </p>
-        <h1 className="hero-title">
-          <span className="hero-place">新潟・城山運動公園</span>
-          <span className="hero-num">
-            24<em>&amp;</em>12<span className="hero-unit">時間走</span>
-          </span>
-        </h1>
-        <p className="hero-lead">
-          1周約960mの周回コースを、昼も、夜も、自分のペースで。
-          <br className="pc" />
-          ウォーカーの参加も歓迎します。
-        </p>
-        <div className="hero-actions">
-          <a
-            className="btn btn-primary"
-            href={SITE.entryFormUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            エントリーする
-            <span className="material-symbols-outlined" aria-hidden="true">
-              arrow_outward
+          <h1 className="hero-num-row" aria-label="24時間走と12時間走">
+            <span className="fig">24</span>
+            <span className="slash" aria-hidden="true">
+              /
             </span>
-          </a>
-          <a className="btn btn-ghost" href="#outline">
-            大会概要を見る
-            <span className="material-symbols-outlined" aria-hidden="true">
-              arrow_downward
+            <span className="fig">12</span>
+            <span className="unit">
+              時間走<small>TIMED RUN</small>
             </span>
-          </a>
+          </h1>
+
+          <dl className="hero-tbl">
+            <div>
+              <dt>COURSE</dt>
+              <dd>
+                1周 約960m<em>周回コース／舗装路</em>
+              </dd>
+            </div>
+            <div>
+              <dt>START</dt>
+              <dd>
+                11.22 SUN 12:00<em>12時間走はデイ・ナイトの2部制</em>
+              </dd>
+            </div>
+            <div>
+              <dt>VENUE</dt>
+              <dd>
+                城山運動公園<em>新潟市西蒲区</em>
+              </dd>
+            </div>
+            <div>
+              <dt>ENTRY</dt>
+              <dd>
+                6.1 MON — 11.13 FRI<em>受付中</em>
+              </dd>
+            </div>
+          </dl>
+
+          <p className="hero-lede">
+            決められた<b>時間</b>のなかで、走った距離を競う大会です。
+            <br className="pc" />
+            歩いても、休んでも構いません。ウォーカーの参加も歓迎します。
+          </p>
+
+          <div className="hero-actions">
+            <a
+              className="btn btn-primary"
+              href={SITE.entryFormUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              エントリーする
+              <span className="material-symbols-outlined" aria-hidden="true">
+                arrow_outward
+              </span>
+            </a>
+            <a className="btn btn-line" href="#outline">
+              大会概要を見る
+              <span className="material-symbols-outlined" aria-hidden="true">
+                arrow_downward
+              </span>
+            </a>
+          </div>
         </div>
-        <p className="hero-note">
-          エントリー期間：2026年6月1日(月)〜11月13日(金)
-        </p>
+
+        <div className="hero-photo">
+          {SLIDES.map((src, i) => (
+            <div
+              key={src}
+              className={`hero-slide${i === current ? " is-active" : ""}`}
+              style={{ backgroundImage: `url('${src}')` }}
+              aria-hidden="true"
+            />
+          ))}
+          <div className="hero-dots" role="tablist" aria-label="写真の切り替え">
+            {SLIDES.map((src, i) => (
+              <button
+                key={src}
+                type="button"
+                className={i === current ? "is-active" : ""}
+                aria-label={`${i + 1}枚目の写真を表示`}
+                onClick={() => setCurrent(i)}
+              />
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div className="hero-dots" role="tablist" aria-label="写真の切り替え">
-        {SLIDES.map((src, i) => (
-          <button
-            key={src}
-            type="button"
-            className={i === current ? "is-active" : ""}
-            aria-label={`${i + 1}枚目の写真を表示`}
-            onClick={() => setCurrent(i)}
-          />
-        ))}
+      <div className="lap-strip" aria-hidden="true">
+        <span>LAP 960m</span>
+        <i></i>
+        <span>×</span>
+        <i></i>
+        <b>24:00:00</b>
       </div>
     </section>
   );
