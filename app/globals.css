@@ -469,16 +469,12 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   margin-bottom: 16px;
   overflow: hidden;
 }
-.rule summary {
+.rule-title {
   display: flex; align-items: center; gap: 12px;
-  list-style: none; cursor: pointer;
   padding: 20px 24px;
   font-weight: 700; font-size: 1.05rem;
 }
-.rule summary::-webkit-details-marker { display: none; }
-.rule summary .material-symbols-outlined:first-child { color: var(--pine); }
-.rule-chev { margin-left: auto; color: var(--sub); transition: transform .25s; }
-.rule[open] .rule-chev { transform: rotate(180deg); }
+.rule-title .material-symbols-outlined { color: var(--pine); }
 .rule-body { padding: 0 26px 24px; }
 .rule-body ul { list-style: none; }
 .rule-body li {

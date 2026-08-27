@@ -553,19 +553,13 @@ export default async function HomePage() {
               <h2 className="sec-title">大会ルール</h2>
             </Reveal>
 
-            <Reveal as="details" className="rule" open>
-              <summary>
+            <Reveal as="article" className="rule">
+              <h3 className="rule-title">
                 <span className="material-symbols-outlined" aria-hidden="true">
                   warning
                 </span>
                 注意事項
-                <span
-                  className="material-symbols-outlined rule-chev"
-                  aria-hidden="true"
-                >
-                  expand_more
-                </span>
-              </summary>
+              </h3>
               <div className="rule-body">
                 <ul>
                   <li>
@@ -598,19 +592,13 @@ export default async function HomePage() {
               </div>
             </Reveal>
 
-            <Reveal as="details" className="rule" delay={1}>
-              <summary>
+            <Reveal as="article" className="rule" delay={1}>
+              <h3 className="rule-title">
                 <span className="material-symbols-outlined" aria-hidden="true">
                   timer
                 </span>
                 計測について
-                <span
-                  className="material-symbols-outlined rule-chev"
-                  aria-hidden="true"
-                >
-                  expand_more
-                </span>
-              </summary>
+              </h3>
               <div className="rule-body">
                 <ul>
                   <li>計測は各自の時計の距離計測機能を用いて行います。</li>
@@ -630,19 +618,13 @@ export default async function HomePage() {
               </div>
             </Reveal>
 
-            <Reveal as="details" className="rule" delay={2}>
-              <summary>
+            <Reveal as="article" className="rule" delay={2}>
+              <h3 className="rule-title">
                 <span className="material-symbols-outlined" aria-hidden="true">
                   info
                 </span>
                 その他・会場のご案内
-                <span
-                  className="material-symbols-outlined rule-chev"
-                  aria-hidden="true"
-                >
-                  expand_more
-                </span>
-              </summary>
+              </h3>
               <div className="rule-body">
                 <ul>
                   <li>
