@@ -182,7 +182,6 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   padding-top: 12px;
 }
 .hero-bib b { color: var(--ink); font-weight: 500; }
-.hero-ed { margin-left: auto; color: var(--maple); }
 .hero-num-row {
   display: flex; align-items: flex-end; flex-wrap: wrap;
   margin: 22px 0 4px;

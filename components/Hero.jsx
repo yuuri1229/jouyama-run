@@ -38,7 +38,6 @@ export default function Hero() {
             <span>
               <b>2026.11.22 SUN — 11.23 MON</b>
             </span>
-            <span className="hero-ed">3RD EDITION</span>
           </p>
 
           <h1 className="hero-num-row" aria-label="24時間走と12時間走">
@@ -56,7 +55,7 @@ export default function Hero() {
             <div>
               <dt>COURSE</dt>
               <dd>
-                1周 約960m<em>周回コース／舗装路</em>
+                1周 約960m<em>周回コース</em>
               </dd>
             </div>
             <div>
@@ -82,7 +81,7 @@ export default function Hero() {
           <p className="hero-lede">
             決められた<b>時間</b>のなかで、走った距離を競う大会です。
             <br className="pc" />
-            歩いても、休んでも構いません。ウォーカーの参加も歓迎します。
+            歩いても、休んでも構いません。ウォーカーの参加も歓迎
           </p>
 
           <div className="hero-actions">
