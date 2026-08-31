@@ -170,8 +170,9 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   min-height: min(720px, calc(100svh - var(--header-h) - 42px));
 }
 .hero-info {
-  padding: 40px clamp(20px, 4.5vw, 60px) 40px;
-  display: flex; flex-direction: column;
+  /* 左端を下層セクションの1080pxグリッドに揃える */
+  padding: 44px clamp(24px, 4vw, 64px) 44px max(24px, calc((100vw - 1080px) / 2 + 24px));
+  display: flex; flex-direction: column; justify-content: center;
 }
 .hero-bib {
   display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline;
@@ -234,7 +235,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 .hero-lede { margin-top: 20px; font-size: .95rem; }
 .hero-lede b { color: var(--ink); }
 .hero-actions {
-  margin-top: auto; padding-top: 30px;
+  margin-top: 34px;
   display: flex; gap: 14px; flex-wrap: wrap;
 }
 
@@ -265,7 +266,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 
 .lap-strip {
   display: flex; align-items: center; gap: 12px;
-  padding: 9px clamp(20px, 4.5vw, 60px);
+  padding: 9px max(24px, calc((100vw - 1080px) / 2 + 24px));
   border-top: 1px solid var(--line);
   background: var(--mist);
   font-family: var(--font-mono);
@@ -704,8 +705,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
     border-top: 2px solid var(--pine);
     min-height: clamp(240px, 54vw, 420px);
   }
-  .hero-actions { margin-top: 0; padding-top: 30px; padding-bottom: 40px; }
-  .hero-info { padding-bottom: 0; }
+  .hero-info { padding-top: 36px; padding-bottom: 40px; }
 }
 
 @media (max-width: 860px) {
@@ -720,7 +720,8 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   .pc { display: none; }
   .section { padding: 64px 0; }
   .container { padding: 0 18px; }
-  .hero-info { padding-top: 28px; }
+  .hero-info { padding: 28px 18px 36px; }
+  .lap-strip { padding-left: 18px; padding-right: 18px; }
   .hero-bib { font-size: .68rem; letter-spacing: .12em; gap: 4px 16px; }
   .hero-num-row .unit { margin-left: 10px; }
   .hero-tbl > div { grid-template-columns: 84px 1fr; gap: 12px; }
