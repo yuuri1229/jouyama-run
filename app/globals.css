@@ -159,38 +159,62 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 }
 .mobile-nav-social a { display: flex; color: var(--ink); }
 
-/* ---------- ヒーロー（記録シート） ---------- */
+/* ---------- ヒーロー（写真背景 × 記録の書式） ---------- */
 .hero {
-  background: var(--ground);
-  border-bottom: 1px solid var(--line);
-  padding-top: var(--header-h);
-}
-.hero-main {
-  display: grid; grid-template-columns: 1fr 42%;
-  min-height: min(720px, calc(100svh - var(--header-h) - 42px));
-}
-.hero-info {
-  /* 左端を下層セクションの1080pxグリッドに揃える */
-  padding: 44px clamp(24px, 4vw, 64px) 44px max(24px, calc((100vw - 1080px) / 2 + 24px));
+  position: relative;
+  min-height: calc(100svh - var(--header-h));
+  margin-top: var(--header-h);
   display: flex; flex-direction: column; justify-content: center;
+  overflow: hidden;
+  background: var(--ink);
+  color: #fff;
+}
+.hero-media { position: absolute; inset: 0; z-index: 0; }
+.hero-slide {
+  position: absolute; inset: 0;
+  background-size: cover; background-position: center;
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+.hero-slide.is-active { opacity: 1; }
+/* 墨(--ink)に寄せたスクリム。左下の文字側を濃く、右上を抜く */
+.hero-scrim {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(100deg,
+      rgba(20,24,15,.9) 0%,
+      rgba(20,24,15,.78) 34%,
+      rgba(20,24,15,.42) 66%,
+      rgba(20,24,15,.55) 100%),
+    linear-gradient(180deg,
+      rgba(20,24,15,.5) 0%,
+      rgba(20,24,15,.08) 34%,
+      rgba(20,24,15,.72) 100%);
+}
+
+.hero-body {
+  position: relative; z-index: 1;
+  /* 左端を下層セクションの1080pxグリッドに揃える */
+  padding: 56px max(24px, calc((100vw - 1080px) / 2 + 24px)) 96px;
+  max-width: 900px;
 }
 .hero-bib {
   display: flex; flex-wrap: wrap; gap: 6px 22px; align-items: baseline;
   font-family: var(--font-mono);
   font-size: .76rem; letter-spacing: .16em;
-  color: var(--sub);
-  border-top: 2px solid var(--ink);
+  color: rgba(255,255,255,.72);
+  border-top: 2px solid rgba(255,255,255,.9);
   padding-top: 12px;
 }
-.hero-bib b { color: var(--ink); font-weight: 500; }
+.hero-bib b { color: #fff; font-weight: 500; }
 .hero-num-row {
   display: flex; align-items: flex-end; flex-wrap: wrap;
-  margin: 22px 0 4px;
+  margin: 24px 0 4px;
 }
 .hero-num-row .fig {
   font-size: clamp(4.6rem, 11.5vw, 9rem);
   line-height: .84; letter-spacing: -.015em;
-  color: var(--ink);
+  color: #fff;
 }
 .hero-num-row .slash {
   font-family: var(--font-en);
@@ -203,82 +227,57 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   font-weight: 700;
   font-size: clamp(1.3rem, 2.6vw, 1.9rem);
   line-height: 1.15; letter-spacing: .06em;
-  color: var(--ink);
+  color: #fff;
   margin-left: 14px; padding-bottom: .3em;
 }
 .hero-num-row .unit small {
   display: block;
   font-family: var(--font-mono); font-weight: 400;
   font-size: .66rem; letter-spacing: .24em;
-  color: var(--sub); margin-top: 6px;
+  color: rgba(255,255,255,.66); margin-top: 6px;
 }
-.hero-tbl { margin-top: 20px; border-top: 1px solid var(--line); }
-.hero-tbl > div {
-  display: grid; grid-template-columns: 96px 1fr; gap: 16px;
-  padding: 11px 0;
-  border-bottom: 1px dashed var(--line);
-  align-items: baseline;
+.hero-lede {
+  margin-top: 22px; font-size: 1rem;
+  color: rgba(255,255,255,.92);
 }
-.hero-tbl dt {
-  font-family: var(--font-mono);
-  font-size: .72rem; letter-spacing: .16em;
-  color: var(--sub);
-}
-.hero-tbl dd {
-  font-size: 1rem; font-weight: 700; color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-.hero-tbl dd em {
-  font-style: normal; font-weight: 500;
-  color: var(--sub); font-size: .85rem; margin-left: 10px;
-}
-.hero-lede { margin-top: 20px; font-size: .95rem; }
-.hero-lede b { color: var(--ink); }
+.hero-lede b { color: #fff; }
 .hero-actions {
   margin-top: 34px;
   display: flex; gap: 14px; flex-wrap: wrap;
 }
 
-.hero-photo {
-  position: relative; overflow: hidden;
-  border-left: 2px solid var(--pine);
-  min-height: 420px;
-  background: var(--mist);
+/* 下端：ラップストリップ＋写真の切り替えドット */
+.hero-foot {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
 }
-.hero-slide {
-  position: absolute; inset: 0;
-  background-size: cover; background-position: center;
-  opacity: 0;
-  transition: opacity 1.2s ease;
+.lap-strip {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px max(24px, calc((100vw - 1080px) / 2 + 24px));
+  border-top: 1px solid rgba(255,255,255,.28);
+  background: rgba(20,24,15,.55);
+  backdrop-filter: blur(4px);
+  font-family: var(--font-mono);
+  font-size: .68rem; letter-spacing: .16em;
+  color: rgba(255,255,255,.75);
+  white-space: nowrap;
 }
-.hero-slide.is-active { opacity: 1; }
+.lap-strip i {
+  flex: 1; height: 3px;
+  background: repeating-linear-gradient(90deg, rgba(255,255,255,.4) 0 2px, transparent 2px 12px);
+}
+.lap-strip b { color: #fff; font-weight: 500; }
 .hero-dots {
-  position: absolute; left: 18px; bottom: 16px; z-index: 2;
+  position: absolute; right: max(24px, calc((100vw - 1080px) / 2 + 24px));
+  bottom: calc(100% + 18px);
   display: flex; gap: 8px;
 }
 .hero-dots button {
   width: 22px; height: 4px;
   border: none; padding: 0; cursor: pointer;
-  background: rgba(255,255,255,.55);
+  background: rgba(255,255,255,.45);
   transition: background .2s;
 }
 .hero-dots button.is-active { background: var(--pine); }
-
-.lap-strip {
-  display: flex; align-items: center; gap: 12px;
-  padding: 9px max(24px, calc((100vw - 1080px) / 2 + 24px));
-  border-top: 1px solid var(--line);
-  background: var(--mist);
-  font-family: var(--font-mono);
-  font-size: .68rem; letter-spacing: .16em;
-  color: var(--sub);
-  white-space: nowrap;
-}
-.lap-strip i {
-  flex: 1; height: 3px;
-  background: repeating-linear-gradient(90deg, var(--line) 0 2px, transparent 2px 12px);
-}
-.lap-strip b { color: var(--maple); font-weight: 500; }
 
 /* ---------- セクション共通 ---------- */
 .section { padding: 96px 0; }
@@ -699,17 +698,14 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 @media (max-width: 960px) {
   .race-cards, .schedule-grid { grid-template-columns: 1fr; }
   .course-wrap { grid-template-columns: 1fr; gap: 30px; }
-  .hero-main { grid-template-columns: 1fr; min-height: 0; }
-  .hero-photo {
-    border-left: none;
-    border-top: 2px solid var(--pine);
-    min-height: clamp(240px, 54vw, 420px);
+  /* 文字が写真の全幅にかかるため、スクリムを均一に濃くする */
+  .hero-scrim {
+    background:
+      linear-gradient(180deg,
+        rgba(20,24,15,.72) 0%,
+        rgba(20,24,15,.6) 42%,
+        rgba(20,24,15,.82) 100%);
   }
-  .hero-info { padding-top: 36px; padding-bottom: 40px; }
-  /* ファーストビューにCTAと写真を収めるため、記録テーブルは省略。
-     同じ情報は下の「大会概要」セクションで参照できる */
-  .hero-tbl { display: none; }
-  .hero-lede { margin-top: 22px; }
 }
 
 @media (max-width: 860px) {
@@ -724,15 +720,17 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   .pc { display: none; }
   .section { padding: 64px 0; }
   .container { padding: 0 18px; }
-  .hero-info { padding: 28px 18px 36px; }
-  .lap-strip { padding-left: 18px; padding-right: 18px; }
+  .hero-body { padding: 32px 18px 92px; }
   .hero-bib { font-size: .68rem; letter-spacing: .12em; gap: 4px 16px; }
   .hero-num-row .unit { margin-left: 10px; }
-  .hero-tbl > div { grid-template-columns: 84px 1fr; gap: 12px; }
-  .hero-tbl dd em { display: block; margin-left: 0; }
+  .hero-lede { font-size: .95rem; }
   .hero-actions { flex-direction: column; align-items: stretch; }
   .btn { width: min(100%, 340px); justify-content: center; }
-  .lap-strip { font-size: .6rem; gap: 8px; }
+  .lap-strip {
+    font-size: .6rem; gap: 8px;
+    padding-left: 18px; padding-right: 18px;
+  }
+  .hero-dots { right: 18px; }
   .news-link { grid-template-columns: auto 1fr auto; gap: 8px 14px; padding: 18px 4px; }
   .news-link .news-tag { justify-self: start; }   /* タグが横幅いっぱいに伸びるのを防止 */
   .news-link .news-text { grid-column: 1 / -1; }
@@ -763,15 +761,14 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   from { opacity: 0; transform: translateY(24px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.hero-bib, .hero-num-row, .hero-tbl, .hero-lede, .hero-actions {
+.hero-bib, .hero-num-row, .hero-lede, .hero-actions {
   opacity: 0;
   animation: riseIn .9s cubic-bezier(.22,.61,.36,1) forwards;
 }
 .hero-bib     { animation-delay: .1s; }
 .hero-num-row { animation-delay: .25s; }
-.hero-tbl     { animation-delay: .45s; }
-.hero-lede    { animation-delay: .6s; }
-.hero-actions { animation-delay: .75s; }
+.hero-lede    { animation-delay: .45s; }
+.hero-actions { animation-delay: .6s; }
 
 /* ---- 2) スクロールで現れる要素 ---- */
 .reveal {
@@ -794,7 +791,7 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
 
 /* アニメーションを減らす設定のユーザーには全て無効化 */
 @media (prefers-reduced-motion: reduce) {
-  .hero-bib, .hero-num-row, .hero-tbl, .hero-lede, .hero-actions {
+  .hero-bib, .hero-num-row, .hero-lede, .hero-actions {
     animation: none; opacity: 1;
   }
   .reveal { opacity: 1; transform: none; transition: none; }
