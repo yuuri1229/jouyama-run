@@ -1,6 +1,7 @@
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import Analytics from "../components/Analytics";
 
 export const metadata = {
   title: "新潟・城山運動公園24＆12時間走｜2026.11.22-23",
@@ -25,6 +26,7 @@ export default function RootLayout({ children }) {
         <Header />
         {children}
         <Footer />
+        <Analytics />
       </body>
     </html>
   );
