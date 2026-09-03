@@ -182,14 +182,14 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   position: absolute; inset: 0;
   background:
     linear-gradient(100deg,
-      rgba(20,24,15,.9) 0%,
-      rgba(20,24,15,.78) 34%,
-      rgba(20,24,15,.42) 66%,
-      rgba(20,24,15,.55) 100%),
+      rgba(20,24,15,.78) 0%,
+      rgba(20,24,15,.6) 34%,
+      rgba(20,24,15,.18) 66%,
+      rgba(20,24,15,.3) 100%),
     linear-gradient(180deg,
-      rgba(20,24,15,.5) 0%,
-      rgba(20,24,15,.08) 34%,
-      rgba(20,24,15,.72) 100%);
+      rgba(20,24,15,.34) 0%,
+      rgba(20,24,15,0) 34%,
+      rgba(20,24,15,.55) 100%);
 }
 
 .hero-body {
@@ -702,9 +702,9 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
   .hero-scrim {
     background:
       linear-gradient(180deg,
-        rgba(20,24,15,.72) 0%,
-        rgba(20,24,15,.6) 42%,
-        rgba(20,24,15,.82) 100%);
+        rgba(20,24,15,.6) 0%,
+        rgba(20,24,15,.48) 42%,
+        rgba(20,24,15,.72) 100%);
   }
 }
 
