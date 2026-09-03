@@ -15,9 +15,22 @@ export async function generateMetadata({ params }) {
   const items = await getNewsItems();
   const item = items.find((n) => n.id === params.id);
   if (!item) return {};
+
+  const description = `新潟・城山運動公園24＆12時間走の最新情報「${item.title}」（${item.dateLabel}）`;
   return {
-    title: `${item.title}｜新潟・城山運動公園24＆12時間走`,
-    description: `新潟・城山運動公園24＆12時間走の最新情報「${item.title}」`,
+    title: item.title,
+    description,
+    alternates: { canonical: `/news/${item.id}/` },
+    openGraph: {
+      title: `${item.title}｜新潟・城山運動公園24＆12時間走`,
+      description,
+      type: "article",
+      publishedTime: item.date,
+    },
+    twitter: {
+      title: `${item.title}｜新潟・城山運動公園24＆12時間走`,
+      description,
+    },
   };
 }
 
