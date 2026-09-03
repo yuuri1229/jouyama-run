@@ -706,6 +706,10 @@ a:focus-visible { outline: 3px solid var(--maple); outline-offset: 2px; }
     min-height: clamp(240px, 54vw, 420px);
   }
   .hero-info { padding-top: 36px; padding-bottom: 40px; }
+  /* ファーストビューにCTAと写真を収めるため、記録テーブルは省略。
+     同じ情報は下の「大会概要」セクションで参照できる */
+  .hero-tbl { display: none; }
+  .hero-lede { margin-top: 22px; }
 }
 
 @media (max-width: 860px) {
