@@ -291,18 +291,18 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   position: absolute; inset: 0;
   background:
     linear-gradient(100deg,
-      rgba(7, 31, 11, .82) 0%,
-      rgba(7, 31, 11, .5) 42%,
-      rgba(7, 31, 11, .08) 78%,
-      rgba(7, 31, 11, 0) 100%),
+      rgba(10, 18, 12, .72) 0%,
+      rgba(10, 18, 12, .4) 42%,
+      rgba(10, 18, 12, .05) 78%,
+      rgba(10, 18, 12, 0) 100%),
     radial-gradient(120% 80% at 15% 90%,
-      rgba(22, 122, 30, .42) 0%,
+      rgba(22, 122, 30, .13) 0%,
       rgba(22, 122, 30, 0) 60%),
     linear-gradient(180deg,
-      rgba(7, 31, 11, .72) 0%,
-      rgba(7, 31, 11, .34) 34%,
-      rgba(7, 31, 11, .78) 82%,
-      rgba(7, 31, 11, .94) 100%);
+      rgba(10, 18, 12, .55) 0%,
+      rgba(10, 18, 12, .18) 34%,
+      rgba(10, 18, 12, .6) 82%,
+      rgba(10, 18, 12, .85) 100%);
 }
 
 .hero-body {
@@ -336,7 +336,12 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   line-height: 1.5;
   white-space: nowrap;
 }
-.hero-bib span:first-child { border: 1px solid rgba(255, 255, 255, .34); }
+/* 枠だけだと写真の明るい部分に重なったとき文字が読みにくいので、
+   ごく薄い下地を敷いてどの写真でも可読性を確保する */
+.hero-bib span:first-child {
+  border: 1px solid rgba(255, 255, 255, .34);
+  background: rgba(10, 18, 12, .42);
+}
 .hero-bib span:last-child {
   background: var(--pine);
   font-weight: 600;
@@ -423,7 +428,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   gap: 16px;
   padding: 13px max(32px, calc((100vw - 1240px) / 2 + 32px));
   border-top: 1px solid rgba(255, 255, 255, .18);
-  background: rgba(7, 31, 11, .5);
+  background: rgba(10, 18, 12, .55);
 }
 .lap-strip {
   display: flex;
@@ -1146,6 +1151,21 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   body { font-size: 15px; }
   .pc { display: none; }
   .brand-name { font-size: 13.5px; }
+  /* 狭い幅は文字が写真の全幅に乗るため、斜めではなく縦方向で
+     文字のある下半分だけを落とす。緑ではなく中立色で暗くするので
+     写真の色みは保ったまま白文字のコントラストを確保できる */
+  .hero-scrim {
+    background:
+      radial-gradient(120% 80% at 15% 90%,
+        rgba(22, 122, 30, .10) 0%,
+        rgba(22, 122, 30, 0) 60%),
+      linear-gradient(180deg,
+        rgba(10, 18, 12, .40) 0%,
+        rgba(10, 18, 12, .22) 26%,
+        rgba(10, 18, 12, .66) 52%,
+        rgba(10, 18, 12, .80) 78%,
+        rgba(10, 18, 12, .90) 100%);
+  }
   /* 狭い幅では装飾の罫線だけ省き、「LAP 960m × 24:00:00」は残す。
      1周の距離と制限時間は大会の根幹なのでスマホでも見せる */
   .hero-foot { gap: 12px; padding-top: 11px; padding-bottom: 11px; }
