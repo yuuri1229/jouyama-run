@@ -4,6 +4,7 @@ import Reveal from "../components/Reveal";
 import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
 import { GALLERY_WIDTHS, webpSrcSet } from "../lib/assets";
+import { skyGradient } from "../lib/sky";
 import {
   EVENT,
   LABEL,
@@ -182,7 +183,15 @@ export default async function HomePage() {
                     EVENT.race24.finishAt
                   )}まで`}
                 >
-                  <div className="timeband-bar band-24" />
+                  <div
+                    className="timeband-bar"
+                    style={{
+                      background: skyGradient(
+                        EVENT.race24.startAt,
+                        EVENT.race24.finishAt
+                      ),
+                    }}
+                  />
                   <div className="timeband-labels">
                     <span>
                       {formatDayTime(EVENT.race24.startAt)}
@@ -245,7 +254,15 @@ export default async function HomePage() {
                     EVENT.race12.night.startAt
                   )}から${formatDateTime(EVENT.race12.night.finishAt)}まで`}
                 >
-                  <div className="timeband-bar band-12day" />
+                  <div
+                    className="timeband-bar"
+                    style={{
+                      background: skyGradient(
+                        EVENT.race12.day.startAt,
+                        EVENT.race12.day.finishAt
+                      ),
+                    }}
+                  />
                   <div className="timeband-labels">
                     <span>
                       {formatDayTime(EVENT.race12.day.startAt)}
@@ -258,7 +275,15 @@ export default async function HomePage() {
                       <small>制限時間</small>
                     </span>
                   </div>
-                  <div className="timeband-bar band-12night" />
+                  <div
+                    className="timeband-bar timeband-bar--second"
+                    style={{
+                      background: skyGradient(
+                        EVENT.race12.night.startAt,
+                        EVENT.race12.night.finishAt
+                      ),
+                    }}
+                  />
                   <div className="timeband-labels">
                     <span>
                       {formatDayTime(EVENT.race12.night.startAt)}
