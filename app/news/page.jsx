@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Reveal from "../../components/Reveal";
+import { BreadcrumbJsonLd } from "../../components/JsonLd";
 import { getNewsItems, newsExcerpt } from "../../lib/microcms";
 
 const description = "新潟・城山運動公園24＆12時間走の最新情報一覧。";
@@ -16,7 +17,13 @@ export default async function NewsPage() {
   const newsItems = await getNewsItems();
 
   return (
-    <main className="page-main">
+    <main className="page-main" id="main">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "トップ", path: "/" },
+          { name: "最新情報", path: "/news/" },
+        ]}
+      />
       <div className="container">
         <nav className="breadcrumb" aria-label="パンくずリスト">
           <Link href="/">トップ</Link>

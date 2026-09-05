@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
@@ -14,9 +14,40 @@ const NAV_ITEMS = [
 
 export default function Header() {
   const [open, setOpen] = useState(false);
+  const headerRef = useRef(null);
+  const toggleRef = useRef(null);
+
+  // メニューが開いている間だけ有効にする挙動をまとめる。
+  //  ・Escapeで閉じてハンバーガーにフォーカスを戻す（キーボード操作）
+  //  ・メニューの外側をタップしたら閉じる
+  //  ・背後のページがスクロールしないようにする
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    const onPointerDown = (e) => {
+      if (!headerRef.current?.contains(e.target)) setOpen(false);
+    };
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [open]);
 
   return (
-    <header className="site-header">
+    <header className="site-header" ref={headerRef}>
       <div className="header-inner">
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-name">新潟・城山運動公園24&amp;12時間走</span>
@@ -43,6 +74,7 @@ export default function Header() {
         </nav>
 
         <button
+          ref={toggleRef}
           className="nav-toggle"
           aria-label={open ? "メニューを閉じる" : "メニューを開く"}
           aria-expanded={open}
@@ -66,6 +98,7 @@ export default function Header() {
           </Link>
         ))}
         <a
+          className="mobile-nav-cta"
           href={SITE.entryFormUrl}
           target="_blank"
           rel="noopener noreferrer"

@@ -15,8 +15,10 @@ export default function Analytics() {
 
   useEffect(() => {
     if (!gaId || typeof window.gtag !== "function") return;
-    window.gtag("config", gaId, {
+    window.gtag("event", "page_view", {
       page_path: `${basePath}${pathname}`,
+      page_location: window.location.href,
+      page_title: document.title,
     });
   }, [gaId, pathname]);
 
@@ -33,7 +35,9 @@ export default function Analytics() {
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', '${gaId}');
+          // 初回のページビューはこのスクリプトではなく、下の useEffect から
+          // 1回だけ送る。両方から送ると初回訪問が2PVとして二重計上される。
+          gtag('config', '${gaId}', { send_page_view: false });
         `}
       </Script>
     </>

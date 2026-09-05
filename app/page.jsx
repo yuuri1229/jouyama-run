@@ -3,17 +3,25 @@ import Hero from "../components/Hero";
 import Reveal from "../components/Reveal";
 import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
+import {
+  EVENT,
+  LABEL,
+  entryStatus,
+  formatDateTime,
+  formatDayTime,
+} from "../lib/event";
 
 const NEWS_ON_TOP = 3; // トップに表示するお知らせの件数
 
 export default async function HomePage() {
   const newsItems = await getNewsItems();
+  const entry = entryStatus();
 
   return (
     <>
       <Hero />
 
-      <main>
+      <main id="main">
         {/* ================= 1. 最新情報 ================= */}
         <section className="section" id="news">
           <div className="container">
@@ -77,7 +85,7 @@ export default async function HomePage() {
                   </span>
                   開催日
                 </dt>
-                <dd>2026年11月22日(日)〜23日(祝)</dd>
+                <dd>{LABEL.eventDateRange}</dd>
               </div>
               <div className="outline-row">
                 <dt>
@@ -87,7 +95,7 @@ export default async function HomePage() {
                   開催場所
                 </dt>
                 <dd>
-                  新潟市西蒲区峰岡580番地　城山運動公園
+                  {LABEL.address}
                   <br />
                   <a
                     className="text-arrow small"
@@ -112,7 +120,7 @@ export default async function HomePage() {
                   </span>
                   エントリー期間
                 </dt>
-                <dd>2026年6月1日(月)〜11月13日(金)</dd>
+                <dd>{LABEL.entryPeriod}</dd>
               </div>
               <div className="outline-row">
                 <dt>
@@ -122,7 +130,7 @@ export default async function HomePage() {
                   参加費
                 </dt>
                 <dd>
-                  24時間走 8,800円／12時間走 5,500円
+                  {LABEL.fees}
                   <br />
                   <small>
                     （施設利用料、エイド利用料、スポーツ保険加入代、人件費、運営費等）
@@ -141,9 +149,9 @@ export default async function HomePage() {
                   主催
                 </dt>
                 <dd>
-                  新潟・城山運動公園24＆12時間走実行委員会
+                  {EVENT.organizer.name}
                   <br />
-                  実行委員長　甲斐 愛子
+                  実行委員長　{EVENT.organizer.chair}
                 </dd>
               </div>
             </Reveal>
@@ -162,22 +170,26 @@ export default async function HomePage() {
                   <p className="race-num">
                     24<span>時間走</span>
                   </p>
-                  <p className="race-cap">募集 25名</p>
+                  <p className="race-cap">募集 {EVENT.race24.capacity}名</p>
                 </div>
                 <div
                   className="timeband"
                   role="img"
-                  aria-label="11月22日12時スタート、夜間を挟んで11月23日12時まで"
+                  aria-label={`${formatDateTime(
+                    EVENT.race24.startAt
+                  )}スタート、夜間を挟んで${formatDateTime(
+                    EVENT.race24.finishAt
+                  )}まで`}
                 >
                   <div className="timeband-bar band-24" />
                   <div className="timeband-labels">
                     <span>
-                      22日 12:00
+                      {formatDayTime(EVENT.race24.startAt)}
                       <br />
                       <small>スタート</small>
                     </span>
                     <span>
-                      23日 12:00
+                      {formatDayTime(EVENT.race24.finishAt)}
                       <br />
                       <small>制限時間</small>
                     </span>
@@ -191,7 +203,7 @@ export default async function HomePage() {
                     >
                       timer
                     </span>
-                    スタート：11月22日(日)12時
+                    スタート：{formatDateTime(EVENT.race24.startAt)}
                   </li>
                   <li>
                     <span
@@ -200,7 +212,7 @@ export default async function HomePage() {
                     >
                       sports_score
                     </span>
-                    制限時間：11月23日(祝)12時
+                    制限時間：{formatDateTime(EVENT.race24.finishAt)}
                   </li>
                   <li>
                     <span
@@ -209,73 +221,76 @@ export default async function HomePage() {
                     >
                       verified
                     </span>
-                    エントリー資格：過去にフルマラソン以上の距離を完走していること
+                    エントリー資格：{EVENT.race24.qualification}
                   </li>
                 </ul>
               </Reveal>
 
-              <Reveal as="article" className="race-card" delay={1}>
+              <Reveal as="article" className="race-card race-card--12" delay={1}>
                 <div className="race-head">
                   <p className="race-num">
                     12<span>時間走</span>
                   </p>
-                  <p className="race-cap">デイ・ナイト 各25名</p>
+                  <p className="race-cap">デイ・ナイト 各{EVENT.race12.capacityEach}名</p>
                 </div>
                 <div
                   className="timeband"
                   role="img"
-                  aria-label="デイスタートは22日12時から、ナイトスタートは23日0時から12時間"
+                  aria-label={`デイスタートは${formatDateTime(
+                    EVENT.race12.day.startAt
+                  )}から${formatDateTime(
+                    EVENT.race12.day.finishAt
+                  )}まで、ナイトスタートは${formatDateTime(
+                    EVENT.race12.night.startAt
+                  )}から${formatDateTime(EVENT.race12.night.finishAt)}まで`}
                 >
                   <div className="timeband-bar band-12day" />
                   <div className="timeband-labels">
                     <span>
-                      22日 12:00
+                      {formatDayTime(EVENT.race12.day.startAt)}
                       <br />
                       <small>デイスタート</small>
                     </span>
                     <span>
-                      23日 0:00
+                      {formatDayTime(EVENT.race12.day.finishAt)}
                       <br />
-                      <small>ナイトスタート</small>
+                      <small>制限時間</small>
                     </span>
                   </div>
                   <div className="timeband-bar band-12night" />
                   <div className="timeband-labels">
-                    <span>23日 0:00</span>
                     <span>
-                      23日 12:00
+                      {formatDayTime(EVENT.race12.night.startAt)}
+                      <br />
+                      <small>ナイトスタート</small>
+                    </span>
+                    <span>
+                      {formatDayTime(EVENT.race12.night.finishAt)}
                       <br />
                       <small>制限時間</small>
                     </span>
                   </div>
                 </div>
                 <ul className="race-spec">
-                  <li>
+                  <li className="icon-day">
                     <span
                       className="material-symbols-outlined"
                       aria-hidden="true"
                     >
                       light_mode
                     </span>
-                    デイスタート：11月22日(日)12時
+                    デイスタート：{formatDateTime(EVENT.race12.day.startAt)}
+                    （制限時間 {formatDateTime(EVENT.race12.day.finishAt)}）
                   </li>
-                  <li>
+                  <li className="icon-night">
                     <span
                       className="material-symbols-outlined"
                       aria-hidden="true"
                     >
                       dark_mode
                     </span>
-                    ナイトスタート：11月23日(祝)0時
-                  </li>
-                  <li>
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      sports_score
-                    </span>
-                    制限時間：11月22日(日)0時、11月23日(祝)12時
+                    ナイトスタート：{formatDateTime(EVENT.race12.night.startAt)}
+                    （制限時間 {formatDateTime(EVENT.race12.night.finishAt)}）
                   </li>
                   <li>
                     <span
@@ -284,7 +299,7 @@ export default async function HomePage() {
                     >
                       verified
                     </span>
-                    エントリー資格：過去にハーフマラソン以上を完走していること
+                    エントリー資格：{EVENT.race12.qualification}
                   </li>
                 </ul>
               </Reveal>
@@ -374,11 +389,11 @@ export default async function HomePage() {
                   <tbody>
                     <tr>
                       <th>0:00</th>
-                      <td>スタート</td>
+                      <td>ナイトスタート／デイスタートの制限時間</td>
                     </tr>
                     <tr>
                       <th>0:30</th>
-                      <td>賞品授与</td>
+                      <td>賞品授与（デイスタート）</td>
                     </tr>
                     <tr>
                       <th>12:00</th>
@@ -412,16 +427,19 @@ export default async function HomePage() {
                 <img
                   src={asset("/img/coursemap.webp")}
                   alt="城山運動公園内の周回コースマップ。屋内コート前がスタート地点"
+                  width="1200"
+                  height="848"
                   loading="lazy"
+                  decoding="async"
                 />
               </Reveal>
               <Reveal className="course-info" delay={1}>
                 <p className="course-stat">
-                  <span className="stat-num">960</span>
+                  <span className="stat-num">{EVENT.lapMeters}</span>
                   <span className="stat-unit">m／周</span>
                 </p>
                 <p>
-                  城山運動公園内をめぐる周回コース。屋内コート前がスタート地点です。
+                  {EVENT.venue.name}内をめぐる周回コース。屋内コート前がスタート地点です。
                 </p>
                 <ul className="course-points">
                   <li>
@@ -462,22 +480,34 @@ export default async function HomePage() {
           <img
             src={asset("/img/gallery-1.jpg")}
             alt="屋内コートでの開会式の様子"
+            width="1200"
+            height="900"
             loading="lazy"
+            decoding="async"
           />
           <img
             src={asset("/img/gallery-2.jpg")}
             alt="スタート前に集まる参加者"
+            width="1200"
+            height="900"
             loading="lazy"
+            decoding="async"
           />
           <img
             src={asset("/img/gallery-3.jpg")}
             alt="管理棟での参加者ミーティング"
+            width="1200"
+            height="900"
             loading="lazy"
+            decoding="async"
           />
           <img
             src={asset("/img/gallery-4.jpg")}
             alt="公園内の周回コース"
+            width="1200"
+            height="900"
             loading="lazy"
+            decoding="async"
           />
         </section>
 
@@ -486,24 +516,27 @@ export default async function HomePage() {
           <div className="container">
             <Reveal className="entry-inner">
               <h2 className="entry-title">ENTRY</h2>
-              <p className="entry-lead">
-                エントリー受付中｜2026年11月13日(金)まで
-              </p>
+              {/* 受付状態はビルド時刻と lib/event.js の期間から判定する。
+                  文言を直書きしていると、締切後もサイトが
+                  「受付中」と言い続けてしまうため。 */}
+              <p className="entry-lead">{entry.label}</p>
               <div className="entry-actions">
-                <a
-                  className="btn btn-primary btn-lg"
-                  href={SITE.entryFormUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  エントリーフォームへ
-                  <span
-                    className="material-symbols-outlined"
-                    aria-hidden="true"
+                {entry.open ? (
+                  <a
+                    className="btn btn-primary btn-lg"
+                    href={SITE.entryFormUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
-                    arrow_outward
-                  </span>
-                </a>
+                    エントリーフォームへ
+                    <span
+                      className="material-symbols-outlined"
+                      aria-hidden="true"
+                    >
+                      arrow_outward
+                    </span>
+                  </a>
+                ) : null}
                 <a
                   className="btn btn-line"
                   href={SITE.entryListUrl}
@@ -521,6 +554,9 @@ export default async function HomePage() {
               </div>
               <p className="entry-note">
                 エントリーリストはエントリー確定後、随時更新します。
+                {entry.state === "open"
+                  ? `　定員は24時間走${EVENT.race24.capacity}名／12時間走デイ・ナイト各${EVENT.race12.capacityEach}名です。`
+                  : null}
               </p>
               <div className="entry-kit">
                 <h3>
@@ -587,7 +623,8 @@ export default async function HomePage() {
                   </li>
                 </ul>
                 <p className="rule-em">
-                  ※2026年の本大会において、上記に反する行為があった場合は2027年への参加をお断りさせていただきます。
+                  ※{EVENT.year}年の本大会において、上記に反する行為があった場合は
+                  {EVENT.year + 1}年への参加をお断りさせていただきます。
                 </p>
               </div>
             </Reveal>

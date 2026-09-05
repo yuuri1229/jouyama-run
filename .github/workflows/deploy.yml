@@ -14,6 +14,10 @@ on:
   # microCMSのWebhookから叩かれ、記事の公開・更新時に自動で再ビルドする
   repository_dispatch:
     types: [microcms-update]
+  # 静的サイトなので「エントリー受付中／受付終了」の判定はビルド時刻で決まる。
+  # 1日1回ビルドし直すことで、締切を過ぎたら自動で表示が切り替わるようにする。
+  schedule:
+    - cron: "0 20 * * *" # 毎日 05:00 JST
 
 permissions:
   contents: read
@@ -35,9 +39,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          # package-lock.json をキーに node_modules をキャッシュして
+          # 毎回のインストールを短縮する
+          cache: npm
 
       - name: 依存パッケージをインストール
-        run: npm install
+        # npm install だとロックファイルを書き換えてしまい、
+        # 「ローカルでは動くのにデプロイだけ壊れる」の原因になる。
+        # npm ci はロックファイルどおりに入れるので毎回同じ結果になる。
+        run: npm ci
 
       - name: ベースパスを判定
         id: basepath

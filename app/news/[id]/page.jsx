@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import NewsBody from "../../../components/NewsBody";
+import { BreadcrumbJsonLd } from "../../../components/JsonLd";
 import { getNewsItems } from "../../../lib/microcms";
 
 // 静的エクスポートのため、全記事のIDを事前に列挙してページを生成する。
@@ -40,7 +41,14 @@ export default async function NewsArticlePage({ params }) {
   if (!item) notFound();
 
   return (
-    <main className="page-main">
+    <main className="page-main" id="main">
+      <BreadcrumbJsonLd
+        items={[
+          { name: "トップ", path: "/" },
+          { name: "最新情報", path: "/news/" },
+          { name: item.title, path: `/news/${item.id}/` },
+        ]}
+      />
       <div className="container">
         <nav className="breadcrumb" aria-label="パンくずリスト">
           <Link href="/">トップ</Link>

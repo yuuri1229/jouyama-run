@@ -1,6 +1,5 @@
-@import url("https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,300..600,0..1,0");
+/* フォントの読み込みは app/layout.jsx の <link>（lib/assets.js）で行う。
+   @import はCSSを読み終えてから取得が始まり描画開始が遅れるため使わない。 */
 
 /* =========================================================
    新潟・城山運動公園24＆12時間走
@@ -27,6 +26,17 @@
   --night:    #123049;   /* タイムバンド：夜 */
   --header-h: 68px;
   --radius: 2px;
+
+  /* 余白スケール。セクション間・カード内の余白はこの中から選ぶ
+     （その場しのぎの clamp を増やさないための共通尺度） */
+  --space-2xs: 6px;
+  --space-xs:  10px;
+  --space-sm:  16px;
+  --space-md:  24px;
+  --space-lg:  clamp(24px, 3vw, 38px);
+  --space-xl:  clamp(28px, 3.5vw, 44px);
+  --space-2xl: clamp(48px, 6vw, 84px);
+  --space-3xl: clamp(60px, 7vw, 104px);
   --font-jp: "Zen Kaku Gothic New", "Hiragino Kaku Gothic ProN",
              "Hiragino Sans", "Yu Gothic", sans-serif;
   --font-en: "Oswald", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -40,9 +50,20 @@
   --fs-base:  15.5px;   /* 本文 */
   --fs-md:    17px;     /* やや大きい本文 */
 
+  /* 見出し・強調の流体サイズ。各所で個別に clamp を書くと
+     ページ間で揃わなくなるため、役割ごとにここで決める */
+  --fs-lead:  clamp(15.5px, 1.4vw, 17px);   /* リード文・本文大 */
+  --fs-h3:    clamp(19px, 2vw, 24px);       /* 中見出し */
+  --fs-h2:    clamp(26px, 3vw, 38px);       /* セクション見出し */
+  --fs-display: clamp(52px, 9vw, 120px);    /* ENTRY等の特大英字 */
+
   /* 和文の行長。全角40字前後で折り返すと読み疲れしない */
   --measure: 40em;
   --lh-body: 1.85;
+
+  /* OSのダークテーマでフォームやスクロールバーが勝手に暗転しないよう、
+     このサイトはライト固定であることを明示する */
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -62,12 +83,11 @@ body {
   line-height: var(--lh-body);
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
   text-wrap: pretty;
 }
 
 h1, h2, h3, h4 { text-wrap: balance; }
-img { max-width: 100%; display: block; }
+img { max-width: 100%; height: auto; display: block; }
 a { color: var(--pine); text-decoration: none; }
 a:hover { color: var(--pine-d); }
 a:focus-visible,
@@ -78,6 +98,24 @@ button:focus-visible { outline: 3px solid var(--pine); outline-offset: 2px; }
 .entry a:focus-visible,
 .site-footer a:focus-visible { outline-color: #fff; }
 button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
+
+/* キーボード操作でヘッダーのリンク群を読み飛ばして本文に入るためのリンク。
+   ふだんは画面外、Tabで到達したときだけ現れる */
+.skip-link {
+  position: fixed;
+  top: 8px; left: 8px;
+  z-index: 200;
+  transform: translateY(-160%);
+  background: var(--pine);
+  color: #fff;
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  letter-spacing: .06em;
+  padding: 12px 20px;
+  border-radius: var(--radius);
+  transition: transform .18s ease;
+}
+.skip-link:focus-visible { transform: translateY(0); color: #fff; }
 ::selection { background: var(--pine); color: #fff; }
 
 .material-symbols-outlined {
@@ -115,9 +153,10 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .btn .material-symbols-outlined { font-size: 1.15em; }
 .btn-primary { background: var(--pine); color: #fff; }
 .btn-primary:hover { background: var(--pine-d); color: #fff; }
-.btn-ghost { color: #fff; border: 1px solid rgba(255, 255, 255, .42); }
+/* 枠線はUI境界なので3:1以上（旧 .42 は約2.2:1で不足していた） */
+.btn-ghost { color: #fff; border: 1px solid rgba(255, 255, 255, .72); }
 .btn-ghost:hover { background: rgba(255, 255, 255, .12); color: #fff; }
-.btn-line { color: var(--ink); border: 1px solid rgba(13, 26, 16, .32); }
+.btn-line { color: var(--ink); border: 1px solid rgba(13, 26, 16, .55); }
 .btn-line:hover { background: var(--ink); color: var(--ground); }
 .btn-lg { padding: 20px 36px; font-size: clamp(16px, 1.4vw, var(--fs-md)); }
 
@@ -240,7 +279,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-size: 17px;
   font-weight: 700;
 }
-.mobile-nav > a:last-of-type {
+.mobile-nav .mobile-nav-cta {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -253,7 +292,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   padding: 17px 18px;
   border-radius: var(--radius);
 }
-.mobile-nav > a:last-of-type:hover { background: var(--pine-d); color: #fff; }
+.mobile-nav .mobile-nav-cta:hover { background: var(--pine-d); color: #fff; }
 .mobile-nav-social {
   display: flex;
   align-items: center;
@@ -475,7 +514,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .hero-dots button.is-active { background: #fff; }
 
 /* ---------- セクション共通 ---------- */
-.section { padding: clamp(60px, 7vw, 104px) 0; }
+.section { padding: var(--space-3xl) 0; }
 .section-mist { background: var(--mist); }
 
 .sec-head {
@@ -483,7 +522,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   align-items: baseline;
   flex-wrap: wrap;
   gap: 16px 40px;
-  margin-bottom: clamp(28px, 3.5vw, 44px);
+  margin-bottom: var(--space-xl);
   border-bottom: 1px solid var(--line);
   padding-bottom: 18px;
 }
@@ -500,7 +539,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .sec-eyebrow .material-symbols-outlined { font-size: 18px; }
 .sec-title {
   margin: 0;
-  font-size: clamp(26px, 3vw, 38px);
+  font-size: var(--fs-h2);
   font-weight: 700;
   letter-spacing: .01em;
   line-height: 1.35;
@@ -511,8 +550,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   display: flex;
   align-items: center;
   gap: 12px;
-  margin: clamp(48px, 6vw, 84px) 0 clamp(20px, 2.5vw, 28px);
-  font-size: clamp(19px, 2vw, 24px);
+  margin: var(--space-2xl) 0 clamp(20px, 2.5vw, 28px);
+  font-size: var(--fs-h3);
   font-weight: 700;
   letter-spacing: .02em;
   color: var(--ink);
@@ -526,7 +565,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .sub-title .material-symbols-outlined { color: var(--pine); }
 
-.sec-more { margin-top: clamp(24px, 3vw, 36px); }
+.sec-more { margin-top: var(--space-lg); }
 
 /* ---------- 最新情報（トップ） ---------- */
 .news-list { list-style: none; display: grid; }
@@ -620,7 +659,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   flex-direction: column;
   gap: clamp(20px, 2.4vw, 28px);
 }
-.race-card:nth-child(2) { border-top-color: var(--pine-l); }
+.race-card--12 { border-top-color: var(--pine-l); }
 .race-head {
   display: flex;
   align-items: flex-end;
@@ -634,7 +673,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   line-height: .85;
   color: var(--pine);
 }
-.race-card:nth-child(2) .race-num { color: var(--pine-12); }
+.race-card--12 .race-num { color: var(--pine-12); }
 .race-num span {
   font-family: var(--font-jp);
   font-size: clamp(16px, 1.6vw, 20px);
@@ -652,7 +691,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   padding: 7px 13px;
   white-space: nowrap;
 }
-.race-card:nth-child(2) .race-cap {
+.race-card--12 .race-cap {
   background: transparent;
   color: var(--pine-d);
   border: 1px solid rgba(22, 122, 30, .45);
@@ -712,8 +751,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: var(--pine);
   margin-top: 4px;
 }
-.race-card:nth-child(2) .race-spec li:nth-child(1) .material-symbols-outlined { color: var(--day); }
-.race-card:nth-child(2) .race-spec li:nth-child(2) .material-symbols-outlined { color: var(--night); }
+.race-spec .icon-day .material-symbols-outlined { color: var(--day); }
+.race-spec .icon-night .material-symbols-outlined { color: var(--night); }
 
 .race-note {
   display: flex;
@@ -791,6 +830,13 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   border: 1px solid var(--line);
   background: var(--paper);
 }
+/* 地図が縦に伸びすぎると右カラム（説明文）との間に大きな空白ができる。
+   1画面に収まる高さで頭打ちにして、横並びの釣り合いを保つ */
+.course-map img {
+  width: 100%;
+  max-height: 72vh;
+  object-fit: contain;
+}
 .course-stat {
   display: flex;
   align-items: baseline;
@@ -806,7 +852,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: var(--ink);
 }
 .course-info > p {
-  font-size: clamp(15.5px, 1.4vw, 17px);
+  font-size: var(--fs-lead);
   line-height: 2;
   letter-spacing: .02em;
   margin-bottom: 26px;
@@ -861,7 +907,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   max-width: 820px;
 }
 .entry-title {
-  font-size: clamp(52px, 9vw, 120px);
+  font-size: var(--fs-display);
   line-height: .85;
   letter-spacing: .02em;
 }
@@ -875,7 +921,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .entry-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
 .entry .btn-primary { background: #fff; color: var(--pine-d); }
 .entry .btn-primary:hover { background: var(--pine-d); color: #fff; }
-.entry .btn-line { color: #fff; border-color: rgba(255, 255, 255, .42); }
+.entry .btn-line { color: #fff; border-color: rgba(255, 255, 255, .72); }
 .entry .btn-line:hover { background: rgba(255, 255, 255, .12); color: #fff; }
 .entry-note { font-size: var(--fs-sm); color: rgba(255, 255, 255, .88); }
 .entry-kit {
@@ -1225,7 +1271,12 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .reveal[data-delay="2"] { transition-delay: .24s; }
 .reveal[data-delay="3"] { transition-delay: .36s; }
 
-.no-js .reveal { opacity: 1; transform: none; }
+/* JSが無効/失敗した環境で本文が見えなくならないようにする。
+   （layout.jsx の <noscript> と合わせた二重の保険） */
+@media (scripting: none) {
+  .reveal { opacity: 1; transform: none; }
+  .hero-bib, .hero-num-row, .hero-lede, .hero-actions { animation: none; opacity: 1; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .hero-bib, .hero-num-row, .hero-lede, .hero-actions { animation: none; opacity: 1; }
