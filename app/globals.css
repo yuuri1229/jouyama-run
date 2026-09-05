@@ -266,7 +266,10 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 /* ---------- ヒーロー ---------- */
 .hero {
   position: relative;
-  min-height: min(94vh, 860px);
+  /* 固定ヘッダーの分を引いて、初期表示で画面にちょうど収まる高さにする。
+     vhはスマホのアドレスバーを無いものとして計算するため下がはみ出す。
+     dvhは実際に見えている高さなのでバー表示時も収まる（未対応環境は下のvhが効く） */
+  min-height: calc(100vh - var(--header-h));
   margin-top: var(--header-h);
   display: flex;
   flex-direction: column;
@@ -308,7 +311,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: clamp(120px, 16vh, 180px) 32px clamp(28px, 4vw, 44px);
+  padding: clamp(24px, 7vh, 150px) 32px clamp(20px, 2.6vh, 44px);
 }
 
 /* 2つの独立したチップ（枠を共有しないので折り返しでも崩れない） */
@@ -317,7 +320,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   flex-wrap: wrap;
   align-items: stretch;
   gap: 8px;
-  margin: 0 0 clamp(20px, 3vw, 32px);
+  margin: 0 0 clamp(12px, 2.4vh, 32px);
   font-family: var(--font-mono);
   font-weight: 400;
   font-size: clamp(10.5px, 1vw, 12px);
@@ -381,7 +384,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 
 .hero-lede {
-  margin-top: clamp(24px, 3.4vw, 38px);
+  margin-top: clamp(14px, 2.8vh, 38px);
   max-width: min(660px, 100%);
   font-size: clamp(15.5px, 1.35vw, 18px);
   line-height: 1.95;
@@ -391,10 +394,20 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .hero-lede b { color: #fff; font-weight: 700; }
 
 .hero-actions {
-  margin-top: clamp(28px, 3.6vw, 40px);
+  margin-top: clamp(16px, 3vh, 40px);
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+}
+
+/* dvh対応環境ではすべて実際の表示高さ基準に置き換える。
+   未対応環境は上のvh指定がそのまま効く */
+@supports (height: 100dvh) {
+  .hero { min-height: calc(100dvh - var(--header-h)); }
+  .hero-body { padding-top: clamp(24px, 7dvh, 150px); padding-bottom: clamp(20px, 2.6dvh, 44px); }
+  .hero-bib { margin-bottom: clamp(12px, 2.4dvh, 32px); }
+  .hero-lede { margin-top: clamp(14px, 2.8dvh, 38px); }
+  .hero-actions { margin-top: clamp(16px, 3dvh, 40px); }
 }
 
 /* 下端：ラップ表記＋写真切り替え */
