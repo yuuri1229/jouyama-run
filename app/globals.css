@@ -214,15 +214,23 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .brand:hover { color: var(--ink); }
 
-.global-nav { display: flex; align-items: center; gap: 30px; }
+/* 項目数が増えたぶん、狭い画面幅では間隔を詰めて1行に収める */
+.global-nav { display: flex; align-items: center; gap: clamp(16px, 2.2vw, 30px); }
 .global-nav a {
   color: var(--ink);
   font-size: var(--fs-sm);
   font-weight: 500;
   letter-spacing: .06em;
+  white-space: nowrap;   /* ラベルの途中で改行させない */
   transition: color .2s ease;
 }
 .global-nav a:hover { color: var(--pine); }
+/* サイト外へ出るリンクの目印。主張しすぎない大きさ・濃さにする */
+.nav-external {
+  font-size: 15px;
+  margin-left: 5px;
+  opacity: .5;
+}
 .global-nav .nav-cta {
   display: inline-flex;
   align-items: center;
@@ -1192,7 +1200,10 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 /* ---------- レスポンシブ ---------- */
 .pc { display: inline; }
 
-@media (max-width: 900px) {
+/* 項目が5つになり、900〜1000px付近ではラベルが「最新／情報」のように
+   途中で折り返していた。ナビが1行に収まりきる幅までは
+   ハンバーガーメニューに切り替える。 */
+@media (max-width: 1019px) {
   .global-nav { display: none; }
   .nav-toggle { display: flex; }
 }

@@ -20,6 +20,13 @@ export default function Footer() {
           <a href={SITE.entryFormUrl} target="_blank" rel="noopener noreferrer">
             エントリー
           </a>
+          <a
+            href={SITE.contactFormUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            お問い合わせ
+          </a>
         </nav>
       </div>
     </footer>

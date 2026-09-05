@@ -5,12 +5,43 @@ import Link from "next/link";
 import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
 
+// external: true はサイト外へ出るリンク。別タブで開くので、
+// 文字だけだと予告なくサイトを離れることになる。小さなアイコンを添えて
+// 「ここから外に出る」ことが分かるようにしている。
 const NAV_ITEMS = [
   { href: "/#news", label: "最新情報" },
   { href: "/#outline", label: "大会概要" },
   { href: "/#course", label: "コース" },
   { href: "/#rules", label: "ルール" },
+  { href: SITE.contactFormUrl, label: "お問い合わせ", external: true },
 ];
+
+// ヘッダー／モバイルメニューの両方で同じ出し分けをするための小さな部品
+function NavItem({ item, onClick }) {
+  if (item.external) {
+    return (
+      <a
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClick}
+      >
+        {item.label}
+        <span
+          className="material-symbols-outlined nav-external"
+          aria-hidden="true"
+        >
+          open_in_new
+        </span>
+      </a>
+    );
+  }
+  return (
+    <Link href={item.href} onClick={onClick}>
+      {item.label}
+    </Link>
+  );
+}
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -55,9 +86,7 @@ export default function Header() {
 
         <nav className="global-nav" aria-label="グローバルナビゲーション">
           {NAV_ITEMS.map((item) => (
-            <Link key={item.href} href={item.href}>
-              {item.label}
-            </Link>
+            <NavItem key={item.href} item={item} />
           ))}
           <SocialLinks className="header-social" />
           <a
@@ -93,9 +122,11 @@ export default function Header() {
         aria-label="モバイルメニュー"
       >
         {NAV_ITEMS.map((item) => (
-          <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
-            {item.label}
-          </Link>
+          <NavItem
+            key={item.href}
+            item={item}
+            onClick={() => setOpen(false)}
+          />
         ))}
         <a
           className="mobile-nav-cta"

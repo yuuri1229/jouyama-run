@@ -252,7 +252,7 @@ WebPが不得意な素材のため、78のままだと元のJPEGとほぼ同サ�
 
 | 優先 | 項目 | 補足 |
 |---|---|---|
-| 高 | **問い合わせ先** | 現在はInstagram / Facebookのみ。メールアドレスか問い合わせフォームが必要 |
+| ~~高~~ 対応済 | ~~**問い合わせ先**~~ | ヘッダー・モバイルメニュー・フッターに「お問い合わせ」（Googleフォーム）を設置。項目が5つになり900〜1000px付近でナビのラベルが途中で折り返したため、横ナビに切り替わる幅を900px→1020pxに引き上げた |
 | 高 | **アクセス・駐車場** | Google Mapリンクのみ。駐車可能台数、車中泊の可否は必ず聞かれる項目 |
 | 高 | **荒天中止・返金規定** | 参加費を事前振込で集める以上、明記が望ましい |
 | 中 | **過去大会の記録／リザルト** | リピーター向けに最も訴求力のあるコンテンツ |
@@ -279,7 +279,8 @@ WebPが不得意な素材のため、78のままだと元のJPEGとほぼ同サ�
 変更  app/globals.css         @import廃止・トークン整理・コントラスト・skip link
 変更  app/page.jsx            12時間走の時刻修正・event.js参照・画像寸法
 変更  components/Hero.jsx     背景画像→<picture>・遅延読み込み・ARIA是正・自動送り停止
-変更  components/Header.jsx   Esc/外側クリック/スクロールロック
+変更  components/Header.jsx   Esc/外側クリック/スクロールロック・お問い合わせ導線
+変更  components/Footer.jsx   お問い合わせ導線
 変更  components/Analytics.jsx  PV二重計上の修正
 変更  lib/microcms.js         cache()で取得を1回に集約
 変更  .github/workflows/deploy.yml  npm ci・キャッシュ・日次再ビルド
