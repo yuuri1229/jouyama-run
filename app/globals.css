@@ -202,6 +202,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .header-social { display: flex; align-items: center; gap: 10px; }
 .header-social a {
   display: flex;
+  padding: 5px;
+  margin: -5px;
   color: var(--ink);
   opacity: .55;
   transition: opacity .15s ease;
@@ -396,9 +398,17 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 
 /* 下端：ラップ表記＋写真切り替え */
+/* 帯自体を「ラップ表記（左）／写真切替（右）」の1行にする。
+   以前は .lap-strip だけが余白を持ち、狭い幅で中身を消すと
+   空の帯が残っていたため、余白は親側に集約した。 */
 .hero-foot {
   position: relative;
   z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px max(32px, calc((100vw - 1240px) / 2 + 32px));
   border-top: 1px solid rgba(255, 255, 255, .18);
   background: rgba(7, 31, 11, .5);
 }
@@ -406,9 +416,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   display: flex;
   align-items: center;
   gap: 14px;
-  max-width: 1240px;
-  margin: 0 auto;
-  padding: 16px 32px;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: clamp(10.5px, 1vw, 12px);
   letter-spacing: .12em;
@@ -424,20 +432,27 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .lap-strip span[aria-hidden] { opacity: .6; }
 .lap-strip b { color: var(--day); font-weight: 600; letter-spacing: .1em; }
 .hero-dots {
-  position: absolute;
-  right: max(32px, calc((100vw - 1240px) / 2 + 32px));
-  top: 50%;
-  transform: translateY(-50%);
   display: flex;
+  flex-shrink: 0;
   gap: 8px;
 }
 .hero-dots button {
+  position: relative;
   width: 26px; height: 3px;
   border: none;
   padding: 0;
   cursor: pointer;
   background: rgba(255, 255, 255, .34);
   transition: background .2s;
+}
+/* 棒の見た目は3pxのまま、指で押せるよう当たり判定だけ24pxに広げる */
+.hero-dots button::after {
+  content: "";
+  position: absolute;
+  left: -3px; right: -3px;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 24px;
 }
 .hero-dots button.is-active { background: #fff; }
 
@@ -1080,6 +1095,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .footer-social { display: flex; align-items: center; gap: 14px; }
 .footer-social a {
   display: flex;
+  padding: 6px;
+  margin: -6px;
   color: rgba(255, 255, 255, .72);
   transition: color .2s ease;
 }
@@ -1107,8 +1124,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 
 @media (max-width: 768px) {
-  .container, .header-inner, .hero-body, .lap-strip, .mobile-nav { padding-left: 16px; padding-right: 16px; }
-  .hero-dots { right: 16px; }
+  .container, .header-inner, .hero-body, .mobile-nav { padding-left: 16px; padding-right: 16px; }
+  .hero-foot { padding-left: 16px; padding-right: 16px; }
 }
 
 @media (max-width: 700px) {
@@ -1116,16 +1133,21 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   body { font-size: 15px; }
   .pc { display: none; }
   .brand-name { font-size: 13.5px; }
-  /* 狭い幅ではラップ表記を省略し、切り替えドットのみ残す */
-  .lap-strip { justify-content: flex-end; }
-  .lap-strip span, .lap-strip i, .lap-strip b { display: none; }
-  .hero-dots { position: static; transform: none; }
+  /* 狭い幅では装飾の罫線だけ省き、「LAP 960m × 24:00:00」は残す。
+     1周の距離と制限時間は大会の根幹なのでスマホでも見せる */
+  .hero-foot { gap: 12px; padding-top: 11px; padding-bottom: 11px; }
+  .lap-strip { gap: 8px; letter-spacing: .06em; }
+  .lap-strip i { display: none; }
+  .hero-dots { gap: 6px; }
+  .hero-dots button { width: 20px; }
   .hero-actions { flex-direction: column; align-items: stretch; }
   .btn { justify-content: center; }
-  .news-link { grid-template-columns: 1fr auto; gap: 8px 14px; }
+  /* 日付とタグを同じセルに重ねて margin-left:100px でずらしていたため、
+     文字幅が変わると衝突していた。素直に列として並べる */
+  .news-link { grid-template-columns: auto auto 1fr; gap: 8px 12px; }
   .news-link time { grid-row: 1; grid-column: 1; }
-  .news-link .news-tag { grid-row: 1; grid-column: 1; justify-self: start; margin-left: 100px; }
-  .news-link .news-arrow { grid-row: 1; grid-column: 2; justify-self: end; }
+  .news-link .news-tag { grid-row: 1; grid-column: 2; justify-self: start; }
+  .news-link .news-arrow { grid-row: 1; grid-column: 3; justify-self: end; }
   .news-link .news-text { grid-column: 1 / -1; margin-top: 8px; }
   .outline-row { grid-template-columns: 1fr; gap: 6px; }
   .rule { grid-template-columns: 1fr; }
