@@ -541,11 +541,16 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .section { padding: var(--space-3xl) 0; }
 .section-mist { background: var(--mist); }
 
+/* 英字ラベルと和文見出しの間隔は、見出しの文字サイズ（--fs-h2）と
+   同じように幅で変化させる。40px 固定だと狭い幅では見出しが 26px まで
+   縮むのに余白だけ残り、2語が離れて見えていた。
+   行が折り返した場合の縦の間隔（1つ目の値）も、ラベルと見出しが
+   ひとまとまりに読める程度に詰める。 */
 .sec-head {
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: 16px 40px;
+  gap: 10px clamp(18px, 2.4vw, 32px);
   margin-bottom: var(--space-xl);
   border-bottom: 1px solid var(--line);
   padding-bottom: 18px;
@@ -554,6 +559,9 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 本文用の行間（1.85）のままだとアイコン18pxの行box が33px になり、
+     折り返し時に見た目以上の余白が生まれるため行間を詰める */
+  line-height: 1;
   color: var(--pine);
   font-family: var(--font-mono);
   font-weight: 500;
