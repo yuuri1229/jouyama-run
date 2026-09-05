@@ -3,6 +3,7 @@ import Hero from "../components/Hero";
 import Reveal from "../components/Reveal";
 import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
+import { GALLERY_WIDTHS, webpSrcSet } from "../lib/assets";
 import {
   EVENT,
   LABEL,
@@ -477,38 +478,66 @@ export default async function HomePage() {
 
         {/* ================= フォト ================= */}
         <section className="photo-band" aria-label="大会の様子">
-          <img
-            src={asset("/img/gallery-1.jpg")}
-            alt="屋内コートでの開会式の様子"
-            width="1200"
-            height="900"
-            loading="lazy"
-            decoding="async"
-          />
-          <img
-            src={asset("/img/gallery-2.jpg")}
-            alt="スタート前に集まる参加者"
-            width="1200"
-            height="900"
-            loading="lazy"
-            decoding="async"
-          />
-          <img
-            src={asset("/img/gallery-3.jpg")}
-            alt="管理棟での参加者ミーティング"
-            width="1200"
-            height="900"
-            loading="lazy"
-            decoding="async"
-          />
-          <img
-            src={asset("/img/gallery-4.jpg")}
-            alt="公園内の周回コース"
-            width="1200"
-            height="900"
-            loading="lazy"
-            decoding="async"
-          />
+          <picture>
+            <source
+              type="image/webp"
+              srcSet={webpSrcSet("/img/gallery-1.jpg", GALLERY_WIDTHS, asset)}
+              sizes="(max-width: 700px) 50vw, 25vw"
+            />
+            <img
+              src={asset("/img/gallery-1.jpg")}
+              alt="屋内コートでの開会式の様子"
+              width="1200"
+              height="900"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+          <picture>
+            <source
+              type="image/webp"
+              srcSet={webpSrcSet("/img/gallery-2.jpg", GALLERY_WIDTHS, asset)}
+              sizes="(max-width: 700px) 50vw, 25vw"
+            />
+            <img
+              src={asset("/img/gallery-2.jpg")}
+              alt="スタート前に集まる参加者"
+              width="1200"
+              height="900"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+          <picture>
+            <source
+              type="image/webp"
+              srcSet={webpSrcSet("/img/gallery-3.jpg", GALLERY_WIDTHS, asset)}
+              sizes="(max-width: 700px) 50vw, 25vw"
+            />
+            <img
+              src={asset("/img/gallery-3.jpg")}
+              alt="管理棟での参加者ミーティング"
+              width="1200"
+              height="900"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
+          <picture>
+            <source
+              type="image/webp"
+              srcSet={webpSrcSet("/img/gallery-4.jpg", GALLERY_WIDTHS, asset)}
+              sizes="(max-width: 700px) 50vw, 25vw"
+            />
+            <img
+              src={asset("/img/gallery-4.jpg")}
+              alt="公園内の周回コース"
+              width="1200"
+              height="900"
+              loading="lazy"
+              decoding="async"
+            />
+          </picture>
         </section>
 
         {/* ================= エントリー ================= */}

@@ -17,7 +17,9 @@ Next.js（React）製の静的サイトです。GitHub Pagesで無料公開で�
 │   ├── event.js          # ★開催日・参加費・定員など大会情報（毎年ここを更新）
 │   ├── site.js           # ★エントリーフォーム等のURL設定
 │   └── assets.js         # フォントと使用アイコンの一覧
-├── public/img/           # ★画像置き場
+├── public/img/           # ★画像置き場（.jpgが元写真、.webpは自動生成）
+├── scripts/
+│   └── build-images.mjs  # 写真のWebP変換（npm run images）
 └── .github/workflows/    # 自動デプロイ設定（触らなくてOK）
 ```
 
@@ -64,6 +66,18 @@ Next.js（React）製の静的サイトです。GitHub Pagesで無料公開で�
    （別名にする場合は `components/Hero.jsx` や `app/page.jsx` の
    ファイル名も合わせて変更）
 
+> ⚠️ **ヒーロー（hero-1〜4.jpg）とギャラリー（gallery-1〜4.jpg）を
+> 差し替えたときは、配信用の軽量版をつくり直す必要があります。**
+> パソコンにNode.jsがある場合は、差し替え後に次を実行してください。
+>
+> ```bash
+> npm run images   # public/img/ に hero-1-960.webp などを書き出す
+> ```
+>
+> 生成された `.webp` も一緒にコミットします。
+> 実行しないと、新しい写真ではなく**古い写真が表示されたまま**になります。
+> （パソコンが使えない場合は、その旨を添えて相談してください）
+
 ### 本文・開催情報を変更する
 
 - **開催日、エントリー期間、参加費、定員：`lib/event.js` を編集**
@@ -97,8 +111,9 @@ Material Symbols のアイコンは、使う分だけを配信しています
 Node.js（LTS版）をインストール後、このフォルダで：
 
 ```bash
-npm install     # 初回のみ
+npm ci          # 初回のみ（package-lock.json どおりに入れる）
 npm run dev     # http://localhost:3000 で確認
+npm run images  # 写真を差し替えたときだけ
 ```
 
 ※ ローカル環境がなくてもGitHub上の編集だけで運用できます。

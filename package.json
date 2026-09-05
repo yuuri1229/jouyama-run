@@ -5,12 +5,16 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "images": "node scripts/build-images.mjs"
   },
   "dependencies": {
     "microcms-js-sdk": "^3.1.2",
     "next": "^14.2.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.4"
   }
 }

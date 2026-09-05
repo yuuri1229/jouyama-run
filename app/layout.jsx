@@ -4,7 +4,7 @@ import Footer from "../components/Footer";
 import Analytics from "../components/Analytics";
 import { asset, siteUrl, SITE } from "../lib/site";
 import { EVENT, LABEL, toIso, toIsoDate } from "../lib/event";
-import { FONT_HREFS, HERO_LCP_IMAGE } from "../lib/assets";
+import { FONT_HREFS, HERO_LCP_IMAGE, HERO_WIDTHS, webpSrcSet } from "../lib/assets";
 
 const title = "新潟・城山運動公園24＆12時間走";
 const description =
@@ -147,7 +147,10 @@ export default function RootLayout({ children }) {
         <link
           rel="preload"
           as="image"
+          type="image/webp"
           href={asset(HERO_LCP_IMAGE)}
+          imageSrcSet={webpSrcSet(HERO_LCP_IMAGE, HERO_WIDTHS, asset)}
+          imageSizes="100vw"
           fetchPriority="high"
         />
 

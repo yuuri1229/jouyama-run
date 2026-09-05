@@ -2,17 +2,23 @@
 
 import { useEffect, useRef, useState } from "react";
 import { asset, SITE } from "../lib/site";
-import { HERO_LCP_IMAGE } from "../lib/assets";
+import { HERO_LCP_IMAGE, HERO_WIDTHS, webpSrcSet } from "../lib/assets";
 import { EVENT, LABEL } from "../lib/event";
 
 const SLIDE_INTERVAL = 5000; // 写真の切り替え間隔（ミリ秒）
 
+// 写真は <picture> で出し分ける。CSSのbackground-imageだった頃は
+// 画面幅に関わらず1920px幅の1枚しか選べなかったが、srcsetにすると
+// スマホには960px幅の軽いものが届く。
 const SLIDES = [
   HERO_LCP_IMAGE,
   "/img/hero-2.jpg",
   "/img/hero-3.jpg",
   "/img/hero-4.jpg",
-].map(asset);
+].map((src) => ({
+  jpg: asset(src),
+  webp: webpSrcSet(src, HERO_WIDTHS, asset),
+}));
 
 // 「24:00:00」のような制限時間表記
 const HOURS_LABEL = `${String(EVENT.race24.hours).padStart(2, "0")}:00:00`;
@@ -66,13 +72,24 @@ export default function Hero() {
   return (
     <section className="hero" ref={heroRef}>
       <div className="hero-media" aria-hidden="true">
-        {SLIDES.map((src, i) =>
+        {SLIDES.map((slide, i) =>
           loaded.has(i) ? (
-            <div
-              key={src}
+            <picture
+              key={slide.jpg}
               className={`hero-slide${i === current ? " is-active" : ""}`}
-              style={{ backgroundImage: `url('${src}')` }}
-            />
+            >
+              <source type="image/webp" srcSet={slide.webp} sizes="100vw" />
+              <img
+                src={slide.jpg}
+                alt=""
+                width="1920"
+                height="1440"
+                // 1枚目はLCP要素なので最優先で、2枚目以降は
+                // 切り替わる直前に読み込まれるので後回しでよい
+                fetchPriority={i === 0 ? "high" : "low"}
+                decoding={i === 0 ? "sync" : "async"}
+              />
+            </picture>
           ) : null
         )}
         <div className="hero-scrim" />
@@ -139,9 +156,9 @@ export default function Hero() {
             以前は role="tablist" だけ付いていて中身にrole="tab"が無く、
             支援技術には壊れたタブとして伝わっていた。 */}
         <div className="hero-dots" role="group" aria-label="ヒーロー写真の切り替え">
-          {SLIDES.map((src, i) => (
+          {SLIDES.map((slide, i) => (
             <button
-              key={src}
+              key={slide.jpg}
               type="button"
               className={i === current ? "is-active" : ""}
               aria-label={`${i + 1}枚目の写真を表示`}
