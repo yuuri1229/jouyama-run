@@ -334,17 +334,24 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   position: absolute; inset: 0;
   display: block;
   opacity: 0;
+  z-index: 0;
   transition: opacity 1.4s ease;
 }
+/* 直前の写真は不透明のまま下に残す。
+   新旧を同時に半透明にすると、重なりの隙間から背景の暗色が透けて
+   クロスフェードの中間で画面が一段暗く沈む。下地を残せば、
+   上に重なる新しい写真が濃くなっていくだけの動きになる。 */
+.hero-slide.is-prev { opacity: 1; z-index: 1; }
 .hero-slide img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center 45%;
 }
-.hero-slide.is-active { opacity: 1; }
+.hero-slide.is-active { opacity: 1; z-index: 2; }
 .hero-scrim {
   position: absolute; inset: 0;
+  z-index: 3;   /* スライドのz-index(0〜2)より必ず上に重ねる */
   background:
     linear-gradient(100deg,
       rgba(10, 18, 12, .72) 0%,
