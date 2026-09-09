@@ -501,13 +501,16 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* ================= フォト ================= */}
+        {/* ================= フォト =================
+            sizes の 900px は globals.css の .photo-band が
+            4列→2列に切り替わる幅。ここがずれると、2列で大きく出して
+            いるのに1列ぶんの小さな画像が選ばれて眠い絵になる。 */}
         <section className="photo-band" aria-label="大会の様子">
           <picture>
             <source
               type="image/webp"
               srcSet={webpSrcSet("/img/gallery-1.jpg", GALLERY_WIDTHS, asset)}
-              sizes="(max-width: 700px) 50vw, 25vw"
+              sizes="(max-width: 900px) 50vw, 25vw"
             />
             <img
               src={asset("/img/gallery-1.jpg")}
@@ -522,7 +525,7 @@ export default async function HomePage() {
             <source
               type="image/webp"
               srcSet={webpSrcSet("/img/gallery-2.jpg", GALLERY_WIDTHS, asset)}
-              sizes="(max-width: 700px) 50vw, 25vw"
+              sizes="(max-width: 900px) 50vw, 25vw"
             />
             <img
               src={asset("/img/gallery-2.jpg")}
@@ -537,7 +540,7 @@ export default async function HomePage() {
             <source
               type="image/webp"
               srcSet={webpSrcSet("/img/gallery-3.jpg", GALLERY_WIDTHS, asset)}
-              sizes="(max-width: 700px) 50vw, 25vw"
+              sizes="(max-width: 900px) 50vw, 25vw"
             />
             <img
               src={asset("/img/gallery-3.jpg")}
@@ -552,7 +555,7 @@ export default async function HomePage() {
             <source
               type="image/webp"
               srcSet={webpSrcSet("/img/gallery-4.jpg", GALLERY_WIDTHS, asset)}
-              sizes="(max-width: 700px) 50vw, 25vw"
+              sizes="(max-width: 900px) 50vw, 25vw"
             />
             <img
               src={asset("/img/gallery-4.jpg")}
@@ -606,10 +609,13 @@ export default async function HomePage() {
                   </span>
                 </a>
               </div>
+              {/* JSXは改行を半角スペース1つに畳むので、続く文字列の先頭に
+                  全角スペースを置くと空きが二重になる。文はつなげず、
+                  定員は独立した1文として出す。 */}
               <p className="entry-note">
                 エントリーリストはエントリー確定後、随時更新します。
                 {entry.state === "open"
-                  ? `　定員は24時間走${EVENT.race24.capacity}名／12時間走デイ・ナイト各${EVENT.race12.capacityEach}名です。`
+                  ? `定員は24時間走${EVENT.race24.capacity}名／12時間走デイ・ナイト各${EVENT.race12.capacityEach}名です。`
                   : null}
               </p>
               <div className="entry-kit">

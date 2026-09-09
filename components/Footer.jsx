@@ -2,6 +2,19 @@ import Link from "next/link";
 import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
 
+// ヘッダーと同じ「ここから外に出る」印。フッターだけ印が無く、
+// 同じリンクなのに挙動の予告が場所によって違っていた。
+function ExternalMark() {
+  return (
+    <span
+      className="material-symbols-outlined nav-external"
+      aria-hidden="true"
+    >
+      open_in_new
+    </span>
+  );
+}
+
 export default function Footer() {
   return (
     <footer className="site-footer">
@@ -19,6 +32,7 @@ export default function Footer() {
           <Link href="/news/">最新情報一覧</Link>
           <a href={SITE.entryFormUrl} target="_blank" rel="noopener noreferrer">
             エントリー
+            <ExternalMark />
           </a>
           <a
             href={SITE.contactFormUrl}
@@ -26,6 +40,7 @@ export default function Footer() {
             rel="noopener noreferrer"
           >
             お問い合わせ
+            <ExternalMark />
           </a>
         </nav>
       </div>
