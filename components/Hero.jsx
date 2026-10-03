@@ -106,9 +106,13 @@ export default function Hero() {
       if (id !== null) clearInterval(id);
       id = null;
     };
+    // ヒーローが画面外にあるあいだは送らない。
+    // 見えていない写真のクロスフェードがスクロール中に走ると、
+    // 再描画と再レンダーで操作が重くなる
+    let inView = true;
     const start = () => {
       stop();
-      if (reduce.matches || pausedRef.current || document.hidden) return;
+      if (reduce.matches || pausedRef.current || document.hidden || !inView) return;
       id = setInterval(advance, SLIDE_INTERVAL);
     };
     restartRef.current = start;
@@ -142,9 +146,20 @@ export default function Hero() {
     document.addEventListener("visibilitychange", start);
     reduce.addEventListener("change", start);
 
+    const io =
+      "IntersectionObserver" in window && hero
+        ? new IntersectionObserver(([entry]) => {
+            inView = entry.isIntersecting;
+            if (inView) start();
+            else stop();
+          })
+        : null;
+    io?.observe(hero);
+
     start();
     return () => {
       stop();
+      io?.disconnect();
       restartRef.current = null;
       foot?.removeEventListener("pointerenter", onEnter);
       foot?.removeEventListener("pointerleave", onLeave);
