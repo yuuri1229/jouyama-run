@@ -23,6 +23,7 @@
   --line:     #dcdfd8;   /* 罫線 */
   --line-soft:#e7e9e3;   /* 内部の細罫 */
   --day:      #c98a1e;   /* タイムバンド：昼 */
+  --day-d:    #9a6200;   /* 白地に置く濃い琥珀（アイコン用。--day は白地で2.9:1） */
   --day-on:   #e8ac3f;   /* 濃色地に置く琥珀（--pine-on の琥珀版） */
   --night:    #123049;   /* タイムバンド：夜 */
   /* ヒーロー写真の暗幕に使う深緑 #071f0b のRGB値。
@@ -48,23 +49,43 @@
   /* 小さいラベル・時刻・日付などのデータ表記に使う等幅 */
   --font-mono: "Roboto", "Helvetica Neue", Arial, sans-serif;
 
-  /* 文字サイズのスケール（役割ごとに固定し、場当たりな指定を避ける） */
-  --fs-micro: 12px;     /* 英字ラベル */
+  /* 文字サイズのスケール（役割ごとに固定し、場当たりな指定を避ける）。
+     小数サイズ（11.5 / 12.5 / 13.5 / 14.5 / 15.5px）は使わない。
+     12px 未満は和文のつぶれが目立つため、ラベルでもこの下には下げない */
+  --fs-micro: 12px;     /* 英字ラベル・タグ（最小） */
   --fs-xs:    13px;     /* 補足・キャプション */
   --fs-sm:    14px;     /* 副次テキスト */
-  --fs-base:  15.5px;   /* 本文 */
+  --fs-ui:    15px;     /* ブランド名・モバイルのボタン */
+  --fs-base:  16px;     /* 本文 */
   --fs-md:    17px;     /* やや大きい本文 */
+
+  /* 字間のスケール。16種類あった値を役割ごとの4段＋英字の1段に集約。
+     和文は詰めすぎても開けすぎても読みにくいので、本文は .02em を基準にする */
+  --ls-body: .02em;     /* 本文・リード・表 */
+  --ls-head: .04em;     /* 見出し */
+  --ls-ui:   .06em;     /* ボタン・ナビ・リンク */
+  --ls-caps: .12em;     /* 英字ラベル（大文字・日付・時刻） */
+  --ls-wide: .16em;     /* ごく小さい英字（TIMED RUN・セクションの英字） */
+
+  /* アイコンのスケール。Material Symbols は 20 / 24px が設計サイズで、
+     em 基準だと 17.25px・18.4px・19.55px のような小数サイズになり
+     線がにじむため、固定の3段にする */
+  --icon-sm: 16px;      /* 小さな文字に添える矢印・外部リンク */
+  --icon-md: 20px;      /* 見出し・リストの先頭 */
+  --icon-lg: 24px;      /* ナビ・大きな見出し */
 
   /* 見出し・強調の流体サイズ。各所で個別に clamp を書くと
      ページ間で揃わなくなるため、役割ごとにここで決める */
-  --fs-lead:  clamp(15.5px, 1.4vw, 17px);   /* リード文・本文大 */
+  --fs-lead:  clamp(16px, 1.4vw, 17px);   /* リード文・本文大 */
   --fs-h3:    clamp(19px, 2vw, 24px);       /* 中見出し */
   --fs-h2:    clamp(26px, 3vw, 38px);       /* セクション見出し */
   --fs-display: clamp(52px, 9vw, 120px);    /* ENTRY等の特大英字 */
 
   /* 和文の行長。全角40字前後で折り返すと読み疲れしない */
   --measure: 40em;
-  --lh-body: 1.8;
+  --lh-body: 1.8;     /* 和文の本文 */
+  --lh-loose: 1.9;    /* 長めの説明文 */
+  --lh-head: 1.4;     /* 見出し（折り返したときに詰まらない程度） */
 
   /* OSのダークテーマでフォームやスクロールバーが勝手に暗転しないよう、
      このサイトはライト固定であることを明示する */
@@ -84,11 +105,11 @@ body {
   font-family: var(--font-jp);
   font-weight: 400;
   font-feature-settings: "palt" 1;      /* 和文の字詰め */
-  letter-spacing: .015em;
+  letter-spacing: var(--ls-body);
   color: var(--text);
   background: var(--ground);
   line-height: var(--lh-body);
-  font-size: 16px;
+  font-size: var(--fs-base);
   -webkit-font-smoothing: antialiased;
   text-wrap: pretty;
   font-kerning: normal;
@@ -123,7 +144,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: #fff;
   font-size: var(--fs-sm);
   font-weight: 700;
-  letter-spacing: .06em;
+  letter-spacing: var(--ls-ui);
   padding: 12px 20px;
   border-radius: var(--radius);
   transition: transform .18s ease;
@@ -131,10 +152,17 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .skip-link:focus-visible { transform: translateY(0); color: #fff; }
 ::selection { background: var(--pine); color: #fff; }
 
-.material-symbols-outlined {
-  font-variation-settings: "opsz" 24, "wght" 300, "FILL" 0, "GRAD" 0;
+/* アイコンは固定の3段（--icon-sm/md/lg）。文脈ごとに --icon を渡して使う。
+   em 基準にすると親の文字サイズ次第で 17.25px・19.55px のような小数サイズになり、
+   細い線がにじむ。opsz（光学サイズ）も実際の表示サイズに合わせる
+   （24pxのアイコンに opsz 24、20px以下は opsz 20 = 配信している最小値） */
+/* span.〜 と書くのは詳細度を1つ上げるため。Googleが配信するCSSにも
+   `.material-symbols-outlined { font-size: 24px }` があり、そちらは自前のCSSより
+   後に読み込まれる。同じ詳細度だと負けて、サイズ指定がすべて24pxに戻ってしまう */
+span.material-symbols-outlined {
+  font-size: var(--icon, var(--icon-md));
+  font-variation-settings: "opsz" var(--opsz, 20), "wght" 300, "FILL" 0, "GRAD" 0;
   vertical-align: middle;
-  font-size: 1.25em;
 }
 
 /* 数字・英字はすべてRobotoで組む */
@@ -158,13 +186,13 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   gap: 8px;
   font-weight: 700;
   font-size: var(--fs-base);
-  letter-spacing: .07em;
+  letter-spacing: var(--ls-ui);
   text-decoration: none;
   padding: 16px 28px;
   border-radius: var(--radius);
   transition: background .2s ease, color .2s ease, border-color .2s ease;
 }
-.btn .material-symbols-outlined { font-size: 1.15em; }
+.btn .material-symbols-outlined { --icon: var(--icon-md); }
 .btn-primary { background: var(--pine); color: #fff; }
 .btn-primary:hover { background: var(--pine-d); color: #fff; }
 /* 枠線はUI境界なので3:1以上（旧 .42 は約2.2:1で不足していた） */
@@ -181,12 +209,20 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: var(--pine);
   font-weight: 700;
   font-size: var(--fs-sm);
-  letter-spacing: .08em;
+  letter-spacing: var(--ls-ui);
   border-bottom: 1px solid rgba(22, 122, 30, .45);
   padding-bottom: 6px;
+  position: relative;
+}
+.text-arrow .material-symbols-outlined { --icon: var(--icon-sm); }
+/* 見た目は32px前後の細いリンクのまま、指で押せる範囲だけ上下に広げて44px以上にする */
+.text-arrow::after {
+  content: "";
+  position: absolute;
+  inset: -8px -4px;
 }
 .text-arrow:hover { color: var(--pine-d); border-bottom-color: var(--pine-d); }
-.text-arrow.small { font-size: var(--fs-sm); letter-spacing: .06em; }
+.text-arrow.small { font-size: var(--fs-sm); letter-spacing: var(--ls-ui); }
 
 /* ---------- ヘッダー ---------- */
 .site-header {
@@ -212,6 +248,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   display: flex;
   align-items: center;
   gap: 12px;
+  min-height: 44px;   /* 文字は1行(約26px)だが、押せる範囲は44px以上に */
   color: var(--ink);
 }
 .brand::before {
@@ -223,8 +260,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .brand-name {
   font-weight: 700;
-  font-size: 15px;
-  letter-spacing: .02em;
+  font-size: var(--fs-ui);
+  letter-spacing: var(--ls-body);
   line-height: 1.2;
 }
 .brand:hover { color: var(--ink); }
@@ -235,14 +272,14 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: var(--ink);
   font-size: var(--fs-sm);
   font-weight: 500;
-  letter-spacing: .06em;
+  letter-spacing: var(--ls-ui);
   white-space: nowrap;   /* ラベルの途中で改行させない */
   transition: color .2s ease;
 }
 .global-nav a:hover { color: var(--pine); }
 /* サイト外へ出るリンクの目印。主張しすぎない大きさ・濃さにする */
 .nav-external {
-  font-size: 15px;
+  --icon: var(--icon-sm);
   margin-left: 5px;
   opacity: .5;
 }
@@ -256,16 +293,20 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   border-radius: var(--radius);
   font-size: var(--fs-sm);
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: var(--ls-ui);
 }
 .global-nav .nav-cta:hover { background: var(--pine-d); color: #fff; }
-.global-nav .nav-cta .material-symbols-outlined { font-size: 16px; }
+/* 文字リンクは上下の余白で押せる範囲を44px以上に（ヘッダーは68pxあるので見た目は変わらない） */
+.global-nav > a:not(.nav-cta) { padding: 12px 2px; }
+.global-nav .nav-cta .material-symbols-outlined { --icon: var(--icon-sm); }
 
-.header-social { display: flex; align-items: center; gap: 10px; }
+.header-social { display: flex; align-items: center; gap: 8px; }
+/* アイコン20pxの周りに12pxの余白を足して44px四方に。負のマージンで
+   レイアウト上の幅は詰め、隣と押せる範囲が重ならないよう gap で調整している */
 .header-social a {
   display: flex;
-  padding: 5px;
-  margin: -5px;
+  padding: 12px;
+  margin: -4px;
   color: var(--ink);
   opacity: .55;
   transition: opacity .15s ease;
@@ -285,7 +326,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   cursor: pointer;
   color: var(--ink);
 }
-.nav-toggle .material-symbols-outlined { font-size: 30px; }
+.nav-toggle .material-symbols-outlined { --icon: var(--icon-lg); --opsz: 24; }
 
 /* モバイルメニュー：区切り線を持たないフラットなリスト */
 .mobile-nav {
@@ -299,7 +340,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .mobile-nav a {
   padding: 15px 2px;
   color: var(--ink);
-  font-size: 17px;
+  font-size: var(--fs-md);
   font-weight: 700;
 }
 .mobile-nav .mobile-nav-cta {
@@ -310,8 +351,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   margin-top: 18px;
   background: var(--pine);
   color: #fff;
-  font-size: 15px;
-  letter-spacing: .06em;
+  font-size: var(--fs-ui);
+  letter-spacing: var(--ls-ui);
   padding: 17px 18px;
   border-radius: var(--radius);
 }
@@ -319,10 +360,10 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .mobile-nav-social {
   display: flex;
   align-items: center;
-  gap: 18px;
-  margin-top: 22px;
+  gap: 4px;
+  margin: 14px 0 0 -12px;   /* アイコンの左端を他の項目に揃える */
 }
-.mobile-nav-social a { display: flex; color: var(--sub); padding: 0; }
+.mobile-nav-social a { display: flex; color: var(--sub); padding: 12px; }
 .mobile-nav-social a:hover { color: var(--ink); }
 
 /* ---------- ヒーロー ---------- */
@@ -435,8 +476,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   margin: 0 0 clamp(12px, 2.4vh, 32px);
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: clamp(11.5px, .95vw, 13.5px);
-  letter-spacing: .12em;
+  font-size: clamp(12px, .95vw, 14px);
+  letter-spacing: var(--ls-caps);
   text-transform: uppercase;
   color: #fff;
 }
@@ -456,8 +497,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .hero-bib span:last-child {
   background: var(--pine);
-  font-weight: 600;
-  letter-spacing: .12em;
+  font-weight: 700;
+  letter-spacing: var(--ls-caps);
 }
 .hero-bib b { font-weight: inherit; }
 
@@ -503,7 +544,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   /* 細い小さな英字は写真の上で最初に溶ける。太さと大きさを一段上げる */
   font-weight: 500;
   font-size: clamp(12px, .95vw, 14px);
-  letter-spacing: .16em;
+  letter-spacing: var(--ls-wide);
   opacity: 1;
   text-shadow: 0 1px 10px rgba(var(--ink-rgb), .8);
 }
@@ -514,11 +555,11 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-size: clamp(16px, 1.3vw, 19px);
   font-weight: 500;
   line-height: 1.8;
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
   color: #fff;
 }
 .hero-lede b { color: #fff; font-weight: 700; }
-.hero-actions .btn { font-size: clamp(15px, 1.1vw, 16.5px); }
+.hero-actions .btn { font-size: clamp(15px, 1.1vw, 16px); }
 /* ゴーストボタンは枠線だけだと写真の模様がそのまま透けて輪郭が曖昧になる。
    暗幕と同じ深緑の下地を敷き、写真が変わっても同じ見え方にする */
 .hero .btn-ghost {
@@ -570,8 +611,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   gap: 14px;
   min-width: 0;
   font-family: var(--font-mono);
-  font-size: clamp(11.5px, 1vw, 13px);
-  letter-spacing: .12em;
+  font-size: clamp(12px, 1vw, 13px);
+  letter-spacing: var(--ls-caps);
   color: #fff;
   white-space: nowrap;
 }
@@ -582,7 +623,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   background: rgba(255, 255, 255, .4);
 }
 .lap-strip span[aria-hidden] { opacity: .6; }
-.lap-strip b { color: var(--day-on); font-weight: 600; letter-spacing: .1em; }
+.lap-strip b { color: var(--day-on); font-weight: 700; letter-spacing: var(--ls-caps); }
 .hero-dots {
   display: flex;
   flex-shrink: 0;
@@ -637,15 +678,15 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-family: var(--font-mono);
   font-weight: 500;
   font-size: var(--fs-micro);
-  letter-spacing: .18em;
+  letter-spacing: var(--ls-wide);
 }
-.sec-eyebrow .material-symbols-outlined { font-size: 18px; }
+.sec-eyebrow .material-symbols-outlined { --icon: var(--icon-sm); }
 .sec-title {
   margin: 0;
   font-size: var(--fs-h2);
   font-weight: 700;
-  letter-spacing: .01em;
-  line-height: 1.35;
+  letter-spacing: var(--ls-body);
+  line-height: var(--lh-head);
   color: var(--ink);
 }
 
@@ -656,7 +697,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   margin: var(--space-2xl) 0 clamp(20px, 2.5vw, 28px);
   font-size: var(--fs-h3);
   font-weight: 700;
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
   color: var(--ink);
 }
 .sub-title::before {
@@ -666,7 +707,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   background: var(--pine);
   flex-shrink: 0;
 }
-.sub-title .material-symbols-outlined { color: var(--pine); }
+.sub-title .material-symbols-outlined { --icon: var(--icon-lg); --opsz: 24; color: var(--pine); }
 
 .sec-more { margin-top: var(--space-lg); }
 
@@ -687,25 +728,25 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
   font-weight: 400;
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: var(--sub);
   font-variant-numeric: tabular-nums;
 }
 .news-tag {
   color: var(--pine-d);
   border: 1px solid rgba(22, 122, 30, .4);
-  font-size: 11.5px;
+  font-size: var(--fs-micro);
   font-weight: 700;
-  letter-spacing: .12em;
+  letter-spacing: var(--ls-caps);
   padding: 5px 10px;
   white-space: nowrap;
 }
 .news-text {
-  font-size: clamp(15.5px, 1.45vw, 17px);
+  font-size: clamp(16px, 1.45vw, 17px);
   font-weight: 500;
-  letter-spacing: .03em;
+  letter-spacing: var(--ls-body);
 }
-.news-arrow { color: var(--pine); }
+.news-arrow { --icon: var(--icon-lg); --opsz: 24; color: var(--pine); }
 
 /* ---------- 大会概要 ---------- */
 .outline-table {
@@ -727,22 +768,22 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   gap: 8px;
   font-size: var(--fs-sm);
   font-weight: 700;
-  letter-spacing: .06em;
+  letter-spacing: var(--ls-ui);
   color: var(--pine);
 }
-.outline-row dt .material-symbols-outlined { font-size: 18px; }
+.outline-row dt .material-symbols-outlined { --icon: var(--icon-md); }
 .outline-row dd {
   max-width: var(--measure);
-  font-size: clamp(15.5px, 1.4vw, var(--fs-md));
+  font-size: clamp(16px, 1.4vw, var(--fs-md));
   line-height: var(--lh-body);
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
 }
 .outline-row dd small {
   display: inline-block;
   color: var(--sub);
   font-size: var(--fs-sm);
-  line-height: 1.85;
-  letter-spacing: .02em;
+  line-height: var(--lh-body);
+  letter-spacing: var(--ls-body);
   margin-top: 6px;
 }
 
@@ -781,16 +822,16 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-family: var(--font-jp);
   font-size: clamp(16px, 1.6vw, 20px);
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: var(--ink);
   padding-left: 8px;
 }
 .race-cap {
   background: var(--pine);
   color: #fff;
-  font-size: 12.5px;
+  font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: .08em;
+  letter-spacing: var(--ls-ui);
   padding: 7px 13px;
   white-space: nowrap;
 }
@@ -814,15 +855,15 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   margin-top: 10px;
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
 }
 .timeband-labels span:last-child { text-align: right; }
 .timeband-labels small {
   font-family: var(--font-jp);
-  font-size: 11.5px;
-  letter-spacing: .04em;
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-head);
   color: var(--sub);
 }
 
@@ -834,14 +875,16 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   max-width: calc(var(--measure) + 32px);
   font-size: var(--fs-base);
   line-height: var(--lh-body);
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
 }
 .race-spec .material-symbols-outlined {
-  font-size: 19px;
+  --icon: var(--icon-md);
   color: var(--pine);
-  margin-top: 4px;
+  margin-top: 3px;
 }
-.race-spec .icon-day .material-symbols-outlined { color: var(--day); }
+/* 昼の琥珀。白地の上でアイコンに必要な3:1を満たすよう、--day より濃い --day-d を使う
+   （--day #c98a1e は白地で2.94:1だった） */
+.race-spec .icon-day .material-symbols-outlined { color: var(--day-d); }
 .race-spec .icon-night .material-symbols-outlined { color: var(--night); }
 
 .race-note {
@@ -855,9 +898,9 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: var(--pine-d);
   font-size: var(--fs-base);
   font-weight: 500;
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
 }
-.race-note .material-symbols-outlined { font-size: 20px; color: var(--pine); }
+.race-note .material-symbols-outlined { --icon: var(--icon-md); color: var(--pine-d); }
 
 /* スケジュール */
 .schedule-grid {
@@ -874,7 +917,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .schedule-col h4 {
   font-size: var(--fs-md);
   font-weight: 700;
-  letter-spacing: .06em;
+  letter-spacing: var(--ls-ui);
   padding-bottom: 14px;
   margin-bottom: 20px;
   border-bottom: 2px solid var(--pine);
@@ -884,7 +927,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   font-weight: 500;
-  letter-spacing: .1em;
+  letter-spacing: var(--ls-caps);
   color: var(--pine);
 }
 .schedule-col .sched-day:first-of-type { margin-top: 0; }
@@ -892,10 +935,10 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .sched-table th {
   text-align: left;
   white-space: nowrap;
-  width: 44%;
+  width: 8.5em;   /* 「13:30–14:00」が収まる幅。表ごとにずれないよう固定 */
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: 14.5px;
+  font-size: var(--fs-sm);
   letter-spacing: 0;
   color: var(--sub);
   padding: 11px 12px 11px 0;
@@ -906,7 +949,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   padding: 11px 0;
   border-bottom: 1px solid var(--line-soft);
   font-size: var(--fs-base);
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
 }
 
 /* ---------- コース ---------- */
@@ -938,31 +981,33 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .stat-unit {
   font-size: clamp(15px, 1.5vw, 19px);
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: var(--ink);
 }
-.course-info > p {
+/* リード文だけを対象にする。以前は `.course-info > p` で、同じ p の .course-stat
+   （960m／周の数字）まで巻き込み、その行高(.9)と余白(18px)を上書きしていた */
+.course-lead {
   font-size: var(--fs-lead);
-  line-height: 1.9;
-  letter-spacing: .02em;
+  line-height: var(--lh-loose);
+  letter-spacing: var(--ls-body);
   margin-bottom: 26px;
 }
 .course-points { list-style: none; display: grid; gap: 16px; }
 .course-points li {
   display: grid;
-  grid-template-columns: 22px 1fr;
+  grid-template-columns: 20px 1fr;
   gap: 14px;
   border-top: 1px solid var(--line);
   padding-top: 16px;
   max-width: calc(var(--measure) + 36px);
   font-size: var(--fs-base);
   line-height: var(--lh-body);
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
 }
 .course-points .material-symbols-outlined {
-  font-size: 21px;
+  --icon: var(--icon-md);
   color: var(--pine);
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 /* ---------- フォトバンド ---------- */
@@ -1000,12 +1045,12 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .entry-title {
   font-size: var(--fs-display);
   line-height: .85;
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
 }
 .entry-lead {
-  font-size: clamp(15.5px, 1.5vw, 19px);
+  font-size: clamp(16px, 1.5vw, 19px);
   font-weight: 500;
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   border-left: 3px solid rgba(255, 255, 255, .65);
   padding-left: 16px;
 }
@@ -1026,14 +1071,14 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   gap: 10px;
   font-size: var(--fs-base);
   font-weight: 700;
-  letter-spacing: .09em;
+  letter-spacing: var(--ls-ui);
   margin-bottom: 12px;
 }
 .entry-kit p {
   max-width: var(--measure);
   font-size: var(--fs-base);
-  line-height: 1.9;
-  letter-spacing: .02em;
+  line-height: var(--lh-loose);
+  letter-spacing: var(--ls-body);
   color: rgba(255, 255, 255, .9);
 }
 
@@ -1055,10 +1100,10 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   border-right: 1px solid var(--line-soft);
   font-size: clamp(16px, 1.6vw, 19px);
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: var(--ink);
 }
-.rule-title .material-symbols-outlined { font-size: 22px; color: var(--pine); }
+.rule-title .material-symbols-outlined { --icon: var(--icon-md); color: var(--pine); }
 .rule-body { padding: clamp(22px, 2.6vw, 32px); }
 .rule-body ul { list-style: none; display: grid; gap: 12px; }
 .rule-body li {
@@ -1067,7 +1112,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   padding-left: 20px;
   font-size: var(--fs-base);
   line-height: var(--lh-body);
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
 }
 .rule-body li::before {
   content: "";
@@ -1085,24 +1130,24 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: var(--pine-d);
   font-size: var(--fs-sm);
   font-weight: 500;
-  line-height: 1.9;
-  letter-spacing: .02em;
+  line-height: var(--lh-loose);
+  letter-spacing: var(--ls-body);
 }
 
 /* ---------- 下層ページ（最新情報） ---------- */
-.page-main { padding: calc(var(--header-h) + 56px) 0 clamp(64px, 8vw, 120px); }
+.page-main { padding: calc(var(--header-h) + 45px) 0 clamp(64px, 8vw, 120px); }
 .breadcrumb {
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: var(--fs-xs);
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: var(--sub);
-  margin-bottom: 40px;
+  margin-bottom: 29px;
 }
-.breadcrumb a { color: var(--sub); }
+.breadcrumb a { color: var(--sub); padding: 11px 0; }   /* 高さ約45pxに */
 .breadcrumb a:hover { color: var(--pine); }
-.breadcrumb .material-symbols-outlined { font-size: 16px; }
+.breadcrumb .material-symbols-outlined { --icon: var(--icon-sm); }
 
 .news-article {
   margin-bottom: 26px;
@@ -1117,15 +1162,15 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .news-article-head time {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: var(--sub);
   font-variant-numeric: tabular-nums;
 }
 .news-article-title {
   font-size: clamp(22px, 2.6vw, 30px);
   font-weight: 700;
-  letter-spacing: .03em;
-  line-height: 1.45;
+  letter-spacing: var(--ls-body);
+  line-height: var(--lh-head);
   color: var(--ink);
   padding-bottom: 16px;
   margin-bottom: 20px;
@@ -1135,19 +1180,19 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   margin-bottom: 16px;
   max-width: var(--measure);
   font-size: var(--fs-base);
-  line-height: 1.9;
-  letter-spacing: .02em;
+  line-height: var(--lh-loose);
+  letter-spacing: var(--ls-body);
 }
 .news-article-body h2,
 .news-article-body h3 {
   margin: 28px 0 10px;
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: var(--ink);
 }
 .news-article-body ul,
 .news-article-body ol { max-width: var(--measure); margin: 0 0 16px 1.4em; }
-.news-article-body li { max-width: var(--measure); font-size: var(--fs-base); line-height: 1.9; letter-spacing: .02em; }
+.news-article-body li { max-width: var(--measure); font-size: var(--fs-base); line-height: var(--lh-loose); letter-spacing: var(--ls-body); }
 .news-article-body a { color: var(--pine); text-decoration: underline; }
 .news-article-body figure { margin: 18px 0; }
 .news-article-body img {
@@ -1159,7 +1204,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .news-article-body figure img { margin: 0; }
 .news-article-body figcaption {
   margin-top: 8px;
-  font-size: 13.5px;
+  font-size: var(--fs-xs);
   color: var(--sub);
   text-align: center;
 }
@@ -1184,14 +1229,14 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .news-card-head time {
   font-family: var(--font-mono);
   font-size: var(--fs-sm);
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: var(--sub);
   font-variant-numeric: tabular-nums;
 }
 .news-card-title {
   font-size: clamp(18px, 2vw, 22px);
   font-weight: 700;
-  letter-spacing: .03em;
+  letter-spacing: var(--ls-body);
   color: var(--ink);
   padding-bottom: 14px;
   margin-bottom: 14px;
@@ -1202,7 +1247,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   max-width: var(--measure);
   font-size: var(--fs-base);
   line-height: var(--lh-body);
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -1216,9 +1261,9 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: var(--pine);
   font-weight: 700;
   font-size: var(--fs-sm);
-  letter-spacing: .08em;
+  letter-spacing: var(--ls-ui);
 }
-.news-card-more .material-symbols-outlined { font-size: 1.1em; transition: transform .15s ease; }
+.news-card-more .material-symbols-outlined { --icon: var(--icon-sm); transition: transform .15s ease; }
 .news-card-link:hover .news-card-more .material-symbols-outlined { transform: translateX(3px); }
 
 /* ---------- フッター ---------- */
@@ -1231,12 +1276,12 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .footer-brand {
   font-size: clamp(17px, 1.8vw, 22px);
   font-weight: 700;
-  letter-spacing: .04em;
+  letter-spacing: var(--ls-head);
   color: #fff;
 }
 .footer-brand strong {
   font-family: var(--font-en);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--pine-on);
   padding: 0 4px;
 }
@@ -1244,14 +1289,13 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   max-width: var(--measure);
   font-size: var(--fs-sm);
   line-height: var(--lh-body);
-  letter-spacing: .02em;
+  letter-spacing: var(--ls-body);
   color: rgba(255, 255, 255, .72);
 }
-.footer-social { display: flex; align-items: center; gap: 14px; }
+.footer-social { display: flex; align-items: center; gap: 4px; margin-left: -12px; }
 .footer-social a {
   display: flex;
-  padding: 6px;
-  margin: -6px;
+  padding: 12px;   /* アイコン20px + 12px×2 = 44px四方 */
   color: rgba(255, 255, 255, .72);
   transition: color .2s ease;
 }
@@ -1259,14 +1303,15 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .footer-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px 32px;
+  gap: 0 32px;
   border-top: 1px solid rgba(255, 255, 255, .16);
   padding-top: clamp(20px, 2.5vw, 28px);
 }
 .footer-nav a {
+  padding: 10px 0;   /* 文字は約25pxだが、押せる範囲は45pxに */
   color: rgba(255, 255, 255, .8);
   font-size: var(--fs-sm);
-  letter-spacing: .03em;
+  letter-spacing: var(--ls-body);
 }
 .footer-nav a:hover { color: #fff; }
 
@@ -1288,9 +1333,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 
 @media (max-width: 700px) {
   :root { --header-h: 62px; }
-  body { font-size: 15px; }
   .pc { display: none; }
-  .brand-name { font-size: 13.5px; }
+  .brand-name { font-size: var(--fs-xs); }
   /* 狭い幅は文字が写真の全幅に乗るため、左右ではなく縦方向で
      文字のある下半分だけを落とす。色は広い幅と同じ深緑（--ink-rgb）。
      緑（--pine）を薄く重ねると写真が緑がかる（過去の退行）ので使わない */
@@ -1307,7 +1351,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   /* 狭い幅では装飾の罫線だけ省き、「LAP 960m × 24:00:00」は残す。
      1周の距離と制限時間は大会の根幹なのでスマホでも見せる */
   .hero-foot { gap: 12px; padding-top: 11px; padding-bottom: 11px; }
-  .lap-strip { gap: 8px; letter-spacing: .06em; }
+  .lap-strip { gap: 8px; letter-spacing: var(--ls-ui); }
   .lap-strip i { display: none; }
   .hero-dots { gap: 6px; }
   .hero-dots button { width: 20px; }
@@ -1324,7 +1368,6 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   .rule { grid-template-columns: 1fr; }
   .rule-title { border-right: none; border-bottom: 1px solid var(--line-soft); }
   .photo-band { grid-template-columns: repeat(2, 1fr); }
-  .sched-table th { width: 38%; }
 }
 
 /* ---------- アニメーション設定への配慮 ---------- */
@@ -1378,4 +1421,4 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 /* ---------- 最新情報記事内の画像 ---------- */
 .news-article-image { margin: 18px 0; }
 .news-article-image img { border: 1px solid var(--line); }
-.news-article-image figcaption { color: var(--sub); font-size: 13.5px; margin-top: 6px; }
+.news-article-image figcaption { color: var(--sub); font-size: var(--fs-xs); margin-top: 6px; }

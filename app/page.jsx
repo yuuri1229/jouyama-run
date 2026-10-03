@@ -21,9 +21,12 @@ export default async function HomePage() {
 
   return (
     <>
-      <Hero />
-
+      {/* ヒーローも <main> の中に置く。外に置くと見出し(h1)・ボタンが
+          どのランドマークにも属さず、スクリーンリーダーのランドマーク一覧から漏れる
+          （axe の region 違反）。スキップリンクの行き先(#main)は、ヘッダーの直後＝ヒーローの先頭になる */}
       <main id="main">
+        <Hero />
+
         {/* ================= 1. 最新情報 ================= */}
         <section className="section" id="news">
           <div className="container">
@@ -464,7 +467,7 @@ export default async function HomePage() {
                   <span className="stat-num">{EVENT.lapMeters}</span>
                   <span className="stat-unit">m／周</span>
                 </p>
-                <p>
+                <p className="course-lead">
                   {EVENT.venue.name}内をめぐる周回コース。屋内コート前がスタート地点です。
                 </p>
                 <ul className="course-points">
