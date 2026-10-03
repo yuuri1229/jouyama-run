@@ -23,7 +23,12 @@
   --line:     #dcdfd8;   /* 罫線 */
   --line-soft:#e7e9e3;   /* 内部の細罫 */
   --day:      #c98a1e;   /* タイムバンド：昼 */
+  --day-on:   #e8ac3f;   /* 濃色地に置く琥珀（--pine-on の琥珀版） */
   --night:    #123049;   /* タイムバンド：夜 */
+  /* ヒーロー写真の暗幕に使う深緑 #071f0b のRGB値。
+     黒ではなくサイトの地色（ヒーロー・フッターと同色）で沈めることで、
+     写真の上でも配色が「このサイトの色」に揃う。 rgba(var(--ink-rgb), .5) の形で使う */
+  --ink-rgb:  7, 31, 11;
   --header-h: 68px;
   --radius: 2px;
 
@@ -356,30 +361,61 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 45%;
+  /* 写真ごとの構図。被写体が文字の帯（左下）を避けるように、
+     components/Hero.jsx の SLIDES で --pos / --pos-sm を渡している。
+     --pos-sm は狭い幅（下の @media 700px）用 */
+  object-position: var(--pos, center 45%);
 }
 .hero-slide.is-active { opacity: 1; z-index: 2; }
+
+/* 暗幕：黒ではなく、サイトの地色（ヒーロー・フッターと同じ深緑 --ink-rgb）で沈める。
+   3枚を重ねて、文字のある場所だけを深くし、被写体のある上〜右は明るさを残す。
+     ① 文字ブロックを中心にした楕円 … 見出し・リード文・ボタンを支える
+     ② 足元から立ち上がる面       … 下端の帯（LAP表記）との境目をなじませる
+     ③ 上端の薄い面              … 白いヘッダー下の境目を締める
+   ①の中心は「画面の左端」ではなく文字ブロックの位置に置く。広い画面では
+   文字が中央寄せのコンテナ（左端から (100% - 1240px)/2 + 32px）に載るため、
+   左端基準にすると、文字のない左の余白ばかり暗くなり、上半分の写真まで沈む。
+   （実測：写真の上半分の明るさが、暗幕なしの20%まで落ちていた → 約77%に改善）
+   全面を均一に沈める面は置かない（過去の退行）。写真の彩度・明度は画像側の filter で整える。 */
 .hero-scrim {
   position: absolute; inset: 0;
   z-index: 3;   /* スライドのz-index(0〜2)より必ず上に重ねる */
-  /* 暗くするのは文字のある左下だけ。写真の上・右側は元の明るさを残す。
-     （以前は左・上下・緑の3枚を全面に重ねていたため写真全体が沈んでいた）
-     上端のごく薄い帯は、白いヘッダー下の境目を締めるためのもの */
+  /* calc()/max() を位置に使う下の宣言を解釈できない古いブラウザは宣言ごと捨てて
+     暗幕が無くなり、白文字が読めなくなる。その場合に残る簡易版を先に置く */
   background:
-    radial-gradient(75% 80% at 8% 92%,
-      rgba(10, 18, 12, .74) 0%,
-      rgba(10, 18, 12, .46) 42%,
-      rgba(10, 18, 12, 0) 78%),
+    linear-gradient(90deg,
+      rgba(var(--ink-rgb), .7) 0%,
+      rgba(var(--ink-rgb), .45) 45%,
+      rgba(var(--ink-rgb), .1) 80%),
+    linear-gradient(0deg,
+      rgba(var(--ink-rgb), .6) 0%,
+      rgba(var(--ink-rgb), 0) 40%);
+  background:
+    radial-gradient(ellipse 840px 84%
+        at calc(max(32px, (100% - 1240px) / 2 + 32px) + 320px) 100%,
+      rgba(var(--ink-rgb), .86) 0%,
+      rgba(var(--ink-rgb), .76) 42%,
+      rgba(var(--ink-rgb), .4) 74%,
+      rgba(var(--ink-rgb), 0) 100%),
+    linear-gradient(0deg,
+      rgba(var(--ink-rgb), .6) 0%,
+      rgba(var(--ink-rgb), 0) 30%),
     linear-gradient(180deg,
-      rgba(10, 18, 12, .32) 0%,
-      rgba(10, 18, 12, 0) 20%);
+      rgba(var(--ink-rgb), .3) 0%,
+      rgba(var(--ink-rgb), 0) 16%);
 }
-/* 暗幕を減らした分、写真が淡く見えないよう明度と彩度を少し持ち上げる */
-.hero-slide img { filter: brightness(1.08) saturate(1.12); }
-/* 明るい写真の上でも文字の輪郭が溶けないように、ごく薄い影を敷く */
+/* 暗幕で沈む分、写真が濁らないよう明度と彩度を少し持ち上げる */
+.hero-slide img { filter: brightness(1.06) saturate(1.1); }
+/* 明るい写真の上でも文字の輪郭が溶けないよう、暗幕と同じ深緑の影を二重に敷く
+   （広い影で面を、細い影で縁を支える） */
 .hero-bib,
 .hero-num-row,
-.hero-lede { text-shadow: 0 1px 14px rgba(0, 0, 0, .45); }
+.hero-lede {
+  text-shadow:
+    0 2px 22px rgba(var(--ink-rgb), .55),
+    0 1px 3px rgba(var(--ink-rgb), .4);
+}
 
 .hero-body {
   position: relative;
@@ -415,8 +451,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 /* 枠だけだと写真の明るい部分に重なったとき文字が読みにくいので、
    ごく薄い下地を敷いてどの写真でも可読性を確保する */
 .hero-bib span:first-child {
-  border: 1px solid rgba(255, 255, 255, .34);
-  background: rgba(10, 18, 12, .42);
+  border: 1px solid rgba(255, 255, 255, .4);
+  background: rgba(var(--ink-rgb), .62);
 }
 .hero-bib span:last-child {
   background: var(--pine);
@@ -442,8 +478,14 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-family: var(--font-en);
   font-weight: 400;
   font-size: clamp(58px, 9.8vw, 132px);
-  color: var(--day);
+  /* 暗い地色用の琥珀。--day のままだと明るい写真の上で溶けていた */
+  color: var(--day-on);
   padding-bottom: .02em;
+  /* 赤いジャケットなど暖色の被写体に重なると琥珀が溶けるため、
+     スラッシュだけは影を濃くして縁を立てる（装飾なので数値上の基準外だが、見えないと意匠が崩れる） */
+  text-shadow:
+    0 1px 3px rgba(var(--ink-rgb), .7),
+    0 2px 18px rgba(var(--ink-rgb), .7);
 }
 .hero-num-row .unit {
   display: flex;
@@ -458,11 +500,12 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .hero-num-row .unit small {
   font-family: var(--font-mono);
-  font-weight: 400;
-  font-size: clamp(11px, .95vw, 13px);
+  /* 細い小さな英字は写真の上で最初に溶ける。太さと大きさを一段上げる */
+  font-weight: 500;
+  font-size: clamp(12px, .95vw, 14px);
   letter-spacing: .16em;
   opacity: 1;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, .75);   /* 明るい写真でも小さな英字が読めるように */
+  text-shadow: 0 1px 10px rgba(var(--ink-rgb), .8);
 }
 
 .hero-lede {
@@ -476,6 +519,13 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .hero-lede b { color: #fff; font-weight: 700; }
 .hero-actions .btn { font-size: clamp(15px, 1.1vw, 16.5px); }
+/* ゴーストボタンは枠線だけだと写真の模様がそのまま透けて輪郭が曖昧になる。
+   暗幕と同じ深緑の下地を敷き、写真が変わっても同じ見え方にする */
+.hero .btn-ghost {
+  background: rgba(var(--ink-rgb), .42);
+  border-color: rgba(255, 255, 255, .85);
+}
+.hero .btn-ghost:hover { background: rgba(255, 255, 255, .18); }
 
 .hero-actions {
   margin-top: clamp(16px, 3vh, 40px);
@@ -510,8 +560,9 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   justify-content: space-between;
   gap: 16px;
   padding: 13px max(32px, calc((100vw - 1240px) / 2 + 32px));
-  border-top: 1px solid rgba(255, 255, 255, .18);
-  background: rgba(10, 18, 12, .55);
+  /* 罫線は --pine-on の薄い線にして、暗幕の深緑とつなげる */
+  border-top: 1px solid rgba(127, 193, 134, .3);
+  background: rgba(var(--ink-rgb), .78);
 }
 .lap-strip {
   display: flex;
@@ -531,7 +582,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   background: rgba(255, 255, 255, .4);
 }
 .lap-strip span[aria-hidden] { opacity: .6; }
-.lap-strip b { color: var(--day); font-weight: 600; letter-spacing: .1em; }
+.lap-strip b { color: var(--day-on); font-weight: 600; letter-spacing: .1em; }
 .hero-dots {
   display: flex;
   flex-shrink: 0;
@@ -543,7 +594,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   border: none;
   padding: 0;
   cursor: pointer;
-  background: rgba(255, 255, 255, .34);
+  background: rgba(255, 255, 255, .42);
   transition: background .2s;
 }
 /* 棒の見た目は3pxのまま、指で押せるよう当たり判定だけ24pxに広げる */
@@ -1240,21 +1291,19 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   body { font-size: 15px; }
   .pc { display: none; }
   .brand-name { font-size: 13.5px; }
-  /* 狭い幅は文字が写真の全幅に乗るため、斜めではなく縦方向で
-     文字のある下半分だけを落とす。緑ではなく中立色で暗くするので
-     写真の色みは保ったまま白文字のコントラストを確保できる */
+  /* 狭い幅は文字が写真の全幅に乗るため、左右ではなく縦方向で
+     文字のある下半分だけを落とす。色は広い幅と同じ深緑（--ink-rgb）。
+     緑（--pine）を薄く重ねると写真が緑がかる（過去の退行）ので使わない */
   .hero-scrim {
     background:
-      radial-gradient(120% 80% at 15% 90%,
-        rgba(22, 122, 30, .10) 0%,
-        rgba(22, 122, 30, 0) 60%),
       linear-gradient(180deg,
-        rgba(10, 18, 12, .30) 0%,
-        rgba(10, 18, 12, .08) 26%,
-        rgba(10, 18, 12, .58) 52%,
-        rgba(10, 18, 12, .72) 78%,
-        rgba(10, 18, 12, .84) 100%);
+        rgba(var(--ink-rgb), .32) 0%,
+        rgba(var(--ink-rgb), .06) 24%,
+        rgba(var(--ink-rgb), .5) 46%,
+        rgba(var(--ink-rgb), .72) 72%,
+        rgba(var(--ink-rgb), .86) 100%);
   }
+  .hero-slide img { object-position: var(--pos-sm, var(--pos, center 45%)); }
   /* 狭い幅では装飾の罫線だけ省き、「LAP 960m × 24:00:00」は残す。
      1周の距離と制限時間は大会の根幹なのでスマホでも見せる */
   .hero-foot { gap: 12px; padding-top: 11px; padding-bottom: 11px; }

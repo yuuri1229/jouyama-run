@@ -10,14 +10,25 @@ const SLIDE_INTERVAL = 5000; // 写真の切り替え間隔（ミリ秒）
 // 写真は <picture> で出し分ける。CSSのbackground-imageだった頃は
 // 画面幅に関わらず1920px幅の1枚しか選べなかったが、srcsetにすると
 // スマホには960px幅の軽いものが届く。
+//
+// pos / posSm は写真ごとの構図（CSSの object-position。幅広／狭い幅）。
+// 文字は左下に載るので、被写体がそこに重ならないよう写真ごとに寄せる。
+// 横長の画面では写真の上下が切り取られるため、縦位置（2つ目の値）が効く。
+//   hero-1：ランナーの頭がヘッダーに掛からない程度に上を残す。
+//           スマホは幅の4割しか映らないため、赤いジャケットのランナーを中央に
+//   hero-2：被写体は中段の一列。下の無地の路面を文字の背景にするため下寄せ
+//   hero-3：集合写真。顔が切れない範囲で下寄せ（足元の影を文字の背景に）
+//   hero-4：右下の赤いコースを見せ、左の空いた芝を文字の背景にする
 const SLIDES = [
-  HERO_LCP_IMAGE,
-  "/img/hero-2.jpg",
-  "/img/hero-3.jpg",
-  "/img/hero-4.jpg",
-].map((src) => ({
+  { src: HERO_LCP_IMAGE, pos: "50% 30%", posSm: "70% 50%" },
+  { src: "/img/hero-2.jpg", pos: "50% 100%", posSm: "76% 50%" },
+  { src: "/img/hero-3.jpg", pos: "50% 72%", posSm: "50% 50%" },
+  { src: "/img/hero-4.jpg", pos: "50% 60%", posSm: "74% 50%" },
+].map(({ src, pos, posSm }) => ({
   jpg: asset(src),
   webp: webpSrcSet(src, HERO_WIDTHS, asset),
+  pos,
+  posSm,
 }));
 
 // 「24:00:00」のような制限時間表記
@@ -182,6 +193,7 @@ export default function Hero() {
                 (i === current ? " is-active" : "") +
                 (i === prev ? " is-prev" : "")
               }
+              style={{ "--pos": slide.pos, "--pos-sm": slide.posSm }}
             >
               <source type="image/webp" srcSet={slide.webp} sizes="100vw" />
               <img
