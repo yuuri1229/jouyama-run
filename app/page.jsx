@@ -1,6 +1,8 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import Hero from "../components/Hero";
 import Reveal from "../components/Reveal";
+import StickyEntry from "../components/StickyEntry";
 import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
 import { GALLERY_WIDTHS, webpSrcSet } from "../lib/assets";
@@ -8,7 +10,11 @@ import { skyGradient } from "../lib/sky";
 import {
   EVENT,
   LABEL,
+  SCHEDULE,
   entryStatus,
+  eventCountdown,
+  formatDate,
+  formatDateShort,
   formatDateTime,
   formatDayTime,
 } from "../lib/event";
@@ -18,6 +24,7 @@ const NEWS_ON_TOP = 3; // トップに表示するお知らせの件数
 export default async function HomePage() {
   const newsItems = await getNewsItems();
   const entry = entryStatus();
+  const countdown = eventCountdown();
 
   return (
     <>
@@ -25,10 +32,13 @@ export default async function HomePage() {
           どのランドマークにも属さず、スクリーンリーダーのランドマーク一覧から漏れる
           （axe の region 違反）。スキップリンクの行き先(#main)は、ヘッダーの直後＝ヒーローの先頭になる */}
       <main id="main">
-        <Hero />
+        <Hero entry={entry} countdown={countdown} />
 
         {/* ================= 1. 最新情報 ================= */}
-        <section className="section" id="news">
+        <section
+          className={`section${newsItems.length <= 2 ? " section-tight" : ""}`}
+          id="news"
+        >
           <div className="container">
             <Reveal as="header" className="sec-head">
               <p className="sec-eyebrow">
@@ -348,93 +358,32 @@ export default async function HomePage() {
               イベントスケジュール
             </Reveal>
             <div className="schedule-grid">
-              <Reveal className="schedule-col">
-                <h4>24時間走</h4>
-                <p className="sched-day">11月22日(日)</p>
-                <table className="sched-table">
-                  <tbody>
-                    <tr>
-                      <th>10:00–10:30</th>
-                      <td>受付</td>
-                    </tr>
-                    <tr>
-                      <th>11:30–</th>
-                      <td>開会式（注意事項等説明）</td>
-                    </tr>
-                    <tr>
-                      <th>12:00</th>
-                      <td>スタート</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <p className="sched-day">11月23日(祝)</p>
-                <table className="sched-table">
-                  <tbody>
-                    <tr>
-                      <th>12:00</th>
-                      <td>制限時間</td>
-                    </tr>
-                    <tr>
-                      <th>13:30–14:00</th>
-                      <td>閉会式</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </Reveal>
-              <Reveal className="schedule-col" delay={1}>
-                <h4>12時間走</h4>
-                <p className="sched-day">11月22日(日)　＜デイスタート＞</p>
-                <table className="sched-table">
-                  <tbody>
-                    <tr>
-                      <th>10:00–10:30</th>
-                      <td>受付</td>
-                    </tr>
-                    <tr>
-                      <th>11:30–</th>
-                      <td>開会式（注意事項等説明）</td>
-                    </tr>
-                    <tr>
-                      <th>12:00</th>
-                      <td>スタート</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <p className="sched-day">11月22日(日)　＜ナイトスタート＞</p>
-                <table className="sched-table">
-                  <tbody>
-                    <tr>
-                      <th>22:10–22:40</th>
-                      <td>受付</td>
-                    </tr>
-                    <tr>
-                      <th>23:40–</th>
-                      <td>開会式（注意事項等説明）</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <p className="sched-day">11月23日(祝)</p>
-                <table className="sched-table">
-                  <tbody>
-                    <tr>
-                      <th>0:00</th>
-                      <td>ナイトスタート／デイスタートの制限時間</td>
-                    </tr>
-                    <tr>
-                      <th>0:30</th>
-                      <td>賞品授与（デイスタート）</td>
-                    </tr>
-                    <tr>
-                      <th>12:00</th>
-                      <td>制限時間</td>
-                    </tr>
-                    <tr>
-                      <th>13:30–14:00</th>
-                      <td>閉会式・賞品授与</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </Reveal>
+              {[
+                { title: "24時間走", groups: SCHEDULE.race24 },
+                { title: "12時間走", groups: SCHEDULE.race12 },
+              ].map((col, ci) => (
+                <Reveal className="schedule-col" delay={ci || undefined} key={col.title}>
+                  <h4>{col.title}</h4>
+                  {col.groups.map((g) => (
+                    <Fragment key={`${g.date.toISOString()}${g.label ?? ""}`}>
+                      <p className="sched-day">
+                        {formatDate(g.date)}
+                        {g.label ? `　＜${g.label}＞` : null}
+                      </p>
+                      <table className="sched-table">
+                        <tbody>
+                          {g.rows.map(([time, what]) => (
+                            <tr key={time}>
+                              <th>{time}</th>
+                              <td>{what}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </Fragment>
+                  ))}
+                </Reveal>
+              ))}
             </div>
           </div>
         </section>
@@ -646,13 +595,21 @@ export default async function HomePage() {
               <h2 className="sec-title">大会ルール</h2>
             </Reveal>
 
-            <Reveal as="article" className="rule">
-              <h3 className="rule-title">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  warning
+            {/* 3ブロックとも長い箇条書きなので <details> で畳める形にする。
+                最初の「注意事項」だけ開いておく。JS不要で、キーボード操作・
+                開閉状態の読み上げはブラウザ標準のもの。本文は変えていない */}
+            <Reveal as="details" className="rule" open>
+              <summary className="rule-summary">
+                <h3 className="rule-title">
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    warning
+                  </span>
+                  注意事項
+                </h3>
+                <span className="material-symbols-outlined rule-chevron" aria-hidden="true">
+                  expand_more
                 </span>
-                注意事項
-              </h3>
+              </summary>
               <div className="rule-body">
                 <ul>
                   <li>
@@ -686,13 +643,18 @@ export default async function HomePage() {
               </div>
             </Reveal>
 
-            <Reveal as="article" className="rule" delay={1}>
-              <h3 className="rule-title">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  timer
+            <Reveal as="details" className="rule" delay={1}>
+              <summary className="rule-summary">
+                <h3 className="rule-title">
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    timer
+                  </span>
+                  計測について
+                </h3>
+                <span className="material-symbols-outlined rule-chevron" aria-hidden="true">
+                  expand_more
                 </span>
-                計測について
-              </h3>
+              </summary>
               <div className="rule-body">
                 <ul>
                   <li>計測は各自の時計の距離計測機能を用いて行います。</li>
@@ -712,13 +674,18 @@ export default async function HomePage() {
               </div>
             </Reveal>
 
-            <Reveal as="article" className="rule" delay={2}>
-              <h3 className="rule-title">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  info
+            <Reveal as="details" className="rule" delay={2}>
+              <summary className="rule-summary">
+                <h3 className="rule-title">
+                  <span className="material-symbols-outlined" aria-hidden="true">
+                    info
+                  </span>
+                  その他・会場のご案内
+                </h3>
+                <span className="material-symbols-outlined rule-chevron" aria-hidden="true">
+                  expand_more
                 </span>
-                その他・会場のご案内
-              </h3>
+              </summary>
               <div className="rule-body">
                 <ul>
                   <li>
@@ -754,6 +721,14 @@ export default async function HomePage() {
           </div>
         </section>
       </main>
+
+      {/* スマホ幅だけの固定エントリーバー。受付中のときだけ出す */}
+      {entry.open ? (
+        <StickyEntry
+          href={SITE.entryFormUrl}
+          sub={`${formatDateShort(EVENT.entryCloseAt)}まで`}
+        />
+      ) : null}
     </>
   );
 }

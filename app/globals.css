@@ -369,6 +369,8 @@ span.material-symbols-outlined {
 /* ---------- ヒーロー ---------- */
 .hero {
   position: relative;
+  /* 縦スクロールはブラウザに任せ、横の動きはスワイプ（Hero.jsx）に渡す */
+  touch-action: pan-y pinch-zoom;
   /* 固定ヘッダーの分を引いて、初期表示で画面にちょうど収まる高さにする。
      vhはスマホのアドレスバーを無いものとして計算するため下がはみ出す。
      svhはバーが出ている状態の高さで、スクロール中も変わらない（下の@supports参照） */
@@ -417,7 +419,9 @@ span.material-symbols-outlined {
    ①の中心は「画面の左端」ではなく文字ブロックの位置に置く。広い画面では
    文字が中央寄せのコンテナ（左端から (100% - 1240px)/2 + 32px）に載るため、
    左端基準にすると、文字のない左の余白ばかり暗くなり、上半分の写真まで沈む。
-   （実測：写真の上半分の明るさが、暗幕なしの20%まで落ちていた → 約77%に改善）
+   （実測：写真の上半分の明るさが、暗幕なしの20%まで落ちていた → 約70%に改善。
+   受付状況ピルを足して文字ブロックが高くなったため、楕円の高さ(90%)とモバイルの
+   縦グラデーションの立ち上がり(32%)をそれに合わせて調整した）
    全面を均一に沈める面は置かない（過去の退行）。写真の彩度・明度は画像側の filter で整える。 */
 .hero-scrim {
   position: absolute; inset: 0;
@@ -433,11 +437,11 @@ span.material-symbols-outlined {
       rgba(var(--ink-rgb), .6) 0%,
       rgba(var(--ink-rgb), 0) 40%);
   background:
-    radial-gradient(ellipse 840px 84%
+    radial-gradient(ellipse 840px 90%
         at calc(max(32px, (100% - 1240px) / 2 + 32px) + 320px) 100%,
       rgba(var(--ink-rgb), .86) 0%,
-      rgba(var(--ink-rgb), .76) 42%,
-      rgba(var(--ink-rgb), .4) 74%,
+      rgba(var(--ink-rgb), .78) 42%,
+      rgba(var(--ink-rgb), .42) 74%,
       rgba(var(--ink-rgb), 0) 100%),
     linear-gradient(0deg,
       rgba(var(--ink-rgb), .6) 0%,
@@ -624,34 +628,90 @@ span.material-symbols-outlined {
 }
 .lap-strip span[aria-hidden] { opacity: .6; }
 .lap-strip b { color: var(--day-on); font-weight: 700; letter-spacing: var(--ls-caps); }
-.hero-dots {
+/* 停止ボタン＋ドット。見た目は細い棒のままだが、押せる範囲は縦44px・横32〜36px。
+   帯の高さを増やさないよう、上下は負のマージンで帯の余白に食い込ませている */
+.hero-controls {
   display: flex;
+  align-items: center;
   flex-shrink: 0;
-  gap: 8px;
+  margin: -12px 0;
 }
+.hero-pause {
+  display: grid;
+  place-items: center;
+  width: 44px; height: 44px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  opacity: .85;
+  transition: opacity .15s ease;
+}
+.hero-pause:hover { opacity: 1; }
+.hero-pause .material-symbols-outlined { --icon: var(--icon-md); }
+.hero-dots { display: flex; }
 .hero-dots button {
   position: relative;
-  width: 26px; height: 3px;
+  width: 36px; height: 44px;
   border: none;
   padding: 0;
   cursor: pointer;
+  background: none;
+}
+.hero-dots button::before {
+  content: "";
+  position: absolute;
+  left: 5px; right: 5px;
+  top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
   background: rgba(255, 255, 255, .42);
   transition: background .2s;
 }
-/* 棒の見た目は3pxのまま、指で押せるよう当たり判定だけ24pxに広げる */
-.hero-dots button::after {
-  content: "";
-  position: absolute;
-  left: -3px; right: -3px;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 24px;
+.hero-dots button:hover::before { background: rgba(255, 255, 255, .75); }
+.hero-dots button.is-active::before { background: #fff; }
+.hero-dots button:focus-visible { outline-offset: -4px; }
+
+/* 受付状況・締切・開催までの日数。ゼッケン風チップ（.hero-bib）と同じ深緑の下地・細い枠で
+   そろえ、写真の上でも読める。文言は lib/event.js から（ビルド時に決まる） */
+.hero-status {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 16px;
+  margin-top: clamp(14px, 2.6svh, 34px);
+  padding: 9px 16px;
+  border: 1px solid rgba(127, 193, 134, .45);
+  background: rgba(var(--ink-rgb), .62);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  letter-spacing: var(--ls-ui);
+  line-height: 1.5;
+  color: #fff;
 }
-.hero-dots button.is-active { background: #fff; }
+.hero-status-main { display: inline-flex; align-items: center; gap: 10px; }
+.hero-status-count {
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, .4);
+  font-variant-numeric: tabular-nums;
+}
+.hero-status-dot {
+  flex-shrink: 0;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--pine-on);
+  box-shadow: 0 0 0 3px rgba(127, 193, 134, .28);
+}
+.hero-status-dot.is-before { background: var(--day-on); box-shadow: 0 0 0 3px rgba(232, 172, 63, .28); }
+.hero-status-dot.is-closed { background: rgba(255, 255, 255, .6); box-shadow: 0 0 0 3px rgba(255, 255, 255, .18); }
+.hero-status + .hero-actions { margin-top: clamp(12px, 2.2svh, 26px); }
 
 /* ---------- セクション共通 ---------- */
 .section { padding: var(--space-3xl) 0; }
 .section-mist { background: var(--mist); }
+/* 記事が1〜2件のときは、上下104pxの余白に1行だけが載って間延びする。余白を詰める */
+.section-tight { padding: var(--space-2xl) 0; }
 
 /* 英字ラベルと和文見出しの間隔は、見出しの文字サイズ（--fs-h2）と
    同じように幅で変化させる。40px 固定だと狭い幅では見出しが 26px まで
@@ -1082,28 +1142,49 @@ span.material-symbols-outlined {
   color: rgba(255, 255, 255, .9);
 }
 
-/* ---------- ルール（見出し帯 × 本文の2カラム） ---------- */
+/* ---------- ルール（<details> のアコーディオン） ----------
+   3ブロックとも5〜11項目の長い箇条書きなので、見出しの帯を押して開閉できる形にする。
+   開閉はブラウザ標準（JS不要。キーボード操作・開閉状態の読み上げも標準）。 */
 .rule {
   background: var(--paper);
   border: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: minmax(200px, 280px) 1fr;
   margin-bottom: clamp(16px, 2vw, 24px);
 }
+.rule-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 64px;                      /* 帯全体が押せる（44px以上） */
+  padding: 14px clamp(22px, 2.6vw, 32px);
+  background: rgba(22, 122, 30, .06);
+  cursor: pointer;
+  list-style: none;                      /* 標準の三角を消して、自前のシェブロンにする */
+  transition: background .15s ease;
+}
+.rule-summary::-webkit-details-marker { display: none; }
+.rule-summary:hover { background: rgba(22, 122, 30, .1); }
+.rule-summary:focus-visible { outline-offset: -3px; }
+.rule[open] > .rule-summary { border-bottom: 1px solid var(--line-soft); }
 .rule-title {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 10px;
   margin: 0;
-  padding: clamp(22px, 2.6vw, 32px);
-  background: rgba(22, 122, 30, .06);
-  border-right: 1px solid var(--line-soft);
   font-size: clamp(16px, 1.6vw, 19px);
   font-weight: 700;
   letter-spacing: var(--ls-head);
   color: var(--ink);
 }
 .rule-title .material-symbols-outlined { --icon: var(--icon-md); color: var(--pine); }
+.rule-chevron {
+  --icon: var(--icon-lg);
+  --opsz: 24;
+  flex-shrink: 0;
+  color: var(--pine);
+  transition: transform .2s ease;
+}
+.rule[open] .rule-chevron { transform: rotate(180deg); }
 .rule-body { padding: clamp(22px, 2.6vw, 32px); }
 .rule-body ul { list-style: none; display: grid; gap: 12px; }
 .rule-body li {
@@ -1342,9 +1423,9 @@ span.material-symbols-outlined {
     background:
       linear-gradient(180deg,
         rgba(var(--ink-rgb), .32) 0%,
-        rgba(var(--ink-rgb), .06) 24%,
-        rgba(var(--ink-rgb), .5) 46%,
-        rgba(var(--ink-rgb), .72) 72%,
+        rgba(var(--ink-rgb), .1) 16%,
+        rgba(var(--ink-rgb), .58) 32%,
+        rgba(var(--ink-rgb), .72) 52%,
         rgba(var(--ink-rgb), .86) 100%);
   }
   .hero-slide img { object-position: var(--pos-sm, var(--pos, center 45%)); }
@@ -1353,9 +1434,10 @@ span.material-symbols-outlined {
   .hero-foot { gap: 12px; padding-top: 11px; padding-bottom: 11px; }
   .lap-strip { gap: 8px; letter-spacing: var(--ls-ui); }
   .lap-strip i { display: none; }
-  .hero-dots { gap: 6px; }
-  .hero-dots button { width: 20px; }
+  .hero-dots button { width: 32px; }
   .hero-actions { flex-direction: column; align-items: stretch; }
+  .hero-status { display: flex; justify-content: space-between; padding: 10px 16px; }
+  .hero-status-count { padding-left: 0; border-left: 0; }
   .btn { justify-content: center; }
   /* 日付とタグを同じセルに重ねて margin-left:100px でずらしていたため、
      文字幅が変わると衝突していた。素直に列として並べる */
@@ -1365,8 +1447,6 @@ span.material-symbols-outlined {
   .news-link .news-arrow { grid-row: 1; grid-column: 3; justify-self: end; }
   .news-link .news-text { grid-column: 1 / -1; margin-top: 8px; }
   .outline-row { grid-template-columns: 1fr; gap: 6px; }
-  .rule { grid-template-columns: 1fr; }
-  .rule-title { border-right: none; border-bottom: 1px solid var(--line-soft); }
   .photo-band { grid-template-columns: repeat(2, 1fr); }
 }
 
@@ -1422,3 +1502,48 @@ span.material-symbols-outlined {
 .news-article-image { margin: 18px 0; }
 .news-article-image img { border: 1px solid var(--line); }
 .news-article-image figcaption { color: var(--sub); font-size: var(--fs-xs); margin-top: 6px; }
+
+/* ---------- 印刷 ----------
+   ルールは印刷して読む人がいる。畳んだままだと紙に本文が出ないので、
+   印刷時は全ブロックを開いた状態にする（::details-content は新しいブラウザ向け）。 */
+@media print {
+  .rule > :not(summary) { display: block !important; }
+  .rule::details-content { content-visibility: visible; }
+  .rule-chevron { display: none; }
+}
+
+/* ---------- スマホの固定エントリーバー（components/StickyEntry.jsx） ---------- */
+.sticky-entry { display: none; }
+@media (max-width: 700px) {
+  .sticky-entry {
+    display: block;
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 90;   /* ヘッダー(100)の下 */
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: rgba(var(--ink-rgb), .94);
+    border-top: 1px solid rgba(127, 193, 134, .3);
+    transform: translateY(100%);
+    visibility: hidden;   /* 隠れている間はタブ移動の対象にもしない */
+    transition: transform .25s ease, visibility 0s linear .25s;
+  }
+  .sticky-entry.is-visible {
+    transform: none;
+    visibility: visible;
+    transition: transform .25s ease;
+  }
+  .sticky-entry .btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 20px;
+  }
+  .sticky-entry-sub {
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    letter-spacing: var(--ls-ui);
+    opacity: .85;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sticky-entry, .sticky-entry.is-visible { transition: none; }
+}
