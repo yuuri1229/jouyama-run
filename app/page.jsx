@@ -1,11 +1,13 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import Hero from "../components/Hero";
+import { JsonLd } from "../components/JsonLd";
 import Reveal from "../components/Reveal";
 import StickyEntry from "../components/StickyEntry";
 import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
 import { GALLERY_WIDTHS, webpSrcSet } from "../lib/assets";
+import { eventJsonLd } from "../lib/seo";
 import { skyGradient } from "../lib/sky";
 import {
   EVENT,
@@ -28,6 +30,9 @@ export default async function HomePage() {
 
   return (
     <>
+      {/* 大会情報の構造化データ。トップにだけ置く（以前は全ページに出ていた） */}
+      <JsonLd data={eventJsonLd()} />
+
       {/* ヒーローも <main> の中に置く。外に置くと見出し(h1)・ボタンが
           どのランドマークにも属さず、スクリーンリーダーのランドマーク一覧から漏れる
           （axe の region 違反）。スキップリンクの行き先(#main)は、ヘッダーの直後＝ヒーローの先頭になる */}

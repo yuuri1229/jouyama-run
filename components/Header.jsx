@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SocialLinks from "./SocialLinks";
-import { SITE } from "../lib/site";
+import { SITE, entryLink } from "../lib/site";
 
 // external: true はサイト外へ出るリンク。別タブで開くので、
 // 文字だけだと予告なくサイトを離れることになる。小さなアイコンを添えて
@@ -43,7 +43,8 @@ function NavItem({ item, onClick }) {
   );
 }
 
-export default function Header() {
+export default function Header({ entryOpen = true }) {
+  const entry = entryLink(entryOpen);
   const [open, setOpen] = useState(false);
   const headerRef = useRef(null);
   const toggleRef = useRef(null);
@@ -91,11 +92,11 @@ export default function Header() {
           <SocialLinks className="header-social" />
           <a
             className="nav-cta"
-            href={SITE.entryFormUrl}
+            href={entry.href}
             target="_blank"
             rel="noopener noreferrer"
           >
-            エントリー
+            {entry.label}
             <span className="material-symbols-outlined" aria-hidden="true">
               arrow_outward
             </span>
@@ -130,12 +131,12 @@ export default function Header() {
         ))}
         <a
           className="mobile-nav-cta"
-          href={SITE.entryFormUrl}
+          href={entry.href}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => setOpen(false)}
         >
-          エントリーフォーム
+          {entry.full}
         </a>
         <SocialLinks className="mobile-nav-social" />
       </nav>

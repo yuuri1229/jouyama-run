@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { asset, SITE } from "../lib/site";
+import { asset, entryLink } from "../lib/site";
 import { HERO_LCP_IMAGE, HERO_WIDTHS, webpSrcSet } from "../lib/assets";
 import { EVENT, LABEL } from "../lib/event";
 
@@ -39,6 +39,8 @@ const HOURS_LABEL = `${String(EVENT.race24.hours).padStart(2, "0")}:00:00`;
 // ハイドレーション不一致になるため。
 export default function Hero({ entry, countdown }) {
   // current = 表示中、prev = 直前。prevはフェード中の下地として使う
+  // 受付中ならフォーム、受付前・終了後はエントリーリストへ（lib/site.js の entryLink）
+  const cta = entryLink(entry.open);
   const [{ current, prev }, setSlide] = useState({ current: 0, prev: null });
 
   // DOMに置くスライド。初回表示は1枚だけにして、2枚目以降は
@@ -308,11 +310,11 @@ export default function Hero({ entry, countdown }) {
         <div className="hero-actions">
           <a
             className="btn btn-primary"
-            href={SITE.entryFormUrl}
+            href={cta.href}
             target="_blank"
             rel="noopener noreferrer"
           >
-            エントリーする
+            {cta.action}
             <span className="material-symbols-outlined" aria-hidden="true">
               arrow_outward
             </span>

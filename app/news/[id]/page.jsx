@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import NewsBody from "../../../components/NewsBody";
 import { BreadcrumbJsonLd } from "../../../components/JsonLd";
 import { getNewsItems } from "../../../lib/microcms";
+import { pageMeta } from "../../../lib/seo";
 
 // 静的エクスポートのため、全記事のIDを事前に列挙してページを生成する。
 export const dynamicParams = false;
@@ -18,21 +19,13 @@ export async function generateMetadata({ params }) {
   if (!item) return {};
 
   const description = `新潟・城山運動公園24＆12時間走の最新情報「${item.title}」（${item.dateLabel}）`;
-  return {
+  return pageMeta({
     title: item.title,
     description,
-    alternates: { canonical: `/news/${item.id}/` },
-    openGraph: {
-      title: `${item.title}｜新潟・城山運動公園24＆12時間走`,
-      description,
-      type: "article",
-      publishedTime: item.date,
-    },
-    twitter: {
-      title: `${item.title}｜新潟・城山運動公園24＆12時間走`,
-      description,
-    },
-  };
+    path: `/news/${item.id}/`,
+    type: "article",
+    openGraph: { publishedTime: item.date },
+  });
 }
 
 export default async function NewsArticlePage({ params }) {

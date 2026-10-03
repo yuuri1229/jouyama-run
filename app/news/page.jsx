@@ -2,16 +2,11 @@ import Link from "next/link";
 import Reveal from "../../components/Reveal";
 import { BreadcrumbJsonLd } from "../../components/JsonLd";
 import { getNewsItems, newsExcerpt } from "../../lib/microcms";
+import { pageMeta } from "../../lib/seo";
 
 const description = "新潟・城山運動公園24＆12時間走の最新情報一覧。";
 
-export const metadata = {
-  title: "最新情報",
-  description,
-  alternates: { canonical: "/news/" },
-  openGraph: { title: "最新情報｜新潟・城山運動公園24＆12時間走", description },
-  twitter: { title: "最新情報｜新潟・城山運動公園24＆12時間走", description },
-};
+export const metadata = pageMeta({ title: "最新情報", description, path: "/news/" });
 
 export default async function NewsPage() {
   const newsItems = await getNewsItems();

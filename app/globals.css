@@ -1215,6 +1215,15 @@ span.material-symbols-outlined {
   letter-spacing: var(--ls-body);
 }
 
+/* ---------- 404 ---------- */
+.notfound-lead {
+  max-width: var(--measure);
+  font-size: var(--fs-base);
+  line-height: var(--lh-loose);
+  letter-spacing: var(--ls-body);
+}
+.notfound-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: var(--space-md); }
+
 /* ---------- 下層ページ（最新情報） ---------- */
 .page-main { padding: calc(var(--header-h) + 45px) 0 clamp(64px, 8vw, 120px); }
 .breadcrumb {
