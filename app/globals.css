@@ -361,21 +361,24 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .hero-scrim {
   position: absolute; inset: 0;
   z-index: 3;   /* スライドのz-index(0〜2)より必ず上に重ねる */
+  /* 暗くするのは文字のある左下だけ。写真の上・右側は元の明るさを残す。
+     （以前は左・上下・緑の3枚を全面に重ねていたため写真全体が沈んでいた）
+     上端のごく薄い帯は、白いヘッダー下の境目を締めるためのもの */
   background:
-    linear-gradient(100deg,
-      rgba(10, 18, 12, .72) 0%,
-      rgba(10, 18, 12, .4) 42%,
-      rgba(10, 18, 12, .05) 78%,
-      rgba(10, 18, 12, 0) 100%),
-    radial-gradient(120% 80% at 15% 90%,
-      rgba(22, 122, 30, .13) 0%,
-      rgba(22, 122, 30, 0) 60%),
+    radial-gradient(75% 80% at 8% 92%,
+      rgba(10, 18, 12, .74) 0%,
+      rgba(10, 18, 12, .46) 42%,
+      rgba(10, 18, 12, 0) 78%),
     linear-gradient(180deg,
-      rgba(10, 18, 12, .55) 0%,
-      rgba(10, 18, 12, .18) 34%,
-      rgba(10, 18, 12, .6) 82%,
-      rgba(10, 18, 12, .85) 100%);
+      rgba(10, 18, 12, .32) 0%,
+      rgba(10, 18, 12, 0) 20%);
 }
+/* 暗幕を減らした分、写真が淡く見えないよう明度と彩度を少し持ち上げる */
+.hero-slide img { filter: brightness(1.08) saturate(1.12); }
+/* 明るい写真の上でも文字の輪郭が溶けないように、ごく薄い影を敷く */
+.hero-bib,
+.hero-num-row,
+.hero-lede { text-shadow: 0 1px 14px rgba(0, 0, 0, .45); }
 
 .hero-body {
   position: relative;
@@ -395,7 +398,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   margin: 0 0 clamp(12px, 2.4vh, 32px);
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: clamp(10.5px, 1vw, 12px);
+  font-size: clamp(11.5px, .95vw, 13.5px);
   letter-spacing: .12em;
   text-transform: uppercase;
   color: #fff;
@@ -404,7 +407,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
    半角スペースが除去され「NIIGATA/ JOYAMA PARK」と詰まって見える */
 .hero-bib span {
   display: block;
-  padding: 9px 15px;
+  padding: 10px 16px;
   line-height: 1.5;
   white-space: nowrap;
 }
@@ -431,13 +434,13 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   letter-spacing: -.01em;
 }
 .hero-num-row .fig {
-  font-size: clamp(76px, 15.5vw, 210px);
+  font-size: clamp(76px, 14.5vw, 188px);
   color: #fff;
 }
 .hero-num-row .slash {
   font-family: var(--font-en);
   font-weight: 400;
-  font-size: clamp(58px, 10.5vw, 148px);
+  font-size: clamp(58px, 9.8vw, 132px);
   color: var(--day);
   padding-bottom: .02em;
 }
@@ -447,7 +450,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   gap: 8px;
   font-family: var(--font-jp);
   font-weight: 700;
-  font-size: clamp(26px, 3.6vw, 50px);
+  font-size: clamp(26px, 3.4vw, 48px);
   line-height: 1;
   color: #fff;
   padding: 0 0 clamp(8px, 1.2vw, 18px) clamp(6px, 1vw, 14px);
@@ -455,20 +458,23 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .hero-num-row .unit small {
   font-family: var(--font-mono);
   font-weight: 400;
-  font-size: clamp(10px, .95vw, 12px);
-  letter-spacing: .18em;
-  opacity: .7;
+  font-size: clamp(11px, .95vw, 13px);
+  letter-spacing: .16em;
+  opacity: 1;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, .75);   /* 明るい写真でも小さな英字が読めるように */
 }
 
 .hero-lede {
   margin-top: clamp(14px, 2.8vh, 38px);
-  max-width: min(660px, 100%);
-  font-size: clamp(15.5px, 1.35vw, 18px);
-  line-height: 1.85;
+  max-width: min(700px, 100%);
+  font-size: clamp(16px, 1.3vw, 19px);
+  font-weight: 500;
+  line-height: 1.8;
   letter-spacing: .02em;
-  color: rgba(255, 255, 255, .92);
+  color: #fff;
 }
 .hero-lede b { color: #fff; font-weight: 700; }
+.hero-actions .btn { font-size: clamp(15px, 1.1vw, 16.5px); }
 
 .hero-actions {
   margin-top: clamp(16px, 3vh, 40px);
@@ -508,7 +514,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   gap: 14px;
   min-width: 0;
   font-family: var(--font-mono);
-  font-size: clamp(10.5px, 1vw, 12px);
+  font-size: clamp(11.5px, 1vw, 13px);
   letter-spacing: .12em;
   color: #fff;
   white-space: nowrap;
@@ -1238,11 +1244,11 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
         rgba(22, 122, 30, .10) 0%,
         rgba(22, 122, 30, 0) 60%),
       linear-gradient(180deg,
-        rgba(10, 18, 12, .40) 0%,
-        rgba(10, 18, 12, .22) 26%,
-        rgba(10, 18, 12, .66) 52%,
-        rgba(10, 18, 12, .80) 78%,
-        rgba(10, 18, 12, .90) 100%);
+        rgba(10, 18, 12, .30) 0%,
+        rgba(10, 18, 12, .08) 26%,
+        rgba(10, 18, 12, .58) 52%,
+        rgba(10, 18, 12, .72) 78%,
+        rgba(10, 18, 12, .84) 100%);
   }
   /* 狭い幅では装飾の罫線だけ省き、「LAP 960m × 24:00:00」は残す。
      1周の距離と制限時間は大会の根幹なのでスマホでも見せる */
