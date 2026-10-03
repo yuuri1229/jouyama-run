@@ -188,8 +188,9 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: 100;
-  background: rgba(248, 247, 243, .92);
-  backdrop-filter: blur(12px);
+  /* backdrop-filter(ぼかし)は不透明度が高く効果がほぼ見えない一方、
+     スクロール中ずっと背後の再描画が走って重くなるため使わない */
+  background: rgba(248, 247, 243, .97);
   border-bottom: 1px solid var(--line);
 }
 .header-inner {
@@ -324,7 +325,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   position: relative;
   /* 固定ヘッダーの分を引いて、初期表示で画面にちょうど収まる高さにする。
      vhはスマホのアドレスバーを無いものとして計算するため下がはみ出す。
-     dvhは実際に見えている高さなのでバー表示時も収まる（未対応環境は下のvhが効く） */
+     svhはバーが出ている状態の高さで、スクロール中も変わらない（下の@supports参照） */
   min-height: calc(100vh - var(--header-h));
   margin-top: var(--header-h);
   display: flex;
@@ -483,14 +484,18 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   flex-wrap: wrap;
 }
 
-/* dvh対応環境ではすべて実際の表示高さ基準に置き換える。
+/* スマホではスクロール中にアドレスバーが出入りする。
+   dvhは「今見えている高さ」なので、そのたびにヒーローの高さと中の余白が
+   再計算され、文字やボタンが指の下で動いて引っかかって感じる
+   （実測：バーが畳まれる116pxぶんで、ヒーロー内の要素が約106px動いた）。
+   svhは「バーが出ている最小の高さ」で固定なので、スクロール中に動かない。
    未対応環境は上のvh指定がそのまま効く */
-@supports (height: 100dvh) {
-  .hero { min-height: calc(100dvh - var(--header-h)); }
-  .hero-body { padding-top: clamp(24px, 7dvh, 150px); padding-bottom: clamp(20px, 2.6dvh, 44px); }
-  .hero-bib { margin-bottom: clamp(12px, 2.4dvh, 32px); }
-  .hero-lede { margin-top: clamp(14px, 2.8dvh, 38px); }
-  .hero-actions { margin-top: clamp(16px, 3dvh, 40px); }
+@supports (height: 100svh) {
+  .hero { min-height: calc(100svh - var(--header-h)); }
+  .hero-body { padding-top: clamp(24px, 7svh, 150px); padding-bottom: clamp(20px, 2.6svh, 44px); }
+  .hero-bib { margin-bottom: clamp(12px, 2.4svh, 32px); }
+  .hero-lede { margin-top: clamp(14px, 2.8svh, 38px); }
+  .hero-actions { margin-top: clamp(16px, 3svh, 40px); }
 }
 
 /* 下端：ラップ表記＋写真切り替え */
