@@ -44,7 +44,7 @@
   --font-mono: "Roboto", "Helvetica Neue", Arial, sans-serif;
 
   /* 文字サイズのスケール（役割ごとに固定し、場当たりな指定を避ける） */
-  --fs-micro: 11.5px;   /* 英字ラベル */
+  --fs-micro: 12px;     /* 英字ラベル */
   --fs-xs:    13px;     /* 補足・キャプション */
   --fs-sm:    14px;     /* 副次テキスト */
   --fs-base:  15.5px;   /* 本文 */
@@ -59,7 +59,7 @@
 
   /* 和文の行長。全角40字前後で折り返すと読み疲れしない */
   --measure: 40em;
-  --lh-body: 1.85;
+  --lh-body: 1.8;
 
   /* OSのダークテーマでフォームやスクロールバーが勝手に暗転しないよう、
      このサイトはライト固定であることを明示する */
@@ -69,6 +69,8 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
+  -webkit-text-size-adjust: 100%;   /* iOSの横向きで文字が勝手に拡大されないように */
+  text-size-adjust: 100%;
   scroll-behavior: smooth;
   scroll-padding-top: calc(var(--header-h) + 8px);
 }
@@ -84,7 +86,13 @@ body {
   font-size: 16px;
   -webkit-font-smoothing: antialiased;
   text-wrap: pretty;
+  font-kerning: normal;
+  font-synthesis: none;                 /* 無い太さを擬似ボールドで作らない */
+  line-break: strict;                   /* 句読点・小書き文字が行頭に来ない */
+  word-break: auto-phrase;              /* 文節で折り返す（Chrome/Edge。他は通常動作） */
+  overflow-wrap: break-word;         /* 長いURL・英単語で横にはみ出さない */
 }
+.ph { display: inline-block; }          /* 文節のかたまり。ここでは折り返さない */
 
 h1, h2, h3, h4 { text-wrap: balance; }
 img { max-width: 100%; height: auto; display: block; }
@@ -456,7 +464,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   margin-top: clamp(14px, 2.8vh, 38px);
   max-width: min(660px, 100%);
   font-size: clamp(15.5px, 1.35vw, 18px);
-  line-height: 1.95;
+  line-height: 1.85;
   letter-spacing: .02em;
   color: rgba(255, 255, 255, .92);
 }
@@ -873,7 +881,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .course-info > p {
   font-size: var(--fs-lead);
-  line-height: 2;
+  line-height: 1.9;
   letter-spacing: .02em;
   margin-bottom: 26px;
 }
