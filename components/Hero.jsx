@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { asset, SITE } from "../lib/site";
+import { asset, entryLink } from "../lib/site";
 import { HERO_LCP_IMAGE, HERO_WIDTHS, webpSrcSet } from "../lib/assets";
 import { EVENT, LABEL } from "../lib/event";
 
@@ -10,21 +10,37 @@ const SLIDE_INTERVAL = 5000; // 写真の切り替え間隔（ミリ秒）
 // 写真は <picture> で出し分ける。CSSのbackground-imageだった頃は
 // 画面幅に関わらず1920px幅の1枚しか選べなかったが、srcsetにすると
 // スマホには960px幅の軽いものが届く。
+//
+// pos / posSm は写真ごとの構図（CSSの object-position。幅広／狭い幅）。
+// 文字は左下に載るので、被写体がそこに重ならないよう写真ごとに寄せる。
+// 横長の画面では写真の上下が切り取られるため、縦位置（2つ目の値）が効く。
+//   hero-1：ランナーの頭がヘッダーに掛からない程度に上を残す。
+//           スマホは幅の4割しか映らないため、赤いジャケットのランナーを中央に
+//   hero-2：被写体は中段の一列。下の無地の路面を文字の背景にするため下寄せ
+//   hero-3：集合写真。顔が切れない範囲で下寄せ（足元の影を文字の背景に）
+//   hero-4：右下の赤いコースを見せ、左の空いた芝を文字の背景にする
 const SLIDES = [
-  HERO_LCP_IMAGE,
-  "/img/hero-2.jpg",
-  "/img/hero-3.jpg",
-  "/img/hero-4.jpg",
-].map((src) => ({
+  { src: HERO_LCP_IMAGE, pos: "50% 30%", posSm: "70% 50%" },
+  { src: "/img/hero-2.jpg", pos: "50% 100%", posSm: "76% 50%" },
+  { src: "/img/hero-3.jpg", pos: "50% 72%", posSm: "50% 50%" },
+  { src: "/img/hero-4.jpg", pos: "50% 60%", posSm: "74% 50%" },
+].map(({ src, pos, posSm }) => ({
   jpg: asset(src),
   webp: webpSrcSet(src, HERO_WIDTHS, asset),
+  pos,
+  posSm,
 }));
 
 // 「24:00:00」のような制限時間表記
 const HOURS_LABEL = `${String(EVENT.race24.hours).padStart(2, "0")}:00:00`;
 
-export default function Hero() {
+// entry / countdown は page.jsx（サーバー側）で計算して渡す。
+// ここ（クライアント）で new Date() すると、ビルド時のHTMLとずれて
+// ハイドレーション不一致になるため。
+export default function Hero({ entry, countdown }) {
   // current = 表示中、prev = 直前。prevはフェード中の下地として使う
+  // 受付中ならフォーム、受付前・終了後はエントリーリストへ（lib/site.js の entryLink）
+  const cta = entryLink(entry.open);
   const [{ current, prev }, setSlide] = useState({ current: 0, prev: null });
 
   // DOMに置くスライド。初回表示は1枚だけにして、2枚目以降は
@@ -35,6 +51,13 @@ export default function Hero() {
   const readyRef = useRef(new Set());
   const pausedRef = useRef(false);
   const restartRef = useRef(null);
+  // 利用者が「一時停止」ボタンで止めたか。ホバー/フォーカスによる一時停止（pausedRef）とは
+  // 別に持つ。自動で動き続けるものには、止める手段が必要（WCAG 2.2.2）
+  const userPausedRef = useRef(false);
+  const [userPaused, setUserPaused] = useState(false);
+  // 動きを減らす設定のときは自動送りをしないので、停止ボタンも出さない
+  const [canAutoplay, setCanAutoplay] = useState(true);
+  const swipeRef = useRef(null);
   const heroRef = useRef(null);
   const footRef = useRef(null);
 
@@ -44,6 +67,35 @@ export default function Hero() {
       prevSet.has(i) ? prevSet : new Set(prevSet).add(i)
     );
     restartRef.current?.(); // 手動で選んだ直後は5秒フルで見せる
+  };
+
+  const toggleAutoplay = () => {
+    userPausedRef.current = !userPausedRef.current;
+    setUserPaused(userPausedRef.current);
+    restartRef.current?.();
+  };
+
+  // スマホの左右スワイプで写真を切り替える（縦スクロールは妨げない：
+  // 横に大きく、縦の2倍以上動いたときだけ。CSS側は touch-action: pan-y）。
+  // 直前の写真は先読みしていないので、触れた時点で前後を用意しておく
+  const onPointerDown = (e) => {
+    if (e.pointerType !== "touch") return;
+    swipeRef.current = { x: e.clientX, y: e.clientY };
+    setMounted((set) => {
+      const next = new Set(set);
+      next.add((current + 1) % SLIDES.length);
+      next.add((current + SLIDES.length - 1) % SLIDES.length);
+      return next.size === set.size ? set : next;
+    });
+  };
+  const onPointerUp = (e) => {
+    const start = swipeRef.current;
+    swipeRef.current = null;
+    if (!start || e.pointerType !== "touch") return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    if (Math.abs(dx) < 48 || Math.abs(dx) < Math.abs(dy) * 2) return;
+    goTo((current + (dx < 0 ? 1 : SLIDES.length - 1)) % SLIDES.length);
   };
 
   // <img> が読み込み済みになったら記録する。
@@ -90,6 +142,7 @@ export default function Hero() {
   // ---- 自動送り ----
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setCanAutoplay(!reduce.matches);
     const hero = heroRef.current;
     const foot = footRef.current;
     let id = null;
@@ -112,7 +165,7 @@ export default function Hero() {
     let inView = true;
     const start = () => {
       stop();
-      if (reduce.matches || pausedRef.current || document.hidden || !inView) return;
+      if (reduce.matches || pausedRef.current || userPausedRef.current || document.hidden || !inView) return;
       id = setInterval(advance, SLIDE_INTERVAL);
     };
     restartRef.current = start;
@@ -144,7 +197,11 @@ export default function Hero() {
     hero?.addEventListener("focusout", resume);
     // 裏のタブでは止め、戻ってきたら5秒を数え直す（位相を揃える）
     document.addEventListener("visibilitychange", start);
-    reduce.addEventListener("change", start);
+    const onReduce = () => {
+      setCanAutoplay(!reduce.matches);
+      start();
+    };
+    reduce.addEventListener("change", onReduce);
 
     const io =
       "IntersectionObserver" in window && hero
@@ -166,12 +223,17 @@ export default function Hero() {
       hero?.removeEventListener("focusin", onFocusIn);
       hero?.removeEventListener("focusout", resume);
       document.removeEventListener("visibilitychange", start);
-      reduce.removeEventListener("change", start);
+      reduce.removeEventListener("change", onReduce);
     };
   }, []);
 
   return (
-    <section className="hero" ref={heroRef}>
+    <section
+      className="hero"
+      ref={heroRef}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+    >
       <div className="hero-media" aria-hidden="true">
         {SLIDES.map((slide, i) =>
           mounted.has(i) ? (
@@ -182,6 +244,7 @@ export default function Hero() {
                 (i === current ? " is-active" : "") +
                 (i === prev ? " is-prev" : "")
               }
+              style={{ "--pos": slide.pos, "--pos-sm": slide.posSm }}
             >
               <source type="image/webp" srcSet={slide.webp} sizes="100vw" />
               <img
@@ -232,14 +295,26 @@ export default function Hero() {
           <span className="ph">ウォーカーの参加も歓迎</span>
         </p>
 
+        {/* 受付状況と締切、開催までの日数。以前は「ENTRY」までスクロールしないと
+            分からなかった。文言は lib/event.js の entryStatus() / eventCountdown() */}
+        <p className="hero-status">
+          <span className="hero-status-main">
+            <span className={`hero-status-dot is-${entry.state}`} aria-hidden="true" />
+            {entry.short}
+          </span>
+          {countdown.label ? (
+            <span className="hero-status-count">{countdown.label}</span>
+          ) : null}
+        </p>
+
         <div className="hero-actions">
           <a
             className="btn btn-primary"
-            href={SITE.entryFormUrl}
+            href={cta.href}
             target="_blank"
             rel="noopener noreferrer"
           >
-            エントリーする
+            {cta.action}
             <span className="material-symbols-outlined" aria-hidden="true">
               arrow_outward
             </span>
@@ -262,18 +337,33 @@ export default function Hero() {
           <b>{HOURS_LABEL}</b>
         </div>
         {/* 写真は装飾（hero-mediaはaria-hidden）なので、ドットは
-            タブではなく「今どれを見せるか」の選択ボタンとして扱う。 */}
-        <div className="hero-dots" role="group" aria-label="ヒーロー写真の切り替え">
-          {SLIDES.map((slide, i) => (
+            タブではなく「今どれを見せるか」の選択ボタンとして扱う。
+            見た目は細い棒のまま、押せる範囲は縦44px・横32〜36pxにしてある。 */}
+        <div className="hero-controls">
+          {canAutoplay ? (
             <button
-              key={slide.jpg}
               type="button"
-              className={i === current ? "is-active" : ""}
-              aria-label={`${i + 1}枚目の写真を表示`}
-              aria-pressed={i === current}
-              onClick={() => goTo(i)}
-            />
-          ))}
+              className="hero-pause"
+              aria-label={userPaused ? "写真の自動切り替えを再開" : "写真の自動切り替えを一時停止"}
+              onClick={toggleAutoplay}
+            >
+              <span className="material-symbols-outlined" aria-hidden="true">
+                {userPaused ? "play_arrow" : "pause"}
+              </span>
+            </button>
+          ) : null}
+          <div className="hero-dots" role="group" aria-label="ヒーロー写真の切り替え">
+            {SLIDES.map((slide, i) => (
+              <button
+                key={slide.jpg}
+                type="button"
+                className={i === current ? "is-active" : ""}
+                aria-label={`${i + 1}枚目の写真を表示`}
+                aria-pressed={i === current}
+                onClick={() => goTo(i)}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>

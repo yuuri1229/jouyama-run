@@ -2,6 +2,8 @@
 # GitHub Pages 自動デプロイ
 # main ブランチに変更をコミット（push）するたびに、
 # サイトを自動でビルドして公開します。
+# プルリクエストでは「ビルドが通るか」だけを確認し、公開はしません
+# （以前はPRに自動チェックが無く、壊れたビルドを main に入れて初めて気づけた）。
 # 事前に リポジトリの Settings → Pages → Source を
 # 「GitHub Actions」に設定しておいてください。
 # =========================================================
@@ -9,6 +11,9 @@ name: Deploy to GitHub Pages
 
 on:
   push:
+    branches: [main]
+  # PRではビルド確認だけ行う（成果物のアップロードとデプロイは下の if で除外）
+  pull_request:
     branches: [main]
   workflow_dispatch:
   # microCMSのWebhookから叩かれ、記事の公開・更新時に自動で再ビルドする
@@ -25,12 +30,15 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # 公開用(pages)とPR確認用でグループを分ける。同じグループにすると、PRのビルドが
+  # 始まった時点で、実行中の公開ジョブが cancel-in-progress で取り消されてしまう
+  group: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || 'pages' }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: リポジトリを取得
         uses: actions/checkout@v4
@@ -73,13 +81,24 @@ jobs:
           # サービスドメインは既定で niigata24h。変更する場合のみ Secrets/Variables で上書き
           MICROCMS_SERVICE_DOMAIN: ${{ vars.MICROCMS_SERVICE_DOMAIN }}
 
+      - name: ビルド結果を確認
+        # microCMS から記事を取れなかった場合は、ビルド自体が失敗する（lib/microcms.js）。
+        # ここでは出力に最低限のページがあることを確かめる
+        run: |
+          test -f out/index.html
+          test -f out/404.html
+          test -f out/sitemap.xml
+
       - name: 成果物をアップロード
+        if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: out
 
   deploy:
     needs: build
+    # PRでは公開しない
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: github-pages

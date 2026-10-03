@@ -1,8 +1,9 @@
 import Link from "next/link";
 import SocialLinks from "./SocialLinks";
-import { SITE } from "../lib/site";
+import { SITE, entryLink } from "../lib/site";
 
-export default function Footer() {
+export default function Footer({ entryOpen = true }) {
+  const entry = entryLink(entryOpen);
   return (
     <footer className="site-footer">
       <div className="container footer-inner">
@@ -17,8 +18,8 @@ export default function Footer() {
           <Link href="/#news">最新情報</Link>
           <Link href="/#outline">大会概要</Link>
           <Link href="/news/">最新情報一覧</Link>
-          <a href={SITE.entryFormUrl} target="_blank" rel="noopener noreferrer">
-            エントリー
+          <a href={entry.href} target="_blank" rel="noopener noreferrer">
+            {entry.label}
           </a>
           <a
             href={SITE.contactFormUrl}

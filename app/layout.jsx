@@ -2,18 +2,18 @@ import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Analytics from "../components/Analytics";
-import { asset, siteUrl, SITE } from "../lib/site";
-import { EVENT, LABEL, toIso, toIsoDate } from "../lib/event";
+import { asset, siteUrl } from "../lib/site";
+import { EVENT, entryStatus, toIsoDate } from "../lib/event";
+import { OG_IMAGE_URL, SITE_DESCRIPTION, SITE_TITLE } from "../lib/seo";
 import { FONT_HREFS, HERO_LCP_IMAGE, HERO_WIDTHS, webpSrcSet } from "../lib/assets";
 
-const title = "新潟・城山運動公園24＆12時間走";
-const description =
-  `${LABEL.eventDateRange}開催。${EVENT.venue.locality}・${EVENT.venue.name}、1周約${EVENT.lapMeters}mの周回コースで行われる24時間走・12時間走の公式サイト。決められた時間のなかで走った距離を競う大会で、ウォーカーの参加も歓迎しています。`;
+const title = SITE_TITLE;
+const description = SITE_DESCRIPTION;
 // タイトル末尾の「2026.11.22-23」。開催日から組み立てる
 const dateSuffix = `${toIsoDate(EVENT.startAt).replaceAll("-", ".")}-${toIsoDate(
   EVENT.endAt
 ).slice(8)}`;
-const ogImageUrl = `${siteUrl}${asset("/img/og-image.jpg")}`;
+const ogImageUrl = OG_IMAGE_URL;
 
 export const metadata = {
   metadataBase: new URL(siteUrl),
@@ -77,55 +77,9 @@ export const viewport = {
   themeColor: "#167a1e",
 };
 
-// 大会情報の構造化データ（Event）。Google検索でイベント情報として
-// 認識されやすくするためのJSON-LD。
-const eventJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "SportsEvent",
-  name: title,
-  description,
-  startDate: toIso(EVENT.startAt),
-  endDate: toIso(EVENT.endAt),
-  eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
-  eventStatus: "https://schema.org/EventScheduled",
-  sport: "Ultramarathon",
-  image: [ogImageUrl],
-  url: siteUrl,
-  location: {
-    "@type": "Place",
-    name: EVENT.venue.name,
-    address: {
-      "@type": "PostalAddress",
-      streetAddress: EVENT.venue.street,
-      addressLocality: EVENT.venue.locality,
-      addressRegion: EVENT.venue.region,
-      postalCode: EVENT.venue.postalCode,
-      addressCountry: "JP",
-    },
-  },
-  organizer: {
-    "@type": "Organization",
-    name: EVENT.organizer.name,
-    url: siteUrl,
-  },
-  // Googleのイベント リッチリザルトは price / priceCurrency を要求するため、
-  // 種目ごとに Offer を分けて金額まで書き出す。
-  offers: [
-    { name: "24時間走", price: EVENT.race24.fee },
-    { name: "12時間走", price: EVENT.race12.fee },
-  ].map((o) => ({
-    "@type": "Offer",
-    name: o.name,
-    url: SITE.entryFormUrl,
-    price: String(o.price),
-    priceCurrency: "JPY",
-    availability: "https://schema.org/InStock",
-    validFrom: toIso(EVENT.entryOpenAt),
-    validThrough: toIso(EVENT.entryCloseAt),
-  })),
-};
-
 export default function RootLayout({ children }) {
+  // 受付状況はビルド時に決まる（毎朝の再ビルドで切り替わる）
+  const entryOpen = entryStatus().open;
   return (
     <html lang="ja">
       <head>
@@ -154,11 +108,6 @@ export default function RootLayout({ children }) {
           fetchPriority="high"
         />
 
-        <script
-          type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
-        />
 
         {/* スクロール表示演出(.reveal)は初期状態が opacity:0 のため、
             JSが動かない環境では本文が最後まで見えない。
@@ -176,9 +125,9 @@ export default function RootLayout({ children }) {
         <a className="skip-link" href="#main">
           本文へスキップ
         </a>
-        <Header />
+        <Header entryOpen={entryOpen} />
         {children}
-        <Footer />
+        <Footer entryOpen={entryOpen} />
         <Analytics />
       </body>
     </html>
