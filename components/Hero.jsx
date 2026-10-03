@@ -207,9 +207,14 @@ export default function Hero() {
         </h1>
 
         <p className="hero-lede">
-          1周約{EVENT.lapMeters}mの周回コースを、決められた<b>時間</b>のなかで。
+          <span className="ph">1周約{EVENT.lapMeters}mの周回コースを、</span>
+          <span className="ph">
+            決められた<b>時間</b>のなかで。
+          </span>
           <br className="pc" />
-          歩いても、休んでも構いません。ウォーカーの参加も歓迎
+          <span className="ph">歩いても、</span>
+          <span className="ph">休んでも構いません。</span>
+          <span className="ph">ウォーカーの参加も歓迎</span>
         </p>
 
         <div className="hero-actions">
