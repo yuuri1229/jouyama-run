@@ -317,10 +317,23 @@ WebPが不得意な素材のため、78のままだと元のJPEGとほぼ同サ�
 `svh` にすると高さは安定しますが、バーが隠れたときに下に隙間が出ます。
 どちらを取るかは好みの問題で、現状の選択も妥当です（体感が気になる場合のみ変更を推奨）。
 
-**B. Next.js のバージョン**
+**B. Next.js のバージョン（2026-10-04 対応済み）**
 
-`14.2.35` で動作しています。静的エクスポートなので影響を受ける脆弱性は限定的ですが、
-半年〜1年単位での追従を推奨します。
+`14.2.35` → `16.3.8`、React `18.3.1` → `19.3.0` に更新しました。
+`npm audit` は更新前が critical 1 / high 1（`next` と、その依存の `postcss`）、更新後は 0 件です。
+報告内容は Image Optimizer・Server Components・Server Actions・middleware・rewrites など、
+静的エクスポートのこのサイトでは**使っていない機能**で、実害は確認していませんでしたが、
+依存の鮮度のために更新しました。半年〜1年単位での追従は引き続き推奨します。
+
+コードの変更は3点です。
+
+- `app/news/[id]/page.jsx`：`params` が Promise になったため `await` して取り出す
+- `app/robots.js` / `sitemap.js` / `manifest.js`：静的エクスポートでは `export const dynamic = "force-static"` の明示が必要
+- `app/globals.css`：`font-variant-numeric: tabular-nums` の要素に `font-feature-settings: "tnum"` を明示。
+  旧ビルドの PostCSS がこの指定を `"tnum"` にも展開しており、body の `"palt"` が該当要素で外れていた。
+  新ビルドは展開しないため、そのままだとタイムバンドの「スタート」などの和文が字詰めされて幅が変わる
+
+更新前後の見た目・挙動の検証結果は [`docs/next16-upgrade/README.md`](next16-upgrade/README.md) にあります。
 
 ---
 
