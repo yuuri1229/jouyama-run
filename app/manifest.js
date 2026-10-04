@@ -1,6 +1,10 @@
 import { asset } from "../lib/site";
 import { SITE } from "../lib/site";
 
+// output: "export"（静的書き出し）では、メタデータ用のルートにも
+// force-static の明示が必要（Next.js 15 以降）。
+export const dynamic = "force-static";
+
 // ホーム画面に追加したときのアイコン・名称。
 // public/icon-192.png と icon-512.png は用意済みだが、
 // これまでどこからも参照されていなかった。
