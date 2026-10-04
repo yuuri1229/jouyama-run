@@ -13,8 +13,9 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }) {
+  const { id } = await params;
   const items = await getNewsItems();
-  const item = items.find((n) => n.id === params.id);
+  const item = items.find((n) => n.id === id);
   if (!item) return {};
 
   const description = `新潟・城山運動公園24＆12時間走の最新情報「${item.title}」（${item.dateLabel}）`;
@@ -36,8 +37,9 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function NewsArticlePage({ params }) {
+  const { id } = await params;
   const items = await getNewsItems();
-  const item = items.find((n) => n.id === params.id);
+  const item = items.find((n) => n.id === id);
   if (!item) notFound();
 
   return (

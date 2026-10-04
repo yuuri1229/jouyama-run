@@ -78,7 +78,8 @@ html {
 body {
   font-family: var(--font-jp);
   font-weight: 400;
-  font-feature-settings: "palt" 1;      /* 和文の字詰め */
+  font-feature-settings: "palt" 1;      /* 和文の字詰め。font-variant-numeric: tabular-nums の要素だけは
+                                           下記の "tnum" で上書きされ、字詰めなしになる（後述） */
   letter-spacing: .015em;
   color: var(--text);
   background: var(--ground);
@@ -142,6 +143,12 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-weight: 700;
   letter-spacing: -.02em;
   font-variant-numeric: tabular-nums;
+  /* ↓ 見た目を変えないための明示。
+     Next.js 14 のビルドは font-variant-numeric: tabular-nums を font-feature-settings: "tnum" にも
+     展開していた。要素に直接指定した font-feature-settings は、継承した値と合成されず置き換わるので、
+     body の "palt"（和文の字詰め）がこれらの要素では外れていた。Next.js 16 では展開されず palt が
+     効いて幅が変わるため、従来どおり "tnum" だけにする。数字の等幅は font-variant-numeric 側でも保たれる。 */
+  font-feature-settings: "tnum";
 }
 
 .container { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
@@ -639,6 +646,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   letter-spacing: .04em;
   color: var(--sub);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";               /* palt を外す。理由は最初の指定の注記を参照 */
 }
 .news-tag {
   color: var(--pine-d);
@@ -766,6 +774,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   letter-spacing: .02em;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";               /* palt を外す。理由は最初の指定の注記を参照 */
 }
 .timeband-labels span:last-child { text-align: right; }
 .timeband-labels small {
@@ -850,6 +859,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   padding: 11px 12px 11px 0;
   border-bottom: 1px solid var(--line-soft);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";               /* palt を外す。理由は最初の指定の注記を参照 */
 }
 .sched-table td {
   padding: 11px 0;
@@ -1069,6 +1079,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   letter-spacing: .04em;
   color: var(--sub);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";               /* palt を外す。理由は最初の指定の注記を参照 */
 }
 .news-article-title {
   font-size: clamp(22px, 2.6vw, 30px);
@@ -1136,6 +1147,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   letter-spacing: .04em;
   color: var(--sub);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";               /* palt を外す。理由は最初の指定の注記を参照 */
 }
 .news-card-title {
   font-size: clamp(18px, 2vw, 22px);
