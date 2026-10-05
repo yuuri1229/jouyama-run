@@ -24,7 +24,9 @@
   --line-soft:#e7e9e3;   /* 内部の細罫 */
   --day:      #c98a1e;   /* タイムバンド：昼 */
   --night:    #123049;   /* タイムバンド：夜 */
-  --header-h: 68px;
+  /* 画面幅に応じて 62→68px。幅の狭い端末では下の @media で別途上書きしない */
+  --header-h: clamp(62px, 5vw, 68px);
+  --gutter: clamp(16px, 4vw, 32px);   /* 左右の余白 */
   --radius: 2px;
 
   /* 余白スケール。セクション間・カード内の余白はこの中から選ぶ
@@ -41,7 +43,7 @@
              "Yu Gothic", sans-serif;
   --font-en: "Roboto", "Helvetica Neue", Arial, sans-serif;
   /* 小さいラベル・時刻・日付などのデータ表記に使う等幅 */
-  --font-mono: "Roboto", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Roboto", "Noto Sans JP", "Helvetica Neue", Arial, sans-serif;
 
   /* 文字サイズのスケール（役割ごとに固定し、場当たりな指定を避ける） */
   --fs-micro: 12px;     /* 英字ラベル */
@@ -144,7 +146,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-variant-numeric: tabular-nums;
 }
 
-.container { max-width: 1240px; margin: 0 auto; padding: 0 32px; }
+.container { max-width: 1240px; margin: 0 auto; padding: 0 var(--gutter); }
 
 /* ---------- ボタン ---------- */
 .btn {
@@ -163,11 +165,12 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .btn-primary { background: var(--pine); color: #fff; }
 .btn-primary:hover { background: var(--pine-d); color: #fff; }
 /* 枠線はUI境界なので3:1以上（旧 .42 は約2.2:1で不足していた） */
-.btn-ghost { color: #fff; border: 1px solid rgba(255, 255, 255, .72); }
+/* 枠線の1pxぶん上下の余白を減らし、塗りのボタン(.btn-primary)と高さを揃える */
+.btn-ghost { color: #fff; border: 1px solid rgba(255, 255, 255, .72); padding: 15px 28px; }
 .btn-ghost:hover { background: rgba(255, 255, 255, .12); color: #fff; }
 .btn-line { color: var(--ink); border: 1px solid rgba(13, 26, 16, .55); }
 .btn-line:hover { background: var(--ink); color: var(--ground); }
-.btn-lg { padding: 20px 36px; font-size: clamp(16px, 1.4vw, var(--fs-md)); }
+.btn-lg { padding: 20px 32px; font-size: clamp(16px, 1.4vw, var(--fs-md)); }
 
 .text-arrow {
   display: inline-flex;
@@ -197,7 +200,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   max-width: 1240px;
   margin: 0 auto;
   height: var(--header-h);
-  padding: 0 32px;
+  padding: 0 var(--gutter);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -218,7 +221,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .brand-name {
   font-weight: 700;
-  font-size: 15px;
+  font-size: clamp(13.5px, 1.3vw, 15px);
   letter-spacing: .02em;
   line-height: 1.2;
 }
@@ -282,43 +285,74 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .nav-toggle .material-symbols-outlined { font-size: 30px; }
 
-/* モバイルメニュー：区切り線を持たないフラットなリスト */
+/* モバイルメニュー：ヘッダー直下から画面下端までを覆う全画面パネル。
+   行は「01 最新情報 ›」の番号付きで、内容が長い端末では中だけスクロールする */
 .mobile-nav {
   display: none;
+  position: fixed;
+  top: var(--header-h); left: 0; right: 0; bottom: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   flex-direction: column;
-  gap: 2px;
   background: var(--ground);
-  padding: 8px 32px 26px;
+  padding: 8px var(--gutter) 32px;
 }
 .mobile-nav.is-open { display: flex; }
-.mobile-nav a {
-  padding: 15px 2px;
+.mobile-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 2px;
+  border-bottom: 1px solid var(--line-soft);
   color: var(--ink);
   font-size: 17px;
   font-weight: 700;
 }
+.mobile-nav-item:hover { color: var(--ink); }
+.mobile-nav-label { display: flex; align-items: baseline; gap: 14px; }
+.mobile-nav-num {
+  font-family: var(--font-en);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: .14em;
+  color: var(--pine);
+}
+.mobile-nav-icon { font-size: 22px; color: var(--pine); }
+.mobile-nav-icon.is-external { font-size: 19px; color: var(--sub); }
 .mobile-nav .mobile-nav-cta {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 24px;
   background: var(--pine);
   color: #fff;
   font-size: 15px;
+  font-weight: 700;
   letter-spacing: .06em;
   padding: 17px 18px;
   border-radius: var(--radius);
 }
 .mobile-nav .mobile-nav-cta:hover { background: var(--pine-d); color: #fff; }
+.mobile-nav-cta .material-symbols-outlined { font-size: 18px; }
+.mobile-nav-date {
+  margin-top: 14px;
+  text-align: center;
+  font-family: var(--font-en);
+  font-size: var(--fs-micro);
+  letter-spacing: .12em;
+  color: var(--sub);
+}
 .mobile-nav-social {
   display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: center;
+  gap: 22px;
   margin-top: 22px;
 }
 .mobile-nav-social a { display: flex; color: var(--sub); padding: 0; }
 .mobile-nav-social a:hover { color: var(--ink); }
+.mobile-nav-social svg { width: 22px; height: 22px; }
 
 /* ---------- ヒーロー ---------- */
 .hero {
@@ -387,7 +421,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: clamp(24px, 7vh, 150px) 32px clamp(20px, 2.6vh, 44px);
+  padding: clamp(24px, 7vh, 150px) var(--gutter) clamp(24px, 3.4vh, 52px);
 }
 
 /* 2つの独立したチップ（枠を共有しないので折り返しでも崩れない） */
@@ -396,7 +430,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   flex-wrap: wrap;
   align-items: stretch;
   gap: 8px;
-  margin: 0 0 clamp(12px, 2.4vh, 32px);
+  margin: 0 0 clamp(14px, 2.6vh, 32px);
   font-family: var(--font-mono);
   font-weight: 400;
   font-size: clamp(11.5px, .95vw, 13.5px);
@@ -420,7 +454,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .hero-bib span:last-child {
   background: var(--pine);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: .12em;
 }
 .hero-bib b { font-weight: inherit; }
@@ -466,7 +500,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 
 .hero-lede {
-  margin-top: clamp(14px, 2.8vh, 38px);
+  margin-top: clamp(16px, 3vh, 38px);
   max-width: min(700px, 100%);
   font-size: clamp(16px, 1.3vw, 19px);
   font-weight: 500;
@@ -475,13 +509,20 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   color: #fff;
 }
 .hero-lede b { color: #fff; font-weight: 700; }
-.hero-actions .btn { font-size: clamp(15px, 1.1vw, 16.5px); }
+.lede-line { display: block; }   /* 2行（距離と時間／歩いてもよい）に固定 */
+.hero-actions .btn {
+  flex: 1 1 220px;
+  justify-content: center;
+  font-size: clamp(15px, 1.1vw, 16.5px);
+}
 
+/* 幅は560pxまで。狭い画面では2つのボタンが縦に並んで全幅になる */
 .hero-actions {
-  margin-top: clamp(16px, 3vh, 40px);
+  margin-top: clamp(18px, 3.4vh, 40px);
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  max-width: 560px;
 }
 
 /* スマホではスクロール中にアドレスバーが出入りする。
@@ -492,10 +533,10 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
    未対応環境は上のvh指定がそのまま効く */
 @supports (height: 100svh) {
   .hero { min-height: calc(100svh - var(--header-h)); }
-  .hero-body { padding-top: clamp(24px, 7svh, 150px); padding-bottom: clamp(20px, 2.6svh, 44px); }
-  .hero-bib { margin-bottom: clamp(12px, 2.4svh, 32px); }
-  .hero-lede { margin-top: clamp(14px, 2.8svh, 38px); }
-  .hero-actions { margin-top: clamp(16px, 3svh, 40px); }
+  .hero-body { padding-top: clamp(24px, 7svh, 150px); padding-bottom: clamp(24px, 3.4svh, 52px); }
+  .hero-bib { margin-bottom: clamp(14px, 2.6svh, 32px); }
+  .hero-lede { margin-top: clamp(16px, 3svh, 38px); }
+  .hero-actions { margin-top: clamp(18px, 3.4svh, 40px); }
 }
 
 /* 下端：ラップ表記＋写真切り替え */
@@ -509,24 +550,25 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 13px max(32px, calc((100vw - 1240px) / 2 + 32px));
+  padding: 13px max(var(--gutter), calc((100vw - 1240px) / 2 + 32px));
   border-top: 1px solid rgba(255, 255, 255, .18);
   background: rgba(10, 18, 12, .55);
 }
 .lap-strip {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: clamp(8px, 1.2vw, 14px);
   min-width: 0;
   font-family: var(--font-mono);
   font-size: clamp(11.5px, 1vw, 13px);
   letter-spacing: .12em;
+  line-height: 1.5;
   color: #fff;
   white-space: nowrap;
 }
 .lap-strip i {
   display: block;
-  width: clamp(24px, 5vw, 70px);
+  width: clamp(12px, 5vw, 70px);
   height: 1px;
   background: rgba(255, 255, 255, .4);
 }
@@ -535,27 +577,82 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .hero-dots {
   display: flex;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 6px;
 }
+/* ボタンは指で押せる24pxの高さ、見た目の棒は::beforeの3px */
 .hero-dots button {
-  position: relative;
-  width: 26px; height: 3px;
+  display: flex;
+  align-items: center;
+  width: clamp(22px, 2vw, 28px);
+  height: 24px;
   border: none;
   padding: 0;
   cursor: pointer;
+  background: none;
+}
+.hero-dots button::before {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 3px;
   background: rgba(255, 255, 255, .34);
   transition: background .2s;
 }
-/* 棒の見た目は3pxのまま、指で押せるよう当たり判定だけ24pxに広げる */
-.hero-dots button::after {
-  content: "";
-  position: absolute;
-  left: -3px; right: -3px;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 24px;
+.hero-dots button.is-active::before { background: #fff; }
+
+/* ---------- 基本情報バー（ヒーロー直下） ---------- */
+/* 4つのセルを1pxの罫線でつなぐ。罫線は「背景色＋gap:1px」で描いている */
+.facts { background: var(--paper); border-bottom: 1px solid var(--line); }
+.facts-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--line);
 }
-.hero-dots button.is-active { background: #fff; }
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: clamp(18px, 2.4vw, 28px) clamp(14px, 2vw, 28px);
+  background: var(--paper);
+}
+.fact dt {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: .08em;
+  line-height: 1.4;
+  color: var(--pine);
+}
+.fact dt .material-symbols-outlined { font-size: 17px; }
+.fact-main { font-weight: 700; }
+.fact-main--num {
+  font-family: var(--font-en);
+  font-size: clamp(20px, 2.1vw, 27px);
+  letter-spacing: -.01em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.fact-main--text {
+  font-size: clamp(17px, 1.7vw, 22px);
+  letter-spacing: .02em;
+  line-height: 1.35;
+}
+.fact-unit { font-size: .6em; font-weight: 500; margin-left: 2px; }
+.fact-dow { font-size: .55em; font-weight: 500; letter-spacing: .08em; margin-left: 6px; }
+.fact-sub { font-size: var(--fs-xs); line-height: 1.5; letter-spacing: .02em; color: var(--sub); }
+.fact-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--pine);
+  color: #fff;
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: .06em;
+  line-height: 1.5;
+}
 
 /* ---------- セクション共通 ---------- */
 .section { padding: var(--space-3xl) 0; }
@@ -589,6 +686,9 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   letter-spacing: .18em;
 }
 .sec-eyebrow .material-symbols-outlined { font-size: 18px; }
+/* 「01 ─」。番号は墨色、短い罫線で英字ラベルへつなぐ */
+.sec-num { color: var(--ink); }
+.sec-bar { display: block; width: 18px; height: 1px; background: var(--pine); }
 .sec-title {
   margin: 0;
   font-size: var(--fs-h2);
@@ -664,7 +764,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .outline-row {
   display: grid;
-  grid-template-columns: minmax(150px, 220px) 1fr;
+  grid-template-columns: clamp(150px, 16vw, 220px) 1fr;
   gap: 32px;
   padding: clamp(18px, 2.2vw, 26px) clamp(18px, 2.4vw, 32px);
   border-top: 1px solid var(--line-soft);
@@ -672,8 +772,9 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .outline-row:first-child { border-top: none; }
 .outline-row dt {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
+  height: 1.9em;
   font-size: var(--fs-sm);
   font-weight: 700;
   letter-spacing: .06em;
@@ -687,26 +788,43 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   letter-spacing: .02em;
 }
 .outline-row dd small {
-  display: inline-block;
+  display: block;
   color: var(--sub);
   font-size: var(--fs-sm);
   line-height: 1.85;
   letter-spacing: .02em;
-  margin-top: 6px;
+  margin-top: 8px;
+}
+/* 参加費：金額を大きく。24時間走は濃い緑、12時間走は淡い緑で種目カードと揃える */
+.fee-list { display: flex; flex-wrap: wrap; gap: 6px 28px; }
+.fee { display: inline-flex; align-items: baseline; gap: 10px; }
+.fee-num {
+  font-family: var(--font-en);
+  font-weight: 700;
+  font-size: 1.25em;
+  letter-spacing: 0;
+  color: var(--pine);
+}
+.fee--12 .fee-num { color: var(--pine-12); }
+.fee-num span {
+  font-family: var(--font-jp);
+  font-size: .7em;
+  margin-left: 2px;
+  color: var(--ink);
 }
 
 /* 種目カード：24時間走＝メインカラー、12時間走＝淡緑で主従を表現 */
 .race-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
   gap: clamp(16px, 2vw, 24px);
-  align-items: start;
+  align-items: stretch;
 }
 .race-card {
   background: var(--paper);
   border: 1px solid var(--line);
   border-top: 6px solid var(--pine);
-  padding: clamp(24px, 3vw, 38px);
+  padding: clamp(22px, 3vw, 38px);
   display: flex;
   flex-direction: column;
   gap: clamp(20px, 2.4vw, 28px);
@@ -716,7 +834,8 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 12px 16px;
   border-bottom: 1px solid var(--line);
   padding-bottom: 18px;
 }
@@ -755,8 +874,28 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 /* 帯の色（昼→夜→朝）は実際の日の入り・日の出の時刻から組み立てる。
    停止位置をCSSに手書きしていた頃は実時刻と2〜6時間ずれていた。
    生成は lib/sky.js の skyGradient()、指定は app/page.jsx のstyle属性。 */
-.timeband-bar { height: 10px; }
-.timeband-bar--second { margin-top: 20px; }
+.timeband-bar { position: relative; height: 10px; margin-top: 4px; }
+/* 帯の上に日没・日の出の時刻を添える。位置は lib/sky.js の skyMarkers()
+   が返す%で、帯の左端が開始・右端が終了に対応する */
+.timeband-marks {
+  position: relative;
+  height: 18px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .04em;
+  line-height: 18px;
+  color: var(--sub);
+  white-space: nowrap;
+}
+.timeband-marks span { position: absolute; transform: translateX(-50%); }
+.timeband-marks--second { margin-top: 16px; }
+.timeband-bar i {
+  position: absolute;
+  top: -4px;
+  width: 1px;
+  height: 4px;
+  background: var(--sub);
+}
 .timeband-labels {
   display: flex;
   justify-content: space-between;
@@ -811,16 +950,19 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 /* スケジュール */
 .schedule-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
   gap: clamp(16px, 2vw, 24px);
   align-items: start;
 }
 .schedule-col {
   background: var(--paper);
   border: 1px solid var(--line);
-  padding: clamp(22px, 2.6vw, 32px);
+  padding: clamp(20px, 2.6vw, 32px);
 }
 .schedule-col h4 {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   font-size: var(--fs-md);
   font-weight: 700;
   letter-spacing: .06em;
@@ -828,8 +970,15 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   margin-bottom: 20px;
   border-bottom: 2px solid var(--pine);
 }
+.schedule-col h4 .fig-en {
+  font-size: 22px;
+  letter-spacing: -.01em;
+  color: var(--pine);
+}
+.schedule-col--12 h4 { border-bottom-color: var(--pine-l); }
+.schedule-col--12 h4 .fig-en { color: var(--pine-12); }
 .sched-day {
-  margin: 24px 0 10px;
+  margin: 24px 0 6px;
   font-family: var(--font-mono);
   font-size: var(--fs-xs);
   font-weight: 500;
@@ -841,7 +990,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .sched-table th {
   text-align: left;
   white-space: nowrap;
-  width: 44%;
+  width: 40%;
   font-family: var(--font-mono);
   font-weight: 400;
   font-size: 14.5px;
@@ -857,11 +1006,14 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-size: var(--fs-base);
   letter-spacing: .02em;
 }
+/* スタート・制限時間の行は太字の緑で目立たせる */
+.sched-table .is-key th { font-weight: 700; color: var(--pine); }
+.sched-table .is-key td { font-weight: 700; }
 
 /* ---------- コース ---------- */
 .course-wrap {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr));
   gap: clamp(24px, 3vw, 48px);
   align-items: start;
 }
@@ -940,12 +1092,17 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
     rgba(11, 61, 18, .45) 0%, rgba(11, 61, 18, 0) 62%);
   pointer-events: none;
 }
+/* 左＝見出し・受付状態・ボタン、右＝締切カウントダウンと必携品。
+   狭い幅では右が左の下に回り込んで1カラムになる */
 .entry-inner {
   position: relative;
   display: grid;
-  gap: clamp(20px, 2.5vw, 28px);
-  max-width: 820px;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: clamp(32px, 5vw, 72px);
+  align-items: end;
 }
+.entry-main { display: grid; gap: clamp(20px, 2.5vw, 28px); }
+.entry-side { display: grid; gap: 16px; }
 .entry-title {
   font-size: var(--fs-display);
   line-height: .85;
@@ -957,15 +1114,62 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   letter-spacing: .04em;
   border-left: 3px solid rgba(255, 255, 255, .65);
   padding-left: 16px;
+  line-height: 1.6;
 }
 .entry-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+.entry-actions .btn { flex: 1 1 240px; justify-content: center; }
 .entry .btn-primary { background: #fff; color: var(--pine-d); }
 .entry .btn-primary:hover { background: var(--pine-d); color: #fff; }
-.entry .btn-line { color: #fff; border-color: rgba(255, 255, 255, .72); }
+.entry .btn-line {
+  color: #fff;
+  border-color: rgba(255, 255, 255, .72);
+  padding: 19px 28px;   /* 枠線1pxぶん、塗りのボタンと高さを揃える */
+}
 .entry .btn-line:hover { background: rgba(255, 255, 255, .12); color: #fff; }
 .entry-note { font-size: var(--fs-sm); color: rgba(255, 255, 255, .88); }
+
+/* 締切までのカウントダウン（受付中のみ表示） */
+.entry-deadline {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding: clamp(20px, 2.4vw, 28px);
+  background: rgba(11, 61, 18, .38);
+  border: 1px solid rgba(255, 255, 255, .22);
+}
+.entry-deadline-head { display: grid; gap: 6px; }
+.entry-deadline-en {
+  font-family: var(--font-en);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: .16em;
+  line-height: 1.4;
+}
+.entry-deadline-text {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.5;
+}
+.entry-countdown {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  line-height: .9;
+  font-weight: 700;
+}
+.entry-countdown span { font-size: 16px; }
+.entry-countdown b {
+  font-family: var(--font-en);
+  font-size: clamp(56px, 6.4vw, 88px);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+
 .entry-kit {
-  margin-top: clamp(12px, 2vw, 20px);
   border: 1px solid rgba(255, 255, 255, .22);
   padding: clamp(20px, 2.4vw, 28px);
 }
@@ -983,36 +1187,43 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   font-size: var(--fs-base);
   line-height: 1.9;
   letter-spacing: .02em;
-  color: rgba(255, 255, 255, .9);
+  color: rgba(255, 255, 255, .92);
 }
 
-/* ---------- ルール（見出し帯 × 本文の2カラム） ---------- */
+/* ---------- ルール（常時展開。見出しの帯 ＋ 本文） ---------- */
+/* 開閉はしない。項目は広い画面で2列に流れ、狭い画面では1列になる */
 .rule {
   background: var(--paper);
   border: 1px solid var(--line);
-  display: grid;
-  grid-template-columns: minmax(200px, 280px) 1fr;
-  margin-bottom: clamp(16px, 2vw, 24px);
+  margin-bottom: clamp(12px, 1.6vw, 16px);
 }
+.rule:last-child { margin-bottom: 0; }
 .rule-title {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
   margin: 0;
-  padding: clamp(22px, 2.6vw, 32px);
+  padding: clamp(18px, 2.2vw, 24px) clamp(18px, 2.6vw, 32px);
   background: rgba(22, 122, 30, .06);
-  border-right: 1px solid var(--line-soft);
   font-size: clamp(16px, 1.6vw, 19px);
   font-weight: 700;
   letter-spacing: .04em;
+  line-height: 1.5;
   color: var(--ink);
 }
 .rule-title .material-symbols-outlined { font-size: 22px; color: var(--pine); }
-.rule-body { padding: clamp(22px, 2.6vw, 32px); }
-.rule-body ul { list-style: none; display: grid; gap: 12px; }
+.rule-body {
+  padding: clamp(18px, 2.2vw, 24px) clamp(18px, 2.6vw, 32px) clamp(22px, 2.6vw, 32px);
+  border-top: 1px solid var(--line-soft);
+}
+.rule-body ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(420px, 100%), 1fr));
+  gap: 12px 40px;
+}
 .rule-body li {
   position: relative;
-  max-width: calc(var(--measure) + 20px);
   padding-left: 20px;
   font-size: var(--fs-base);
   line-height: var(--lh-body);
@@ -1021,7 +1232,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .rule-body li::before {
   content: "";
   position: absolute;
-  left: 2px; top: .78em;
+  left: 2px; top: .7em;
   width: 7px; height: 7px;
   background: var(--pine);
 }
@@ -1030,7 +1241,6 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   padding: 14px 16px;
   background: rgba(201, 138, 30, .14);
   border-left: 3px solid var(--day);
-  max-width: var(--measure);
   color: var(--pine-d);
   font-size: var(--fs-sm);
   font-weight: 500;
@@ -1177,15 +1387,25 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   padding: clamp(48px, 6vw, 80px) 0 clamp(28px, 3vw, 40px);
 }
 .footer-inner { display: grid; gap: clamp(20px, 2.5vw, 30px); }
+/* 左＝サイト名と主催、右＝SNS。狭い幅ではSNSが下に回る */
+.footer-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px 40px;
+}
+.footer-id { display: grid; gap: 12px; }
 .footer-brand {
   font-size: clamp(17px, 1.8vw, 22px);
   font-weight: 700;
   letter-spacing: .04em;
+  line-height: 1.5;
   color: #fff;
 }
 .footer-brand strong {
   font-family: var(--font-en);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--pine-on);
   padding: 0 4px;
 }
@@ -1208,7 +1428,7 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 .footer-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px 32px;
+  gap: 12px 32px;
   border-top: 1px solid rgba(255, 255, 255, .16);
   padding-top: clamp(20px, 2.5vw, 28px);
 }
@@ -1219,8 +1439,62 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
 }
 .footer-nav a:hover { color: #fff; }
 
+/* ---------- スマホ下部のエントリーバー ---------- */
+/* 表示する/しないの判断（受付中・ヒーローを過ぎた）は components/StickyEntryBar.jsx。
+   ここでは「PC幅」「メニューを開いている間」だけCSSで隠す */
+.sticky-entry {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 90;   /* ヘッダー(100)とそのメニューの下 */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
+  background: rgba(248, 247, 243, .97);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 20px rgba(13, 26, 16, .06);
+}
+.sticky-entry-text { display: grid; min-width: 0; line-height: 1.4; }
+.sticky-entry-state {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: var(--pine);
+}
+.sticky-entry-meta {
+  font-family: var(--font-mono);
+  font-size: var(--fs-micro);
+  letter-spacing: .04em;
+  color: var(--sub);
+  white-space: nowrap;
+}
+.sticky-entry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 13px 20px;
+  background: var(--pine);
+  color: #fff;
+  border-radius: var(--radius);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  line-height: 1.4;
+}
+.sticky-entry-btn:hover { background: var(--pine-d); color: #fff; }
+.sticky-entry-btn .material-symbols-outlined { font-size: 17px; }
+@media (min-width: 1020px) { .sticky-entry { display: none; } }
+html[data-menu-open] .sticky-entry { display: none; }
+/* 固定バーがフッター末尾に被らないよう、バーの高さぶん余白を足す */
+@media (max-width: 1019px) {
+  body.has-sticky-entry .site-footer {
+    padding-bottom: calc(clamp(28px, 3vw, 40px) + 64px);
+  }
+}
+
 /* ---------- レスポンシブ ---------- */
-.pc { display: inline; }
 
 /* 項目が5つになり、900〜1000px付近ではラベルが「最新／情報」のように
    途中で折り返していた。ナビが1行に収まりきる幅までは
@@ -1230,16 +1504,12 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   .nav-toggle { display: flex; }
 }
 
-@media (max-width: 768px) {
-  .container, .header-inner, .hero-body, .mobile-nav { padding-left: 16px; padding-right: 16px; }
-  .hero-foot { padding-left: 16px; padding-right: 16px; }
+@media (max-width: 759px) {
+  .facts-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 700px) {
-  :root { --header-h: 62px; }
   body { font-size: 15px; }
-  .pc { display: none; }
-  .brand-name { font-size: 13.5px; }
   /* 狭い幅は文字が写真の全幅に乗るため、斜めではなく縦方向で
      文字のある下半分だけを落とす。緑ではなく中立色で暗くするので
      写真の色みは保ったまま白文字のコントラストを確保できる */
@@ -1255,14 +1525,9 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
         rgba(10, 18, 12, .72) 78%,
         rgba(10, 18, 12, .84) 100%);
   }
-  /* 狭い幅では装飾の罫線だけ省き、「LAP 960m × 24:00:00」は残す。
-     1周の距離と制限時間は大会の根幹なのでスマホでも見せる */
-  .hero-foot { gap: 12px; padding-top: 11px; padding-bottom: 11px; }
-  .lap-strip { gap: 8px; letter-spacing: .06em; }
-  .lap-strip i { display: none; }
-  .hero-dots { gap: 6px; }
-  .hero-dots button { width: 20px; }
-  .hero-actions { flex-direction: column; align-items: stretch; }
+  /* 「LAP 960m × 24:00:00」は狭い幅でも残す（1周の距離と制限時間は大会の根幹）。
+     罫線は短くなるだけで消さない */
+  .hero-foot { gap: 12px; }
   .btn { justify-content: center; }
   /* 日付とタグを同じセルに重ねて margin-left:100px でずらしていたため、
      文字幅が変わると衝突していた。素直に列として並べる */
@@ -1272,8 +1537,6 @@ button, a { -webkit-tap-highlight-color: rgba(22, 122, 30, .12); }
   .news-link .news-arrow { grid-row: 1; grid-column: 3; justify-self: end; }
   .news-link .news-text { grid-column: 1 / -1; margin-top: 8px; }
   .outline-row { grid-template-columns: 1fr; gap: 6px; }
-  .rule { grid-template-columns: 1fr; }
-  .rule-title { border-right: none; border-bottom: 1px solid var(--line-soft); }
   .photo-band { grid-template-columns: repeat(2, 1fr); }
   .sched-table th { width: 38%; }
 }

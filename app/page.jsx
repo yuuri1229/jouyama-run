@@ -1,41 +1,158 @@
 import Link from "next/link";
 import Hero from "../components/Hero";
 import Reveal from "../components/Reveal";
+import {
+  EntryClock,
+  EntryLabel,
+  EntryChip,
+  DaysLeft,
+  WhenEntryOpen,
+} from "../components/EntryClock";
+import StickyEntryBar from "../components/StickyEntryBar";
 import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
 import { GALLERY_WIDTHS, webpSrcSet } from "../lib/assets";
-import { skyGradient } from "../lib/sky";
+import { skyGradient, skyMarkers } from "../lib/sky";
 import {
   EVENT,
   LABEL,
-  entryStatus,
+  formatDate,
   formatDateTime,
   formatDayTime,
 } from "../lib/event";
 
 const NEWS_ON_TOP = 3; // トップに表示するお知らせの件数
 
-export default async function HomePage() {
-  const newsItems = await getNewsItems();
-  const entry = entryStatus();
+// Material Symbols のアイコン。名前は lib/assets.js の MATERIAL_ICONS にも要登録
+function Icon({ name }) {
+  return (
+    <span className="material-symbols-outlined" aria-hidden="true">
+      {name}
+    </span>
+  );
+}
 
+// セクション見出し「01 ─ [icon] NEWS ／ 最新情報」。番号は上から順に振る
+function SectionHead({ num, icon, en, title }) {
+  return (
+    <Reveal as="header" className="sec-head">
+      <p className="sec-eyebrow">
+        <span className="sec-num">{num}</span>
+        <span className="sec-bar" aria-hidden="true" />
+        <Icon name={icon} />
+        {en}
+      </p>
+      <h2 className="sec-title">{title}</h2>
+    </Reveal>
+  );
+}
+
+// 種目カードの時間帯バー。左端が開始、右端が終了。
+// 空の色は実際の日の入り・日の出から組み立て（lib/sky.js）、
+// 帯の上に日没・日の出の時刻を目印として添える。
+function TimeBand({ startAt, endAt, startNote, endNote, second = false }) {
+  const marks = skyMarkers(startAt, endAt);
   return (
     <>
+      <div
+        className={`timeband-marks${second ? " timeband-marks--second" : ""}`}
+        aria-hidden="true"
+      >
+        {marks.map((m) => (
+          <span key={m.label} style={{ left: `${m.pct}%` }}>
+            {m.label} {m.time}
+          </span>
+        ))}
+      </div>
+      <div
+        className="timeband-bar"
+        style={{ background: skyGradient(startAt, endAt) }}
+      >
+        {marks.map((m) => (
+          <i key={m.label} aria-hidden="true" style={{ left: `${m.pct}%` }} />
+        ))}
+      </div>
+      <div className="timeband-labels">
+        <span>
+          {formatDayTime(startAt)}
+          <br />
+          <small>{startNote}</small>
+        </span>
+        <span>
+          {formatDayTime(endAt)}
+          <br />
+          <small>{endNote}</small>
+        </span>
+      </div>
+    </>
+  );
+}
+
+export default async function HomePage() {
+  const newsItems = await getNewsItems();
+  // 受付中／受付終了はブラウザ側で現在時刻から再判定する（EntryClock）。
+  // 最初の描画はこのビルド時刻で行い、書き出したHTMLと揃える。
+  const builtAt = Date.now();
+
+  return (
+    <EntryClock builtAt={builtAt}>
       <Hero />
+
+      {/* ================= 基本情報バー ================= */}
+      <section className="facts" aria-label="大会の基本情報">
+        <div className="container">
+          <dl className="facts-grid">
+            <div className="fact">
+              <dt>
+                <Icon name="calendar_month" />
+                開催日
+              </dt>
+              <dd className="fact-main fact-main--num">{LABEL.factDate}</dd>
+              <dd className="fact-sub">{LABEL.factDateNote}</dd>
+            </div>
+            <div className="fact">
+              <dt>
+                <Icon name="location_on" />
+                会場
+              </dt>
+              <dd className="fact-main fact-main--text">{EVENT.venue.name}</dd>
+              <dd className="fact-sub">{LABEL.venueAddress}</dd>
+            </div>
+            <div className="fact">
+              <dt>
+                <Icon name="route" />
+                1周の距離
+              </dt>
+              <dd className="fact-main fact-main--num">
+                {EVENT.lapMeters}
+                <span className="fact-unit">m</span>
+              </dd>
+              <dd className="fact-sub">公園内の周回コース</dd>
+            </div>
+            <div className="fact">
+              <dt>
+                <Icon name="edit_calendar" />
+                エントリー締切
+              </dt>
+              <dd className="fact-main fact-main--num">
+                {LABEL.deadlineDot}
+                <span className="fact-dow">{LABEL.deadlineEn}</span>
+              </dd>
+              <dd>
+                <span className="fact-chip">
+                  <EntryChip />
+                </span>
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </section>
 
       <main id="main">
         {/* ================= 1. 最新情報 ================= */}
         <section className="section" id="news">
           <div className="container">
-            <Reveal as="header" className="sec-head">
-              <p className="sec-eyebrow">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  campaign
-                </span>
-                NEWS
-              </p>
-              <h2 className="sec-title">最新情報</h2>
-            </Reveal>
+            <SectionHead num="01" icon="campaign" en="NEWS" title="最新情報" />
 
             <ul className="news-list">
               {newsItems.slice(0, NEWS_ON_TOP).map((item) => (
@@ -69,15 +186,7 @@ export default async function HomePage() {
         {/* ================= 2. 大会概要 ================= */}
         <section className="section section-mist" id="outline">
           <div className="container">
-            <Reveal as="header" className="sec-head">
-              <p className="sec-eyebrow">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  flag
-                </span>
-                OUTLINE
-              </p>
-              <h2 className="sec-title">大会概要</h2>
-            </Reveal>
+            <SectionHead num="02" icon="flag" en="OUTLINE" title="大会概要" />
 
             <Reveal as="dl" className="outline-table">
               <div className="outline-row">
@@ -132,13 +241,25 @@ export default async function HomePage() {
                   参加費
                 </dt>
                 <dd>
-                  {LABEL.fees}
-                  <br />
-                  <small>
+                  <span className="fee-list">
+                    <span className="fee">
+                      24時間走
+                      <b className="fee-num">
+                        {EVENT.race24.fee.toLocaleString()}
+                        <span>円</span>
+                      </b>
+                    </span>
+                    <span className="fee fee--12">
+                      12時間走
+                      <b className="fee-num">
+                        {EVENT.race12.fee.toLocaleString()}
+                        <span>円</span>
+                      </b>
+                    </span>
+                  </span>
+                  <small className="fee-note">
                     （施設利用料、エイド利用料、スポーツ保険加入代、人件費、運営費等）
-                  </small>
-                  <br />
-                  <small>
+                    <br />
                     参加費は銀行振込です。エントリー後、メールにて入金方法のご連絡を差し上げます。
                   </small>
                 </dd>
@@ -183,27 +304,12 @@ export default async function HomePage() {
                     EVENT.race24.finishAt
                   )}まで`}
                 >
-                  <div
-                    className="timeband-bar"
-                    style={{
-                      background: skyGradient(
-                        EVENT.race24.startAt,
-                        EVENT.race24.finishAt
-                      ),
-                    }}
+                  <TimeBand
+                    startAt={EVENT.race24.startAt}
+                    endAt={EVENT.race24.finishAt}
+                    startNote="スタート"
+                    endNote="制限時間"
                   />
-                  <div className="timeband-labels">
-                    <span>
-                      {formatDayTime(EVENT.race24.startAt)}
-                      <br />
-                      <small>スタート</small>
-                    </span>
-                    <span>
-                      {formatDayTime(EVENT.race24.finishAt)}
-                      <br />
-                      <small>制限時間</small>
-                    </span>
-                  </div>
                 </div>
                 <ul className="race-spec">
                   <li>
@@ -254,48 +360,19 @@ export default async function HomePage() {
                     EVENT.race12.night.startAt
                   )}から${formatDateTime(EVENT.race12.night.finishAt)}まで`}
                 >
-                  <div
-                    className="timeband-bar"
-                    style={{
-                      background: skyGradient(
-                        EVENT.race12.day.startAt,
-                        EVENT.race12.day.finishAt
-                      ),
-                    }}
+                  <TimeBand
+                    startAt={EVENT.race12.day.startAt}
+                    endAt={EVENT.race12.day.finishAt}
+                    startNote="デイスタート"
+                    endNote="制限時間"
                   />
-                  <div className="timeband-labels">
-                    <span>
-                      {formatDayTime(EVENT.race12.day.startAt)}
-                      <br />
-                      <small>デイスタート</small>
-                    </span>
-                    <span>
-                      {formatDayTime(EVENT.race12.day.finishAt)}
-                      <br />
-                      <small>制限時間</small>
-                    </span>
-                  </div>
-                  <div
-                    className="timeband-bar timeband-bar--second"
-                    style={{
-                      background: skyGradient(
-                        EVENT.race12.night.startAt,
-                        EVENT.race12.night.finishAt
-                      ),
-                    }}
+                  <TimeBand
+                    second
+                    startAt={EVENT.race12.night.startAt}
+                    endAt={EVENT.race12.night.finishAt}
+                    startNote="ナイトスタート"
+                    endNote="制限時間"
                   />
-                  <div className="timeband-labels">
-                    <span>
-                      {formatDayTime(EVENT.race12.night.startAt)}
-                      <br />
-                      <small>ナイトスタート</small>
-                    </span>
-                    <span>
-                      {formatDayTime(EVENT.race12.night.finishAt)}
-                      <br />
-                      <small>制限時間</small>
-                    </span>
-                  </div>
                 </div>
                 <ul className="race-spec">
                   <li className="icon-day">
@@ -346,7 +423,9 @@ export default async function HomePage() {
             </Reveal>
             <div className="schedule-grid">
               <Reveal className="schedule-col">
-                <h4>24時間走</h4>
+                <h4>
+                  <span className="fig-en">24</span>時間走
+                </h4>
                 <p className="sched-day">11月22日(日)</p>
                 <table className="sched-table">
                   <tbody>
@@ -358,7 +437,7 @@ export default async function HomePage() {
                       <th>11:30–</th>
                       <td>開会式（注意事項等説明）</td>
                     </tr>
-                    <tr>
+                    <tr className="is-key">
                       <th>12:00</th>
                       <td>スタート</td>
                     </tr>
@@ -367,7 +446,7 @@ export default async function HomePage() {
                 <p className="sched-day">11月23日(祝)</p>
                 <table className="sched-table">
                   <tbody>
-                    <tr>
+                    <tr className="is-key">
                       <th>12:00</th>
                       <td>制限時間</td>
                     </tr>
@@ -378,8 +457,10 @@ export default async function HomePage() {
                   </tbody>
                 </table>
               </Reveal>
-              <Reveal className="schedule-col" delay={1}>
-                <h4>12時間走</h4>
+              <Reveal className="schedule-col schedule-col--12" delay={1}>
+                <h4>
+                  <span className="fig-en">12</span>時間走
+                </h4>
                 <p className="sched-day">11月22日(日)　＜デイスタート＞</p>
                 <table className="sched-table">
                   <tbody>
@@ -391,7 +472,7 @@ export default async function HomePage() {
                       <th>11:30–</th>
                       <td>開会式（注意事項等説明）</td>
                     </tr>
-                    <tr>
+                    <tr className="is-key">
                       <th>12:00</th>
                       <td>スタート</td>
                     </tr>
@@ -413,7 +494,7 @@ export default async function HomePage() {
                 <p className="sched-day">11月23日(祝)</p>
                 <table className="sched-table">
                   <tbody>
-                    <tr>
+                    <tr className="is-key">
                       <th>0:00</th>
                       <td>ナイトスタート／デイスタートの制限時間</td>
                     </tr>
@@ -421,7 +502,7 @@ export default async function HomePage() {
                       <th>0:30</th>
                       <td>賞品授与（デイスタート）</td>
                     </tr>
-                    <tr>
+                    <tr className="is-key">
                       <th>12:00</th>
                       <td>制限時間</td>
                     </tr>
@@ -439,15 +520,7 @@ export default async function HomePage() {
         {/* ================= コース ================= */}
         <section className="section" id="course">
           <div className="container">
-            <Reveal as="header" className="sec-head">
-              <p className="sec-eyebrow">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  route
-                </span>
-                COURSE
-              </p>
-              <h2 className="sec-title">コース</h2>
-            </Reveal>
+            <SectionHead num="03" icon="route" en="COURSE" title="コース" />
             <div className="course-wrap">
               <Reveal as="figure" className="course-map">
                 <img
@@ -569,62 +642,71 @@ export default async function HomePage() {
         <section className="entry" id="entry">
           <div className="container">
             <Reveal className="entry-inner">
-              <h2 className="entry-title">ENTRY</h2>
-              {/* 受付状態はビルド時刻と lib/event.js の期間から判定する。
-                  文言を直書きしていると、締切後もサイトが
-                  「受付中」と言い続けてしまうため。 */}
-              <p className="entry-lead">{entry.label}</p>
-              <div className="entry-actions">
-                {entry.open ? (
+              <div className="entry-main">
+                <h2 className="entry-title">ENTRY</h2>
+                {/* 受付状態は現在時刻と lib/event.js の期間から判定する
+                    （EntryClock がブラウザ側でも再判定する）。文言を直書き
+                    していると、締切後もサイトが「受付中」と言い続けてしまうため。 */}
+                <p className="entry-lead">
+                  <EntryLabel />
+                </p>
+                <div className="entry-actions">
+                  <WhenEntryOpen>
+                    <a
+                      className="btn btn-primary btn-lg"
+                      href={SITE.entryFormUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      エントリーフォームへ
+                      <Icon name="arrow_outward" />
+                    </a>
+                  </WhenEntryOpen>
                   <a
-                    className="btn btn-primary btn-lg"
-                    href={SITE.entryFormUrl}
+                    className="btn btn-line"
+                    href={SITE.entryListUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >
-                    エントリーフォームへ
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      arrow_outward
-                    </span>
+                    エントリーリストを見る
+                    <Icon name="open_in_new" />
                   </a>
-                ) : null}
-                <a
-                  className="btn btn-line"
-                  href={SITE.entryListUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  エントリーリストを見る
-                  <span
-                    className="material-symbols-outlined"
-                    aria-hidden="true"
-                  >
-                    open_in_new
-                  </span>
-                </a>
-              </div>
-              <p className="entry-note">
-                エントリーリストはエントリー確定後、随時更新します。
-                {entry.state === "open"
-                  ? `　定員は24時間走${EVENT.race24.capacity}名／12時間走デイ・ナイト各${EVENT.race12.capacityEach}名です。`
-                  : null}
-              </p>
-              <div className="entry-kit">
-                <h3>
-                  <span
-                    className="material-symbols-outlined"
-                    aria-hidden="true"
-                  >
-                    checklist
-                  </span>
-                  必携品
-                </h3>
-                <p>
-                  夜間走のためのライト／マイカップ／反射板や赤色灯／走行距離がわかるGPS付き時計やStravaアプリなど
+                </div>
+                <p className="entry-note">
+                  エントリーリストはエントリー確定後、随時更新します。
+                  <WhenEntryOpen>
+                    {`　定員は24時間走${EVENT.race24.capacity}名／12時間走デイ・ナイト各${EVENT.race12.capacityEach}名です。`}
+                  </WhenEntryOpen>
                 </p>
+              </div>
+
+              <div className="entry-side">
+                <WhenEntryOpen>
+                  <div className="entry-deadline">
+                    <div className="entry-deadline-head">
+                      <p className="entry-deadline-en">DEADLINE</p>
+                      <p className="entry-deadline-text">
+                        エントリー締切 {formatDate(EVENT.entryCloseAt)}
+                      </p>
+                    </div>
+                    <p className="entry-countdown">
+                      <span>あと</span>
+                      <b>
+                        <DaysLeft />
+                      </b>
+                      <span>日</span>
+                    </p>
+                  </div>
+                </WhenEntryOpen>
+                <div className="entry-kit">
+                  <h3>
+                    <Icon name="checklist" />
+                    必携品
+                  </h3>
+                  <p>
+                    夜間走のためのライト／マイカップ／反射板や赤色灯／走行距離がわかるGPS付き時計やStravaアプリなど
+                  </p>
+                </div>
               </div>
             </Reveal>
           </div>
@@ -633,15 +715,7 @@ export default async function HomePage() {
         {/* ================= ルール ================= */}
         <section className="section section-mist" id="rules">
           <div className="container">
-            <Reveal as="header" className="sec-head">
-              <p className="sec-eyebrow">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  gavel
-                </span>
-                RULES
-              </p>
-              <h2 className="sec-title">大会ルール</h2>
-            </Reveal>
+            <SectionHead num="04" icon="gavel" en="RULES" title="大会ルール" />
 
             <Reveal as="article" className="rule">
               <h3 className="rule-title">
@@ -751,6 +825,8 @@ export default async function HomePage() {
           </div>
         </section>
       </main>
-    </>
+
+      <StickyEntryBar />
+    </EntryClock>
   );
 }

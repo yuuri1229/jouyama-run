@@ -221,15 +221,20 @@ export default function Hero() {
           </span>
         </h1>
 
+        {/* 2行（距離と時間／歩いてもよい）で組む。行の中は文節ごとにまとめ、
+            狭い幅でも文節の途中では折り返さない。 */}
         <p className="hero-lede">
-          <span className="ph">1周約{EVENT.lapMeters}mの周回コースを、</span>
-          <span className="ph">
-            決められた<b>時間</b>のなかで。
+          <span className="lede-line">
+            <span className="ph">1周約{EVENT.lapMeters}mの周回コースを、</span>
+            <span className="ph">
+              決められた<b>時間</b>のなかで。
+            </span>
           </span>
-          <br className="pc" />
-          <span className="ph">歩いても、</span>
-          <span className="ph">休んでも構いません。</span>
-          <span className="ph">ウォーカーの参加も歓迎</span>
+          <span className="lede-line">
+            <span className="ph">歩いても、</span>
+            <span className="ph">休んでも構いません。</span>
+            <span className="ph">ウォーカーの参加も歓迎</span>
+          </span>
         </p>
 
         <div className="hero-actions">
