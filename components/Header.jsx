@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
+import { EVENT, LABEL } from "../lib/event";
 
 // external: true はサイト外へ出るリンク。別タブで開くので、
 // 文字だけだと予告なくサイトを離れることになる。小さなアイコンを添えて
@@ -43,15 +44,57 @@ function NavItem({ item, onClick }) {
   );
 }
 
+// モバイルメニューの1行。「01 最新情報 ›」のように番号を添える。
+// 外部リンクは › ではなく「別タブで開く」アイコンにする。
+function MobileNavItem({ item, index, onClick }) {
+  const num = String(index + 1).padStart(2, "0");
+  const label = (
+    <>
+      <span className="mobile-nav-label">
+        <span className="mobile-nav-num">{num}</span>
+        {item.label}
+      </span>
+      <span
+        className={`material-symbols-outlined mobile-nav-icon${
+          item.external ? " is-external" : ""
+        }`}
+        aria-hidden="true"
+      >
+        {item.external ? "open_in_new" : "chevron_right"}
+      </span>
+    </>
+  );
+  if (item.external) {
+    return (
+      <a
+        className="mobile-nav-item"
+        href={item.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={onClick}
+      >
+        {label}
+      </a>
+    );
+  }
+  return (
+    <Link className="mobile-nav-item" href={item.href} onClick={onClick}>
+      {label}
+    </Link>
+  );
+}
+
+// ハンバーガーに切り替わる幅。globals.css の @media (max-width: 1019px) と揃える
+const DESKTOP_NAV = "(min-width: 1020px)";
+
 export default function Header() {
   const [open, setOpen] = useState(false);
-  const headerRef = useRef(null);
   const toggleRef = useRef(null);
 
   // メニューが開いている間だけ有効にする挙動をまとめる。
   //  ・Escapeで閉じてハンバーガーにフォーカスを戻す（キーボード操作）
-  //  ・メニューの外側をタップしたら閉じる
   //  ・背後のページがスクロールしないようにする
+  //  ・開いていることをCSSへ伝える（下部のエントリーバーを隠すため）
   useEffect(() => {
     if (!open) return;
 
@@ -61,24 +104,32 @@ export default function Header() {
         toggleRef.current?.focus();
       }
     };
-    const onPointerDown = (e) => {
-      if (!headerRef.current?.contains(e.target)) setOpen(false);
-    };
 
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.setAttribute("data-menu-open", "");
     document.addEventListener("keydown", onKeyDown);
-    document.addEventListener("pointerdown", onPointerDown);
 
     return () => {
       document.body.style.overflow = prevOverflow;
+      document.documentElement.removeAttribute("data-menu-open");
       document.removeEventListener("keydown", onKeyDown);
-      document.removeEventListener("pointerdown", onPointerDown);
     };
   }, [open]);
 
+  // メニューを開いたまま画面を広げ（横向き・ウィンドウ拡大）てPC用ナビに
+  // 切り替わったら閉じる。開いたままだと背後がスクロールロックされたままになる。
+  useEffect(() => {
+    const mq = window.matchMedia(DESKTOP_NAV);
+    const onChange = (e) => {
+      if (e.matches) setOpen(false);
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
   return (
-    <header className="site-header" ref={headerRef}>
+    <header className="site-header">
       <div className="header-inner">
         <Link href="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-name">新潟・城山運動公園24&amp;12時間走</span>
@@ -121,10 +172,11 @@ export default function Header() {
         id="mobile-nav"
         aria-label="モバイルメニュー"
       >
-        {NAV_ITEMS.map((item) => (
-          <NavItem
+        {NAV_ITEMS.map((item, i) => (
+          <MobileNavItem
             key={item.href}
             item={item}
+            index={i}
             onClick={() => setOpen(false)}
           />
         ))}
@@ -136,7 +188,13 @@ export default function Header() {
           onClick={() => setOpen(false)}
         >
           エントリーフォーム
+          <span className="material-symbols-outlined" aria-hidden="true">
+            arrow_outward
+          </span>
         </a>
+        <p className="mobile-nav-date">
+          {LABEL.bibDate} ／ {EVENT.venue.name}
+        </p>
         <SocialLinks className="mobile-nav-social" />
       </nav>
     </header>
