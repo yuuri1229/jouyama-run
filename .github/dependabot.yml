@@ -1,0 +1,40 @@
+# =========================================================
+# 依存パッケージ・GitHub Actions の更新を自動で提案する（Dependabot）
+# ---------------------------------------------------------
+# 月に1回、更新内容をまとめたプルリクエストが届きます。
+# ビルドが通る（緑のチェック）ことを確認してからマージしてください。
+#
+# ・cooldown: 公開から7日経っていない版は提案しない。
+#   乗っ取られたパッケージの悪性版は、多くが数時間〜数日で
+#   発見・取り下げされるため、その間に取り込まないようにする。
+# ・メジャー更新（Next.js 16 → 17 など）は動作が変わることがあるため
+#   自動提案から外し、時期を見て手動で行う。
+#   （セキュリティ修正は、リポジトリ設定の
+#    「Dependabot security updates」を有効にすると別途すぐ届きます）
+# =========================================================
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 3
+    groups:
+      npm:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]

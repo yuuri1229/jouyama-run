@@ -4,6 +4,14 @@
 # サイトを自動でビルドして公開します。
 # 事前に リポジトリの Settings → Pages → Source を
 # 「GitHub Actions」に設定しておいてください。
+#
+# 【セキュリティ上の決まりごと】
+#  ・外部のアクション（uses:）はタグではなくコミットID（40桁）で固定する。
+#    タグは後から別のコードに付け替えられるため（2025年に tj-actions/changed-files
+#    が乗っ取られ、タグ経由で多数のリポジトリの秘密情報が漏れた）。
+#    更新は Dependabot（.github/dependabot.yml）が月1回まとめて提案する。
+#  ・権限は必要なジョブにだけ必要な分を渡す。依存パッケージを実行する
+#    ビルドジョブには、公開（Pages への書き込み）の権限を渡さない。
 # =========================================================
 name: Deploy to GitHub Pages
 
@@ -19,10 +27,8 @@ on:
   schedule:
     - cron: "0 20 * * *" # 毎日 05:00 JST
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+# 既定では何の権限も渡さない（各ジョブで必要な分だけ指定する）
+permissions: {}
 
 concurrency:
   group: pages
@@ -31,15 +37,23 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # リポジトリの読み取りだけ
     steps:
       - name: リポジトリを取得
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # 以降のステップ（依存パッケージのコードを含む）から
+          # GitHub のトークンを読めないようにする
+          persist-credentials: false
 
       - name: Node.jsをセットアップ
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 20
-          # package-lock.json をキーに node_modules をキャッシュして
+          # Node.js 20 は 2026年4月でサポート終了。セキュリティ修正が続く LTS を使う
+          node-version: 22
+          # package-lock.json をキーにダウンロード済みパッケージをキャッシュして
           # 毎回のインストールを短縮する
           cache: npm
 
@@ -47,7 +61,14 @@ jobs:
         # npm install だとロックファイルを書き換えてしまい、
         # 「ローカルでは動くのにデプロイだけ壊れる」の原因になる。
         # npm ci はロックファイルどおりに入れるので毎回同じ結果になる。
-        run: npm ci
+        # --ignore-scripts でインストール時スクリプトを実行しない（.npmrc と同じ指定。
+        # 乗っ取られたパッケージが仕込むマルウェアの多くはここで動く）。
+        run: npm ci --ignore-scripts
+
+      - name: 依存パッケージの署名を検証
+        # npm レジストリの署名と照合し、配布元で改ざんされたパッケージが
+        # 紛れ込んでいないかを確かめる
+        run: npm audit signatures
 
       - name: ベースパスを判定
         id: basepath
@@ -55,16 +76,19 @@ jobs:
         # なければ「ユーザー名.github.io」判定 → それ以外は /リポジトリ名 を自動設定
         # (GitHub Actionsの `&&`/`||` 式は空文字列を偽値として扱うため、
         #  シェルのif文で明示的に判定する)
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           if [ -f public/CNAME ]; then
             echo "value=" >> "$GITHUB_OUTPUT"
-          elif [[ "${{ github.event.repository.name }}" == *.github.io ]]; then
+          elif [[ "$REPO_NAME" == *.github.io ]]; then
             echo "value=" >> "$GITHUB_OUTPUT"
           else
-            echo "value=/${{ github.event.repository.name }}" >> "$GITHUB_OUTPUT"
+            echo "value=/$REPO_NAME" >> "$GITHUB_OUTPUT"
           fi
 
       - name: サイトをビルド
+        # アイコン生成 → Next.js のビルド → CSP の書き込み までをまとめて行う
         run: npm run build
         env:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.basepath.outputs.value }}
@@ -74,17 +98,22 @@ jobs:
           MICROCMS_SERVICE_DOMAIN: ${{ vars.MICROCMS_SERVICE_DOMAIN }}
 
       - name: 成果物をアップロード
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: out
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # 公開に必要な権限は、ビルド済みの成果物を載せるだけのこのジョブにだけ渡す
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: GitHub Pagesへデプロイ
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -65,8 +65,16 @@ export function useEntryStatus() {
   return status;
 }
 
+// 「エントリー受付中｜2026年11月13日(金)まで」の後半（日付）は
+// 1かたまりで折り返す。狭い画面で「(金)まで」だけが次の行に落ちないように。
 export function EntryLabel() {
-  return useEntryStatus().label;
+  const [state, until] = useEntryStatus().label.split("｜");
+  if (!until) return state;
+  return (
+    <>
+      {state}｜<span className="ph">{until}</span>
+    </>
+  );
 }
 
 export function EntryChip() {

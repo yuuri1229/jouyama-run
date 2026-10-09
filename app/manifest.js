@@ -1,9 +1,9 @@
-import { asset } from "../lib/site";
-import { SITE } from "../lib/site";
+import { asset, SITE, THEME } from "../lib/site";
+
+// 静的書き出し（output: "export"）で1つのファイルとして出力する
+export const dynamic = "force-static";
 
 // ホーム画面に追加したときのアイコン・名称。
-// public/icon-192.png と icon-512.png は用意済みだが、
-// これまでどこからも参照されていなかった。
 export default function manifest() {
   return {
     name: SITE.name,
@@ -12,8 +12,8 @@ export default function manifest() {
       "新潟市西蒲区・城山運動公園で開催する24時間走・12時間走の公式サイト",
     start_url: `${asset("/")}`,
     display: "standalone",
-    background_color: "#f8f7f3",
-    theme_color: "#167a1e",
+    background_color: THEME.background,
+    theme_color: THEME.color,
     lang: "ja",
     icons: [
       { src: asset("/icon-192.png"), sizes: "192x192", type: "image/png" },

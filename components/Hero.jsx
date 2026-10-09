@@ -1,15 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Icon from "./Icon";
 import { asset, SITE } from "../lib/site";
-import { HERO_LCP_IMAGE, HERO_WIDTHS, webpSrcSet } from "../lib/assets";
+import {
+  HERO_LCP_IMAGE,
+  HERO_WIDTHS,
+  IMAGE_FORMATS,
+  imageSrcSet,
+} from "../lib/assets";
 import { EVENT, LABEL } from "../lib/event";
 
 const SLIDE_INTERVAL = 5000; // 写真の切り替え間隔（ミリ秒）
 
 // 写真は <picture> で出し分ける。CSSのbackground-imageだった頃は
 // 画面幅に関わらず1920px幅の1枚しか選べなかったが、srcsetにすると
-// スマホには960px幅の軽いものが届く。
+// スマホには960px幅の軽いものが届く。形式は AVIF → WebP → jpg の順。
 const SLIDES = [
   HERO_LCP_IMAGE,
   "/img/hero-2.jpg",
@@ -17,7 +23,10 @@ const SLIDES = [
   "/img/hero-4.jpg",
 ].map((src) => ({
   jpg: asset(src),
-  webp: webpSrcSet(src, HERO_WIDTHS, asset),
+  sources: IMAGE_FORMATS.map((format) => ({
+    type: `image/${format}`,
+    srcSet: imageSrcSet(src, HERO_WIDTHS, format, asset),
+  })),
 }));
 
 // 「24:00:00」のような制限時間表記
@@ -183,7 +192,9 @@ export default function Hero() {
                 (i === prev ? " is-prev" : "")
               }
             >
-              <source type="image/webp" srcSet={slide.webp} sizes="100vw" />
+              {slide.sources.map((source) => (
+                <source key={source.type} {...source} sizes="100vw" />
+              ))}
               <img
                 ref={registerImg(i)}
                 src={slide.jpg}
@@ -245,15 +256,11 @@ export default function Hero() {
             rel="noopener noreferrer"
           >
             エントリーする
-            <span className="material-symbols-outlined" aria-hidden="true">
-              arrow_outward
-            </span>
+            <Icon name="arrow_outward" />
           </a>
           <a className="btn btn-ghost" href="#outline">
             大会概要を見る
-            <span className="material-symbols-outlined" aria-hidden="true">
-              arrow_downward
-            </span>
+            <Icon name="arrow_downward" />
           </a>
         </div>
       </div>

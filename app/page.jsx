@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { preload } from "react-dom";
 import Hero from "../components/Hero";
+import Icon from "../components/Icon";
 import Reveal from "../components/Reveal";
 import {
   EntryClock,
@@ -11,7 +13,13 @@ import {
 import StickyEntryBar from "../components/StickyEntryBar";
 import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
-import { GALLERY_WIDTHS, webpSrcSet } from "../lib/assets";
+import {
+  GALLERY_WIDTHS,
+  HERO_LCP_IMAGE,
+  HERO_WIDTHS,
+  IMAGE_FORMATS,
+  imageSrcSet,
+} from "../lib/assets";
 import { skyGradient, skyMarkers } from "../lib/sky";
 import {
   EVENT,
@@ -23,14 +31,13 @@ import {
 
 const NEWS_ON_TOP = 3; // トップに表示するお知らせの件数
 
-// Material Symbols のアイコン。名前は lib/assets.js の MATERIAL_ICONS にも要登録
-function Icon({ name }) {
-  return (
-    <span className="material-symbols-outlined" aria-hidden="true">
-      {name}
-    </span>
-  );
-}
+// フォトバンドの写真（public/img/ の元jpgと説明文）
+const GALLERY = [
+  { src: "/img/gallery-1.jpg", alt: "屋内コートでの開会式の様子" },
+  { src: "/img/gallery-2.jpg", alt: "スタート前に集まる参加者" },
+  { src: "/img/gallery-3.jpg", alt: "管理棟での参加者ミーティング" },
+  { src: "/img/gallery-4.jpg", alt: "公園内の周回コース" },
+];
 
 // セクション見出し「01 ─ [icon] NEWS ／ 最新情報」。番号は上から順に振る
 function SectionHead({ num, icon, en, title }) {
@@ -89,6 +96,18 @@ function TimeBand({ startAt, endAt, startNote, endNote, second = false }) {
 }
 
 export default async function HomePage() {
+  // ファーストビューの写真（LCP要素）を、HTMLを読んだ直後から取りに行く。
+  // 以前は共通レイアウトで指定していたため、ヒーローの無い最新情報ページでも
+  // 使わない写真をダウンロードしていた。対応形式のうち最も軽い AVIF を先読みする
+  // （非対応のブラウザは type を見て先読みを飛ばし、通常どおり WebP を読む）。
+  preload(asset(HERO_LCP_IMAGE), {
+    as: "image",
+    type: `image/${IMAGE_FORMATS[0]}`,
+    imageSrcSet: imageSrcSet(HERO_LCP_IMAGE, HERO_WIDTHS, IMAGE_FORMATS[0], asset),
+    imageSizes: "100vw",
+    fetchPriority: "high",
+  });
+
   const newsItems = await getNewsItems();
   // 受付中／受付終了はブラウザ側で現在時刻から再判定する（EntryClock）。
   // 最初の描画はこのビルド時刻で行い、書き出したHTMLと揃える。
@@ -161,12 +180,7 @@ export default async function HomePage() {
                     <time dateTime={item.date}>{item.dateLabel}</time>
                     <span className="news-tag">{item.tag}</span>
                     <span className="news-text">{item.title}</span>
-                    <span
-                      className="material-symbols-outlined news-arrow"
-                      aria-hidden="true"
-                    >
-                      chevron_right
-                    </span>
+                    <Icon name="chevron_right" className="news-arrow" />
                   </Link>
                 </Reveal>
               ))}
@@ -175,9 +189,7 @@ export default async function HomePage() {
             <Reveal className="sec-more">
               <Link className="text-arrow" href="/news/">
                 最新情報一覧
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  arrow_forward
-                </span>
+                <Icon name="arrow_forward" />
               </Link>
             </Reveal>
           </div>
@@ -191,18 +203,14 @@ export default async function HomePage() {
             <Reveal as="dl" className="outline-table">
               <div className="outline-row">
                 <dt>
-                  <span className="material-symbols-outlined" aria-hidden="true">
-                    calendar_month
-                  </span>
+                  <Icon name="calendar_month" />
                   開催日
                 </dt>
                 <dd>{LABEL.eventDateRange}</dd>
               </div>
               <div className="outline-row">
                 <dt>
-                  <span className="material-symbols-outlined" aria-hidden="true">
-                    location_on
-                  </span>
+                  <Icon name="location_on" />
                   開催場所
                 </dt>
                 <dd>
@@ -215,29 +223,20 @@ export default async function HomePage() {
                     rel="noopener noreferrer"
                   >
                     Google Mapで開く
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      open_in_new
-                    </span>
+                    <Icon name="open_in_new" />
                   </a>
                 </dd>
               </div>
               <div className="outline-row">
                 <dt>
-                  <span className="material-symbols-outlined" aria-hidden="true">
-                    edit_calendar
-                  </span>
+                  <Icon name="edit_calendar" />
                   エントリー期間
                 </dt>
                 <dd>{LABEL.entryPeriod}</dd>
               </div>
               <div className="outline-row">
                 <dt>
-                  <span className="material-symbols-outlined" aria-hidden="true">
-                    payments
-                  </span>
+                  <Icon name="payments" />
                   参加費
                 </dt>
                 <dd>
@@ -266,9 +265,7 @@ export default async function HomePage() {
               </div>
               <div className="outline-row">
                 <dt>
-                  <span className="material-symbols-outlined" aria-hidden="true">
-                    groups
-                  </span>
+                  <Icon name="groups" />
                   主催
                 </dt>
                 <dd>
@@ -281,9 +278,7 @@ export default async function HomePage() {
 
             {/* 種目 */}
             <Reveal as="h3" className="sub-title">
-              <span className="material-symbols-outlined" aria-hidden="true">
-                directions_run
-              </span>
+              <Icon name="directions_run" />
               競技種目
             </Reveal>
 
@@ -313,30 +308,15 @@ export default async function HomePage() {
                 </div>
                 <ul className="race-spec">
                   <li>
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      timer
-                    </span>
+                    <Icon name="timer" />
                     スタート：{formatDateTime(EVENT.race24.startAt)}
                   </li>
                   <li>
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      sports_score
-                    </span>
+                    <Icon name="sports_score" />
                     制限時間：{formatDateTime(EVENT.race24.finishAt)}
                   </li>
                   <li>
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      verified
-                    </span>
+                    <Icon name="verified" />
                     エントリー資格：{EVENT.race24.qualification}
                   </li>
                 </ul>
@@ -376,49 +356,30 @@ export default async function HomePage() {
                 </div>
                 <ul className="race-spec">
                   <li className="icon-day">
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      light_mode
-                    </span>
+                    <Icon name="light_mode" />
                     デイスタート：{formatDateTime(EVENT.race12.day.startAt)}
                     （制限時間 {formatDateTime(EVENT.race12.day.finishAt)}）
                   </li>
                   <li className="icon-night">
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      dark_mode
-                    </span>
+                    <Icon name="dark_mode" />
                     ナイトスタート：{formatDateTime(EVENT.race12.night.startAt)}
                     （制限時間 {formatDateTime(EVENT.race12.night.finishAt)}）
                   </li>
                   <li>
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      verified
-                    </span>
+                    <Icon name="verified" />
                     エントリー資格：{EVENT.race12.qualification}
                   </li>
                 </ul>
               </Reveal>
             </div>
             <Reveal as="p" className="race-note">
-              <span className="material-symbols-outlined" aria-hidden="true">
-                directions_walk
-              </span>
+              <Icon name="directions_walk" />
               両カテゴリにおけるウォーカーの参加歓迎
             </Reveal>
 
             {/* スケジュール */}
             <Reveal as="h3" className="sub-title">
-              <span className="material-symbols-outlined" aria-hidden="true">
-                schedule
-              </span>
+              <Icon name="schedule" />
               イベントスケジュール
             </Reveal>
             <div className="schedule-grid">
@@ -542,30 +503,15 @@ export default async function HomePage() {
                 </p>
                 <ul className="course-points">
                   <li>
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      restaurant
-                    </span>
+                    <Icon name="restaurant" />
                     エイド：豚汁、レトルト（カレー、ハヤシライス、親子丼、牛丼）、カップラーメン、おかゆ、パン、スープ類、味噌汁、菓子類、各種ドリンク等
                   </li>
                   <li>
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      home_work
-                    </span>
+                    <Icon name="home_work" />
                     管理棟は9時〜翌日15時まで利用可能（更衣室、浴室、和室4室ほか貸切）
                   </li>
                   <li>
-                    <span
-                      className="material-symbols-outlined"
-                      aria-hidden="true"
-                    >
-                      battery_charging_full
-                    </span>
+                    <Icon name="battery_charging_full" />
                     1Fロビーに選手用の充電スペースあり
                   </li>
                 </ul>
@@ -576,66 +522,26 @@ export default async function HomePage() {
 
         {/* ================= フォト ================= */}
         <section className="photo-band" aria-label="大会の様子">
-          <picture>
-            <source
-              type="image/webp"
-              srcSet={webpSrcSet("/img/gallery-1.jpg", GALLERY_WIDTHS, asset)}
-              sizes="(max-width: 700px) 50vw, 25vw"
-            />
-            <img
-              src={asset("/img/gallery-1.jpg")}
-              alt="屋内コートでの開会式の様子"
-              width="1200"
-              height="900"
-              loading="lazy"
-              decoding="async"
-            />
-          </picture>
-          <picture>
-            <source
-              type="image/webp"
-              srcSet={webpSrcSet("/img/gallery-2.jpg", GALLERY_WIDTHS, asset)}
-              sizes="(max-width: 700px) 50vw, 25vw"
-            />
-            <img
-              src={asset("/img/gallery-2.jpg")}
-              alt="スタート前に集まる参加者"
-              width="1200"
-              height="900"
-              loading="lazy"
-              decoding="async"
-            />
-          </picture>
-          <picture>
-            <source
-              type="image/webp"
-              srcSet={webpSrcSet("/img/gallery-3.jpg", GALLERY_WIDTHS, asset)}
-              sizes="(max-width: 700px) 50vw, 25vw"
-            />
-            <img
-              src={asset("/img/gallery-3.jpg")}
-              alt="管理棟での参加者ミーティング"
-              width="1200"
-              height="900"
-              loading="lazy"
-              decoding="async"
-            />
-          </picture>
-          <picture>
-            <source
-              type="image/webp"
-              srcSet={webpSrcSet("/img/gallery-4.jpg", GALLERY_WIDTHS, asset)}
-              sizes="(max-width: 700px) 50vw, 25vw"
-            />
-            <img
-              src={asset("/img/gallery-4.jpg")}
-              alt="公園内の周回コース"
-              width="1200"
-              height="900"
-              loading="lazy"
-              decoding="async"
-            />
-          </picture>
+          {GALLERY.map((photo) => (
+            <picture key={photo.src}>
+              {IMAGE_FORMATS.map((format) => (
+                <source
+                  key={format}
+                  type={`image/${format}`}
+                  srcSet={imageSrcSet(photo.src, GALLERY_WIDTHS, format, asset)}
+                  sizes="(max-width: 700px) 50vw, 25vw"
+                />
+              ))}
+              <img
+                src={asset(photo.src)}
+                alt={photo.alt}
+                width="1200"
+                height="900"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
+          ))}
         </section>
 
         {/* ================= エントリー ================= */}
@@ -719,9 +625,7 @@ export default async function HomePage() {
 
             <Reveal as="article" className="rule">
               <h3 className="rule-title">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  warning
-                </span>
+                <Icon name="warning" />
                 注意事項
               </h3>
               <div className="rule-body">
@@ -759,9 +663,7 @@ export default async function HomePage() {
 
             <Reveal as="article" className="rule" delay={1}>
               <h3 className="rule-title">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  timer
-                </span>
+                <Icon name="timer" />
                 計測について
               </h3>
               <div className="rule-body">
@@ -785,9 +687,7 @@ export default async function HomePage() {
 
             <Reveal as="article" className="rule" delay={2}>
               <h3 className="rule-title">
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  info
-                </span>
+                <Icon name="info" />
                 その他・会場のご案内
               </h3>
               <div className="rule-body">

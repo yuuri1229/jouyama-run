@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Icon from "./Icon";
 import { useEntryStatus } from "./EntryClock";
 import { SITE } from "../lib/site";
 import { LABEL } from "../lib/event";
@@ -48,9 +49,7 @@ export default function StickyEntryBar() {
         rel="noopener noreferrer"
       >
         エントリー
-        <span className="material-symbols-outlined" aria-hidden="true">
-          arrow_outward
-        </span>
+        <Icon name="arrow_outward" />
       </a>
     </div>
   );

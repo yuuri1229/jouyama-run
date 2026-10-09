@@ -18,11 +18,12 @@ export default function Footer() {
           </div>
           <SocialLinks className="footer-social" />
         </div>
+        {/* トップページ内へのリンクは先読みしない（components/Header.jsx の prefetchFor 参照） */}
         <nav className="footer-nav" aria-label="フッターメニュー">
-          <Link href="/#news">最新情報</Link>
-          <Link href="/#outline">大会概要</Link>
-          <Link href="/#course">コース</Link>
-          <Link href="/#rules">大会ルール</Link>
+          <Link href="/#news" prefetch={false}>最新情報</Link>
+          <Link href="/#outline" prefetch={false}>大会概要</Link>
+          <Link href="/#course" prefetch={false}>コース</Link>
+          <Link href="/#rules" prefetch={false}>大会ルール</Link>
           <Link href="/news/">最新情報一覧</Link>
           <a href={SITE.entryFormUrl} target="_blank" rel="noopener noreferrer">
             エントリー
