@@ -2,9 +2,11 @@ import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import Analytics from "../components/Analytics";
-import { asset, siteUrl, SITE } from "../lib/site";
+import IconSprite from "../components/IconSprite";
+import { JsonLd } from "../components/JsonLd";
+import { notoSansJp, roboto } from "./fonts";
+import { asset, siteUrl, SITE, THEME } from "../lib/site";
 import { EVENT, LABEL, toIso, toIsoDate } from "../lib/event";
-import { FONT_HREFS, HERO_LCP_IMAGE, HERO_WIDTHS, webpSrcSet } from "../lib/assets";
 
 const title = "新潟・城山運動公園24＆12時間走";
 const description =
@@ -38,6 +40,8 @@ export const metadata = {
     index: true,
     follow: true,
   },
+  // 外部サイトへ移動したとき、相手に渡すのはドメインまで（ページのURLは渡さない）
+  referrer: "strict-origin-when-cross-origin",
   openGraph: {
     siteName: title,
     title: `${title}｜${dateSuffix}`,
@@ -74,7 +78,7 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   colorScheme: "light",
-  themeColor: "#167a1e",
+  themeColor: THEME.color,
 };
 
 // 大会情報の構造化データ（Event）。Google検索でイベント情報として
@@ -127,44 +131,14 @@ const eventJsonLd = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="ja">
+    <html lang="ja" className={`${notoSansJp.variable} ${roboto.variable}`}>
       <head>
-        {/* フォントはCSSの@importではなく<link>で読む。
-            @importだとCSSを読み終えてから初めてフォントCSSの取得が
-            始まり、描画開始が1往復ぶん遅れるため。 */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        {FONT_HREFS.map((href) => (
-          <link key={href} rel="stylesheet" href={href} />
-        ))}
-
-        {/* ファーストビューの背景写真。CSSの背景画像はCSS解析後にしか
-            取得が始まらないので、先に読み始めてLCPを縮める。 */}
-        <link
-          rel="preload"
-          as="image"
-          type="image/webp"
-          href={asset(HERO_LCP_IMAGE)}
-          imageSrcSet={webpSrcSet(HERO_LCP_IMAGE, HERO_WIDTHS, asset)}
-          imageSizes="100vw"
-          fetchPriority="high"
-        />
-
-        <script
-          type="application/ld+json"
-          // eslint-disable-next-line react/no-danger
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(eventJsonLd) }}
-        />
+        <JsonLd data={eventJsonLd} />
 
         {/* スクロール表示演出(.reveal)は初期状態が opacity:0 のため、
             JSが動かない環境では本文が最後まで見えない。
             その場合だけ演出を無効化して素の状態で見せる。 */}
         <noscript>
-          {/* eslint-disable-next-line react/no-danger */}
           <style
             dangerouslySetInnerHTML={{
               __html: ".reveal{opacity:1!important;transform:none!important}",
@@ -173,6 +147,7 @@ export default function RootLayout({ children }) {
         </noscript>
       </head>
       <body id="top">
+        <IconSprite />
         <a className="skip-link" href="#main">
           本文へスキップ
         </a>

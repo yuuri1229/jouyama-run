@@ -2,19 +2,25 @@
   "name": "jouyama-24h12h-run",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "images": "node scripts/build-images.mjs"
+    "dev": "node scripts/build-icons.mjs && next dev",
+    "build": "node scripts/build-icons.mjs && next build && node scripts/postbuild-csp.mjs",
+    "images": "node scripts/build-images.mjs",
+    "icons": "node scripts/build-icons.mjs"
   },
   "dependencies": {
-    "microcms-js-sdk": "^3.1.2",
-    "next": "^14.2.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "microcms-js-sdk": "^3.5.1",
+    "next": "^16.4.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sanitize-html": "^2.18.0"
   },
   "devDependencies": {
-    "sharp": "^0.35.4"
+    "@material-symbols/svg-400": "^0.48.0",
+    "sharp": "^0.35.5"
   }
 }

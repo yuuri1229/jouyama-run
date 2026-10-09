@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Icon from "./Icon";
 import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
 import { EVENT, LABEL } from "../lib/event";
@@ -17,6 +18,13 @@ const NAV_ITEMS = [
   { href: SITE.contactFormUrl, label: "お問い合わせ", external: true },
 ];
 
+// トップページ（"/" や "/#news"）へのリンクは先読み（prefetch）しない。
+// Next.js は画面内のリンク先のデータを裏で取得するが、トップは
+// ページ内の移動がほとんどで、先読みすると毎回約54KB（圧縮前）を余分に取得し、
+// 最新情報ページではヒーロー写真まで読み込んでいた。
+// （true を渡すと「全データを先読み」の意味になるので、それ以外は undefined＝既定のまま）
+const prefetchFor = (href) => (href === "/" || href.startsWith("/#") ? false : undefined);
+
 // ヘッダー／モバイルメニューの両方で同じ出し分けをするための小さな部品
 function NavItem({ item, onClick }) {
   if (item.external) {
@@ -28,17 +36,12 @@ function NavItem({ item, onClick }) {
         onClick={onClick}
       >
         {item.label}
-        <span
-          className="material-symbols-outlined nav-external"
-          aria-hidden="true"
-        >
-          open_in_new
-        </span>
+        <Icon name="open_in_new" className="nav-external" />
       </a>
     );
   }
   return (
-    <Link href={item.href} onClick={onClick}>
+    <Link href={item.href} prefetch={prefetchFor(item.href)} onClick={onClick}>
       {item.label}
     </Link>
   );
@@ -54,14 +57,10 @@ function MobileNavItem({ item, index, onClick }) {
         <span className="mobile-nav-num">{num}</span>
         {item.label}
       </span>
-      <span
-        className={`material-symbols-outlined mobile-nav-icon${
-          item.external ? " is-external" : ""
-        }`}
-        aria-hidden="true"
-      >
-        {item.external ? "open_in_new" : "chevron_right"}
-      </span>
+      <Icon
+        name={item.external ? "open_in_new" : "chevron_right"}
+        className={`mobile-nav-icon${item.external ? " is-external" : ""}`}
+      />
     </>
   );
   if (item.external) {
@@ -78,7 +77,12 @@ function MobileNavItem({ item, index, onClick }) {
     );
   }
   return (
-    <Link className="mobile-nav-item" href={item.href} onClick={onClick}>
+    <Link
+      className="mobile-nav-item"
+      href={item.href}
+      prefetch={prefetchFor(item.href)}
+      onClick={onClick}
+    >
       {label}
     </Link>
   );
@@ -131,7 +135,12 @@ export default function Header() {
   return (
     <header className="site-header">
       <div className="header-inner">
-        <Link href="/" className="brand" onClick={() => setOpen(false)}>
+        <Link
+          href="/"
+          prefetch={false}
+          className="brand"
+          onClick={() => setOpen(false)}
+        >
           <span className="brand-name">新潟・城山運動公園24&amp;12時間走</span>
         </Link>
 
@@ -147,9 +156,7 @@ export default function Header() {
             rel="noopener noreferrer"
           >
             エントリー
-            <span className="material-symbols-outlined" aria-hidden="true">
-              arrow_outward
-            </span>
+            <Icon name="arrow_outward" />
           </a>
         </nav>
 
@@ -161,9 +168,7 @@ export default function Header() {
           aria-controls="mobile-nav"
           onClick={() => setOpen(!open)}
         >
-          <span className="material-symbols-outlined" aria-hidden="true">
-            {open ? "close" : "menu"}
-          </span>
+          <Icon name={open ? "close" : "menu"} />
         </button>
       </div>
 
@@ -188,9 +193,7 @@ export default function Header() {
           onClick={() => setOpen(false)}
         >
           エントリーフォーム
-          <span className="material-symbols-outlined" aria-hidden="true">
-            arrow_outward
-          </span>
+          <Icon name="arrow_outward" />
         </a>
         <p className="mobile-nav-date">
           {LABEL.bibDate} ／ {EVENT.venue.name}

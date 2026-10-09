@@ -1,4 +1,9 @@
+import Icon from "./Icon";
 import { asset } from "../lib/site";
+import { sanitizeNewsHtml } from "../lib/sanitize";
+
+// data/news.js の link ブロックは http(s) のURLだけを通す
+const isWebUrl = (href) => /^https?:\/\//i.test(href || "");
 
 // data/news.js の body 配列を描画するコンポーネント。
 // type: "p"（段落） / "link"（外部リンク） / "image"（画像） / "html"（microCMSのリッチエディタ）に対応。
@@ -11,10 +16,13 @@ export default function NewsBody({ body }) {
         }
         if (block.type === "html") {
           return (
-            <div key={i} dangerouslySetInnerHTML={{ __html: block.html }} />
+            <div
+              key={i}
+              dangerouslySetInnerHTML={{ __html: sanitizeNewsHtml(block.html) }}
+            />
           );
         }
-        if (block.type === "link") {
+        if (block.type === "link" && isWebUrl(block.href)) {
           return (
             <p key={i}>
               <a
@@ -24,17 +32,15 @@ export default function NewsBody({ body }) {
                 rel="noopener noreferrer"
               >
                 {block.text}
-                <span className="material-symbols-outlined" aria-hidden="true">
-                  arrow_outward
-                </span>
+                <Icon name="arrow_outward" />
               </a>
             </p>
           );
         }
         if (block.type === "image") {
           return (
-            <figure key={i} className="news-article-image">
-              <img src={asset(block.src)} alt={block.alt || ""} loading="lazy" />
+            <figure key={i}>
+              <img src={asset(block.src)} alt={block.alt || ""} loading="lazy" decoding="async" />
               {block.caption ? <figcaption>{block.caption}</figcaption> : null}
             </figure>
           );

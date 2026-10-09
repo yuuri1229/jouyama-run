@@ -9,18 +9,24 @@ Next.js（React）製の静的サイトです。GitHub Pagesで無料公開で�
 │   ├── page.jsx          # トップページ
 │   ├── news/page.jsx     # 最新情報一覧ページ
 │   ├── layout.jsx        # 共通レイアウト（ヘッダー・フッター）
+│   ├── fonts.js          # フォント（Noto Sans JP／Roboto。ビルド時に取り込み自サイトから配信）
 │   └── globals.css       # サイト全体のデザイン（色・レイアウト）
-├── components/           # 部品（ヒーロー、ヘッダー、受付状態の時計、下部エントリーバー等）
+├── components/           # 部品（ヒーロー、ヘッダー、アイコン、受付状態の時計、下部エントリーバー等）
 ├── data/
 │   └── news.js           # ★最新情報のデータ（microCMS未設定時のみ使用）
 ├── lib/
 │   ├── event.js          # ★開催日・参加費・定員など大会情報（毎年ここを更新）
 │   ├── site.js           # ★エントリーフォーム等のURL設定
-│   └── assets.js         # フォントと使用アイコンの一覧
-├── public/img/           # ★画像置き場（.jpgが元写真、.webpは自動生成）
+│   ├── assets.js         # 使用アイコンの一覧と写真の配信設定
+│   └── sanitize.js       # microCMSの記事HTMLから危険なタグを取り除く設定
+├── public/img/           # ★画像置き場（.jpgが元写真、.avif/.webpは自動生成）
 ├── scripts/
-│   └── build-images.mjs  # 写真のWebP変換（npm run images）
-└── .github/workflows/    # 自動デプロイ設定（触らなくてOK）
+│   ├── build-images.mjs  # 写真のAVIF/WebP変換（npm run images）
+│   ├── build-icons.mjs   # アイコンのSVG生成（ビルド時に自動実行）
+│   └── postbuild-csp.mjs # セキュリティ設定(CSP)の書き込み（ビルド時に自動実行）
+└── .github/
+    ├── workflows/        # 自動デプロイ設定（触らなくてOK）
+    └── dependabot.yml    # 依存パッケージの更新提案（月1回）
 ```
 
 ★印が日常のメンテナンスで触るファイルです。
@@ -71,10 +77,10 @@ Next.js（React）製の静的サイトです。GitHub Pagesで無料公開で�
 > パソコンにNode.jsがある場合は、差し替え後に次を実行してください。
 >
 > ```bash
-> npm run images   # public/img/ に hero-1-960.webp などを書き出す
+> npm run images   # public/img/ に hero-1-960.avif / .webp などを書き出す（5〜6分かかります）
 > ```
 >
-> 生成された `.webp` も一緒にコミットします。
+> 生成された `.avif` と `.webp` も一緒にコミットします。
 > 実行しないと、新しい写真ではなく**古い写真が表示されたまま**になります。
 > （パソコンが使えない場合は、その旨を添えて相談してください）
 
@@ -96,18 +102,35 @@ Next.js（React）製の静的サイトです。GitHub Pagesで無料公開で�
 - スケジュール表・ルールなどの文章：`app/page.jsx` 内の該当テキストを編集
 - エントリーフォーム等のURL：`lib/site.js` を編集
 - 色の変更：`app/globals.css` 冒頭の `:root` にあるカラー変数を編集
+  （半透明の罫線や下地もこの値から計算されるので、ここだけ変えれば全体が追従します。
+  メインカラーを変えたときは、スマホのアドレスバーの色 `lib/site.js` の `THEME` も合わせてください）
 
 ### アイコンを追加する
 
-Material Symbols のアイコンは、使う分だけを配信しています
-（全部入りだと約2.3MBあるため）。新しいアイコンを使うときは、
-`lib/assets.js` の `MATERIAL_ICONS` にも名前を追加してください。
-追加を忘れると、そのアイコンだけ表示されません。
+アイコンは Material Symbols（ https://fonts.google.com/icons ）の形を、
+使う分だけSVGにしてページに埋め込んでいます（外部サーバーへの読み込みは発生しません）。
+新しいアイコンを使うときは、
+
+1. `lib/assets.js` の `MATERIAL_ICONS` に名前（例：`"directions_bike"`）を追加
+2. ページ側では `<Icon name="directions_bike" />` と書く
+
+の2点だけです。名前の綴りを間違えるとビルドが止まり、どの名前が見つからないかが
+Actions のログに表示されます（その間も公開中のサイトはそのまま残ります）。
 
 ### サイトのレビュー結果
 
-デザイン・パフォーマンス・アクセシビリティの点検結果と、
+デザイン・パフォーマンス・アクセシビリティ・セキュリティの点検結果と、
 未対応の改善案は `docs/site-review.md` にまとめてあります。
+
+### セキュリティについて
+
+サイトの中で行っている対策（記事HTMLの無害化、Content-Security-Policy、
+依存パッケージのインストール時スクリプト停止、Actions のコミットID固定など）と、
+**GitHub・microCMS の管理画面で行っていただきたい設定**は
+`docs/site-review.md` の「第2回点検」にまとめてあります。
+
+依存パッケージの更新は Dependabot が月1回プルリクエストで提案します。
+緑のチェック（ビルド成功）を確認してからマージしてください。
 
 ### スライドショーの切り替え間隔
 
@@ -115,11 +138,12 @@ Material Symbols のアイコンは、使う分だけを配信しています
 
 ## パソコンで動作確認したい場合（任意）
 
-Node.js（LTS版）をインストール後、このフォルダで：
+Node.js（LTS版。22以上）をインストール後、このフォルダで：
 
 ```bash
 npm ci          # 初回のみ（package-lock.json どおりに入れる）
 npm run dev     # http://localhost:3000 で確認
+npm run build   # 公開用の書き出し（out/ フォルダ）。CSPの確認はこちらで
 npm run images  # 写真を差し替えたときだけ
 ```
 

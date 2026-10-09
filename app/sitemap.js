@@ -3,6 +3,9 @@ import { siteUrl } from "../lib/site";
 
 // 静的エクスポート用のsitemap.xmlを生成する。
 // トップ・最新情報一覧に加え、公開中の記事詳細ページを全て含める。
+// 静的書き出し（output: "export"）で1つのファイルとして出力する
+export const dynamic = "force-static";
+
 export default async function sitemap() {
   const newsItems = await getNewsItems();
 

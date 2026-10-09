@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Icon from "../../components/Icon";
 import Reveal from "../../components/Reveal";
 import { BreadcrumbJsonLd } from "../../components/JsonLd";
 import { getNewsItems, newsExcerpt } from "../../lib/microcms";
@@ -26,18 +27,16 @@ export default async function NewsPage() {
       />
       <div className="container">
         <nav className="breadcrumb" aria-label="パンくずリスト">
-          <Link href="/">トップ</Link>
-          <span className="material-symbols-outlined" aria-hidden="true">
-            chevron_right
-          </span>
+          <Link href="/" prefetch={false}>
+            トップ
+          </Link>
+          <Icon name="chevron_right" />
           <span aria-current="page">最新情報</span>
         </nav>
 
         <header className="sec-head">
           <p className="sec-eyebrow">
-            <span className="material-symbols-outlined" aria-hidden="true">
-              campaign
-            </span>
+            <Icon name="campaign" />
             NEWS
           </p>
           <h1 className="sec-title">最新情報</h1>
@@ -55,9 +54,7 @@ export default async function NewsPage() {
                 <p className="news-card-excerpt">{newsExcerpt(item)}</p>
                 <span className="news-card-more">
                   続きを読む
-                  <span className="material-symbols-outlined" aria-hidden="true">
-                    arrow_forward
-                  </span>
+                  <Icon name="arrow_forward" />
                 </span>
               </Link>
             </Reveal>
@@ -65,11 +62,9 @@ export default async function NewsPage() {
         </div>
 
         <div className="sec-more">
-          <Link className="text-arrow" href="/">
+          <Link className="text-arrow" href="/" prefetch={false}>
             トップへ戻る
-            <span className="material-symbols-outlined" aria-hidden="true">
-              arrow_back
-            </span>
+            <Icon name="arrow_back" />
           </Link>
         </div>
       </div>

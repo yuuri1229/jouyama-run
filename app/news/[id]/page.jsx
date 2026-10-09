@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import Icon from "../../../components/Icon";
 import NewsBody from "../../../components/NewsBody";
 import { BreadcrumbJsonLd } from "../../../components/JsonLd";
 import { getNewsItems } from "../../../lib/microcms";
@@ -12,9 +13,15 @@ export async function generateStaticParams() {
   return items.map((item) => ({ id: item.id }));
 }
 
-export async function generateMetadata({ params }) {
+// Next.js 15以降、params は Promise で渡される
+async function findItem(params) {
+  const { id } = await params;
   const items = await getNewsItems();
-  const item = items.find((n) => n.id === params.id);
+  return items.find((n) => n.id === id);
+}
+
+export async function generateMetadata({ params }) {
+  const item = await findItem(params);
   if (!item) return {};
 
   const description = `新潟・城山運動公園24＆12時間走の最新情報「${item.title}」（${item.dateLabel}）`;
@@ -36,8 +43,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function NewsArticlePage({ params }) {
-  const items = await getNewsItems();
-  const item = items.find((n) => n.id === params.id);
+  const item = await findItem(params);
   if (!item) notFound();
 
   return (
@@ -51,14 +57,12 @@ export default async function NewsArticlePage({ params }) {
       />
       <div className="container">
         <nav className="breadcrumb" aria-label="パンくずリスト">
-          <Link href="/">トップ</Link>
-          <span className="material-symbols-outlined" aria-hidden="true">
-            chevron_right
-          </span>
+          <Link href="/" prefetch={false}>
+            トップ
+          </Link>
+          <Icon name="chevron_right" />
           <Link href="/news/">最新情報</Link>
-          <span className="material-symbols-outlined" aria-hidden="true">
-            chevron_right
-          </span>
+          <Icon name="chevron_right" />
           <span aria-current="page">{item.title}</span>
         </nav>
 
@@ -74,9 +78,7 @@ export default async function NewsArticlePage({ params }) {
         <div className="sec-more">
           <Link className="text-arrow" href="/news/">
             最新情報一覧へ戻る
-            <span className="material-symbols-outlined" aria-hidden="true">
-              arrow_back
-            </span>
+            <Icon name="arrow_back" />
           </Link>
         </div>
       </div>
