@@ -29,8 +29,12 @@ const GA_CONNECT = [
 ];
 // microCMS の記事に載せた画像
 const MICROCMS_IMG = ["https://images.microcms-assets.io"];
-// 記事に埋め込める動画・地図（components/NewsBody.jsx の許可リストと揃える）
-const FRAMES = ["https://www.youtube.com", "https://www.youtube-nocookie.com", "https://www.google.com"];
+// 記事に埋め込める動画・地図（lib/sanitize.js の EMBED_PATHS と揃える）
+const FRAMES = [
+  "https://www.youtube.com/embed/",
+  "https://www.youtube-nocookie.com/embed/",
+  "https://www.google.com/maps/embed",
+];
 
 function policy(scriptHashes) {
   const directives = {
