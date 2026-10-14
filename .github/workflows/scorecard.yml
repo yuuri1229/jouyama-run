@@ -1,0 +1,52 @@
+# =========================================================
+# OpenSSF Scorecard（リポジトリの安全設定の健康診断・無料）
+# ---------------------------------------------------------
+# ブランチ保護・アクションの固定・権限の最小化・依存更新の仕組みなど、
+# 乗っ取りやサプライチェーン攻撃への備えを項目ごとに点数化します。
+# 結果はリポジトリの Security → Code scanning に表示され、
+# https://scorecard.dev/viewer/?uri=github.com/yuuri1229/jouyama-run でも見られます。
+#
+# ・publish_results を使うため、このファイルには
+#   トップレベルの env / defaults を置かないこと（Scorecard 側の制約）。
+# =========================================================
+name: Scorecard
+
+on:
+  push:
+    branches: [main]
+  # ブランチ保護の設定が変わったら採点し直す
+  branch_protection_rule:
+  schedule:
+    - cron: "23 19 * * 3" # 毎週木曜 04:23 JST
+  workflow_dispatch:
+
+# 既定では何の権限も渡さない（ジョブで必要な分だけ指定する）
+permissions: {}
+
+jobs:
+  analysis:
+    name: 採点
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # リポジトリの読み取り
+      actions: read # ワークフロー設定の読み取り
+      security-events: write # 結果を Code scanning に登録
+      id-token: write # 結果を scorecard.dev に公開する際の本人確認
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: 採点を実行
+        uses: ossf/scorecard-action@2d1146689b8cda280b9bc96326124645441f03bc # v2.4.4
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: 結果を Code scanning に登録
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          sarif_file: results.sarif
