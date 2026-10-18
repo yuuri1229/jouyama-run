@@ -123,17 +123,21 @@ const paid = norm(ENTRY_SHEET.paidStatus);
 const cell = (row, field) => (field in col ? String(row[col[field]] ?? "").trim() : "");
 const entries = [];
 let unknownCategory = 0;
-// 見出し行などは入金ステータスが「振込済み」にならないので、行の位置は気にしない
+// ゼッケンNo.は管理シートに無いため、カテゴリごとにエントリー順（シートの行順）で振る。
+// 入金前の人も番号を数えに入れるので、あとから誰かが入金しても
+// 先に掲載された人の番号は変わらない（未入金の人の番号は欠番に見える）。
+const nextBib = Object.fromEntries(ENTRY_CATEGORIES.map((c) => [c.id, c.bibStart]));
+// 見出し行は出走カテゴリを判別できず、入金ステータスも「振込済み」にならないので数えに入らない
 for (const row of values) {
-  if (norm(cell(row, "status")) !== paid) continue;
+  const isPaid = norm(cell(row, "status")) === paid;
   const categoryText = norm(cell(row, "category"));
   const category = ENTRY_CATEGORIES.find((c) => c.match.test(categoryText));
   if (!category) {
-    unknownCategory++;
+    if (isPaid) unknownCategory++;
     continue;
   }
-  // ゼッケンは数字だけを取り出す（「No.1001」「1001番」などの書き方の揺れを吸収）
-  const bib = norm(cell(row, "bib")).replace(/\D/g, "");
+  const bib = String(nextBib[category.id]++);
+  if (!isPaid) continue;
   entries.push({
     category: category.id,
     bib,
@@ -153,12 +157,8 @@ if (unknownCategory) {
   );
 }
 
-// ゼッケン順。未割り当て（空）の人はフリガナ順で後ろに並べる
-entries.sort((a, b) => {
-  if (a.bib && b.bib) return Number(a.bib) - Number(b.bib);
-  if (a.bib || b.bib) return a.bib ? -1 : 1;
-  return a.kana.localeCompare(b.kana, "ja");
-});
+// ゼッケン順
+entries.sort((a, b) => Number(a.bib) - Number(b.bib));
 
 await mkdir(path.dirname(ENTRIES_FILE), { recursive: true });
 await writeFile(
