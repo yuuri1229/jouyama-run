@@ -11,7 +11,10 @@
 //
 // 書き出すのは入金ステータスが「振込済み」の行の
 // 出走カテゴリ・ゼッケンNo.・氏名・フリガナ・居住地・性別 だけ。
-// メールアドレスや電話番号、入金情報などの列は読み込んでもここで捨てる。
+// 居住地は住所を「新潟県内＝市町村名／県外＝都道府県名」に変換してから書き出し、
+// 住所そのものは書き出さない（lib/residence.js）。出走カテゴリも
+// シートの文字列（金額入り）ではなく 24H／デイ／ナイト の区分だけを残す。
+// 管理シートは読むだけで、書き換えない（権限も閲覧のみ）。
 //
 // 【個人情報の扱い】Actions のログは誰でも見られるため、
 // このスクリプトはシートの値を一切ログに出さない（件数と見出し名だけ）。
@@ -21,6 +24,7 @@ import { createSign } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ENTRIES_FILE, ENTRY_CATEGORIES, ENTRY_SHEET } from "../lib/entries.js";
+import { toResidence } from "../lib/residence.js";
 
 const SCOPE = "https://www.googleapis.com/auth/spreadsheets.readonly";
 const SHEETS_API = "https://sheets.googleapis.com/v4/spreadsheets";
@@ -34,7 +38,7 @@ if (!GOOGLE_SERVICE_ACCOUNT_JSON || !ENTRY_SHEET_ID) {
   process.exit(0);
 }
 
-// 見出し・値の比較用。全角英数→半角、空白・括弧の全角半角の違いを吸収する
+// 値の比較用。全角英数→半角、空白・括弧の全角半角の違いを吸収する
 const norm = (s) => String(s ?? "").normalize("NFKC").replace(/\s+/g, "").trim();
 
 const b64url = (buf) => Buffer.from(buf).toString("base64url");
@@ -91,42 +95,36 @@ try {
 const token = await getAccessToken(key);
 const sheetUrl = `${SHEETS_API}/${encodeURIComponent(ENTRY_SHEET_ID)}`;
 
-// 読む範囲。シート名だけを渡すと、そのシートの入力済みの範囲全体になる
-let range = ENTRY_SHEET_RANGE;
-if (!range) {
-  const meta = await sheetsGet(`${sheetUrl}?fields=sheets.properties.title`, token);
-  const title = meta.sheets[0].properties.title;
-  range = `'${title.replaceAll("'", "''")}'`;
+// 列の文字（"A"〜"Z", "AA" …）→ 0始まりの位置
+const colIndex = (letter) =>
+  [...letter.toUpperCase()].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+const col = {};
+for (const [field, letter] of Object.entries(ENTRY_SHEET.columns)) {
+  if (letter) col[field] = colIndex(letter);
 }
+
+// 読むシート。未指定なら先頭のシート
+let sheetName = ENTRY_SHEET_RANGE;
+if (!sheetName) {
+  const meta = await sheetsGet(`${sheetUrl}?fields=sheets.properties.title`, token);
+  sheetName = meta.sheets[0].properties.title;
+}
+const lastCol = Object.values(ENTRY_SHEET.columns)
+  .filter(Boolean)
+  .sort((a, b) => colIndex(b) - colIndex(a))[0];
+const range = `'${sheetName.replaceAll("'", "''")}'!A:${lastCol}`;
 const { values = [] } = await sheetsGet(
   `${sheetUrl}/values/${encodeURIComponent(range)}`,
   token
 );
 if (values.length === 0) throw new Error("[entries] シートが空です");
 
-// 見出し行から各列の位置を決める
-const headers = values[0].map(norm);
-const col = {};
-const missing = [];
-for (const [field, names] of Object.entries(ENTRY_SHEET.columns)) {
-  const idx = headers.findIndex((h) => names.some((n) => norm(n) === h));
-  if (idx === -1) missing.push(field);
-  else col[field] = idx;
-}
-if (missing.length) {
-  // 見出し名は個人情報ではないのでログに出してよい
-  throw new Error(
-    `[entries] 見出しが見つからない列があります: ${missing.join(", ")}\n` +
-      `          シートの見出し: ${values[0].join(" / ")}\n` +
-      "          lib/entries.js の ENTRY_SHEET.columns に見出し名を足してください"
-  );
-}
-
 const paid = norm(ENTRY_SHEET.paidStatus);
-const cell = (row, field) => String(row[col[field]] ?? "").trim();
+const cell = (row, field) => (field in col ? String(row[col[field]] ?? "").trim() : "");
 const entries = [];
 let unknownCategory = 0;
-for (const row of values.slice(1)) {
+// 見出し行などは入金ステータスが「振込済み」にならないので、行の位置は気にしない
+for (const row of values) {
   if (norm(cell(row, "status")) !== paid) continue;
   const categoryText = norm(cell(row, "category"));
   const category = ENTRY_CATEGORIES.find((c) => c.match.test(categoryText));
@@ -141,9 +139,13 @@ for (const row of values.slice(1)) {
     bib,
     name: cell(row, "name"),
     kana: cell(row, "kana"),
-    residence: cell(row, "residence"),
+    residence: toResidence(cell(row, "address")),
     gender: cell(row, "gender"),
   });
+}
+const noResidence = entries.filter((e) => !e.residence).length;
+if (noResidence) {
+  console.warn(`[entries] 住所から居住地を判別できない行が ${noResidence} 件あり、「—」で掲載します`);
 }
 if (unknownCategory) {
   console.warn(
