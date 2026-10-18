@@ -124,10 +124,10 @@ const cell = (row, field) => (field in col ? String(row[col[field]] ?? "").trim(
 const entries = [];
 let unknownCategory = 0;
 // ゼッケンNo.は管理シートに無いため、カテゴリごとにエントリー順（シートの行順）で振る。
-// 入金前の人も番号を数えに入れるので、あとから誰かが入金しても
-// 先に掲載された人の番号は変わらない（未入金の人の番号は欠番に見える）。
+// 掲載する（振込済みの）人だけで詰めて連番にする。そのため、先にエントリーした人が
+// あとから入金すると、それより後ろの人の番号が1つずつずれる（実行委員会の判断）。
 const nextBib = Object.fromEntries(ENTRY_CATEGORIES.map((c) => [c.id, c.bibStart]));
-// 見出し行は出走カテゴリを判別できず、入金ステータスも「振込済み」にならないので数えに入らない
+// 見出し行は入金ステータスが「振込済み」にならないので数えに入らない
 for (const row of values) {
   const isPaid = norm(cell(row, "status")) === paid;
   const categoryText = norm(cell(row, "category"));
@@ -136,8 +136,8 @@ for (const row of values) {
     if (isPaid) unknownCategory++;
     continue;
   }
-  const bib = String(nextBib[category.id]++);
   if (!isPaid) continue;
+  const bib = String(nextBib[category.id]++);
   entries.push({
     category: category.id,
     bib,
