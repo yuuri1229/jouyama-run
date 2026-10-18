@@ -22,10 +22,12 @@ on:
   # microCMSのWebhookから叩かれ、記事の公開・更新時に自動で再ビルドする
   repository_dispatch:
     types: [microcms-update]
-  # 静的サイトなので「エントリー受付中／受付終了」の判定はビルド時刻で決まる。
-  # 1日1回ビルドし直すことで、締切を過ぎたら自動で表示が切り替わるようにする。
+  # 静的サイトなので「エントリー受付中／受付終了」の判定と、
+  # エントリーリスト（管理シートの「振込済み」の人）の内容はビルド時刻で決まる。
+  # 1時間ごとにビルドし直し、シートの変更と締切後の表示切り替えを反映する。
+  # （毎時0分はGitHub全体で混み合い遅れやすいため、半端な分にしている）
   schedule:
-    - cron: "0 20 * * *" # 毎日 05:00 JST
+    - cron: "23 * * * *" # 毎時23分
 
 # 既定では何の権限も渡さない（各ジョブで必要な分だけ指定する）
 permissions: {}
@@ -56,6 +58,20 @@ jobs:
           # package-lock.json をキーにダウンロード済みパッケージをキャッシュして
           # 毎回のインストールを短縮する
           cache: npm
+
+      - name: エントリーリストを取得
+        # 非公開のエントリー管理シートを読み、入金ステータスが「振込済み」の行の
+        # 公開項目（カテゴリ・ゼッケン・氏名・フリガナ・居住地・性別）だけを
+        # data/entries.generated.json に書き出す（詳しくは docs/entry-list.md）。
+        # 依存パッケージを入れる前に Node.js の標準機能だけで動かし、
+        # 鍵をこのステップの外（依存パッケージのコード）に渡さない。
+        # 鍵が未登録のあいだはスキップし、ページは外部リストへの案内になる。
+        # 読み取りに失敗したらここで止まり、サイトは直前の内容のまま残る。
+        run: node scripts/fetch-entries.mjs
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          ENTRY_SHEET_ID: ${{ secrets.ENTRY_SHEET_ID }}
+          ENTRY_SHEET_RANGE: ${{ vars.ENTRY_SHEET_RANGE }}
 
       - name: 依存パッケージをインストール
         # npm install だとロックファイルを書き換えてしまい、

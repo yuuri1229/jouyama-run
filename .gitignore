@@ -5,3 +5,5 @@ npm-debug.log*
 .DS_Store
 # scripts/build-icons.mjs がビルドのたびに作るファイル
 lib/icons.generated.js
+# scripts/fetch-entries.mjs がデプロイ時に作る参加者一覧（個人情報を含むため git には入れない）
+data/entries.generated.json

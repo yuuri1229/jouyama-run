@@ -25,6 +25,7 @@ export default function Footer() {
           <Link href="/#course" prefetch={false}>コース</Link>
           <Link href="/#rules" prefetch={false}>大会ルール</Link>
           <Link href="/news/">最新情報一覧</Link>
+          <Link href="/entries/">エントリーリスト</Link>
           <a href={SITE.entryFormUrl} target="_blank" rel="noopener noreferrer">
             エントリー
           </a>

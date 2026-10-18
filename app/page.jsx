@@ -568,18 +568,13 @@ export default async function HomePage() {
                       <Icon name="arrow_outward" />
                     </a>
                   </WhenEntryOpen>
-                  <a
-                    className="btn btn-line"
-                    href={SITE.entryListUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <Link className="btn btn-line" href="/entries/">
                     エントリーリストを見る
-                    <Icon name="open_in_new" />
-                  </a>
+                    <Icon name="arrow_forward" />
+                  </Link>
                 </div>
                 <p className="entry-note">
-                  エントリーリストはエントリー確定後、随時更新します。
+                  エントリーリストには、参加費のお振込みを確認できた方から順に掲載します。
                   <WhenEntryOpen>
                     {`　定員は24時間走${EVENT.race24.capacity}名／12時間走デイ・ナイト各${EVENT.race12.capacityEach}名です。`}
                   </WhenEntryOpen>

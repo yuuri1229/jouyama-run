@@ -1423,6 +1423,207 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 .news-card-more .icon { font-size: 1.1em; transition: transform .15s ease; }
 .news-card-link:hover .news-card-more .icon { transform: translateX(3px); }
 
+/* ---------- エントリーリスト（/entries/） ---------- */
+/* カテゴリの識別色。24H＝メインカラー、デイ＝昼の琥珀、ナイト＝夜の紺
+   （種目カードのタイムバンドと同じ意味づけ） */
+.entries-group--race24, .entries-tab--race24, .entry-dialog-body--race24 { --cat: var(--pine); }
+.entries-group--day,    .entries-tab--day,    .entry-dialog-body--day    { --cat: #6b4600; }
+.entries-group--night,  .entries-tab--night,  .entry-dialog-body--night  { --cat: var(--night); }
+
+.entries-intro { max-width: var(--measure); margin-bottom: var(--space-lg); }
+.entries-intro p { font-size: var(--fs-base); margin-bottom: 12px; }
+.entries-intro-icon { vertical-align: -.15em; color: var(--pine); margin: 0 2px; }
+.entries-updated {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-data);
+  font-size: var(--fs-xs) !important;
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+
+/* カテゴリへのジャンプ。スマホでは3つを横一列に並べる */
+.entries-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: var(--space-xl);
+}
+.entries-tab {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
+  min-height: 48px;
+  padding: 10px 12px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--cat);
+  border-radius: var(--radius);
+  color: var(--ink);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.entries-tab:hover { color: var(--cat); border-color: var(--cat); }
+.entries-tab b {
+  font-family: var(--font-en);
+  font-size: var(--fs-md);
+  color: var(--cat);
+  font-variant-numeric: tabular-nums;
+}
+
+.entries-group { margin-bottom: var(--space-2xl); scroll-margin-top: calc(var(--header-h) + 16px); }
+.entries-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  padding: 0 0 12px 14px;
+  margin-bottom: 4px;
+  border-left: 4px solid var(--cat);
+  border-bottom: 1px solid var(--line);
+}
+.entries-group-en {
+  width: 100%;
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: .18em;
+  line-height: 1;
+  color: var(--cat);
+}
+.entries-group-title { font-size: var(--fs-h3); font-weight: 700; line-height: 1.4; }
+.entries-group-count {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  color: var(--sub);
+  font-variant-numeric: tabular-nums;
+}
+.entries-group-count b {
+  font-family: var(--font-en);
+  font-size: var(--fs-h3);
+  color: var(--ink);
+  margin-right: 2px;
+}
+.entries-group-count span { margin-left: 4px; }
+.entries-empty { padding: 20px 0; font-size: var(--fs-sm); color: var(--sub); }
+
+/* 一覧。広い画面では2列にして縦の長さを抑える */
+.entries-list { list-style: none; display: grid; column-gap: 32px; }
+@media (min-width: 760px) { .entries-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.entries-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 56px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.entries-bib {
+  flex: 0 0 4.2em;
+  font-family: var(--font-en);
+  font-weight: 700;
+  font-size: var(--fs-md);
+  color: var(--cat);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .02em;
+}
+.entries-name { flex: 1; min-width: 0; font-size: var(--fs-base); font-weight: 500; }
+/* タップしやすいよう 44px 四方を確保する */
+.entries-more {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--pine);
+  font-size: 22px;
+  cursor: pointer;
+}
+.entries-more:hover { background: color-mix(in srgb, var(--pine) 10%, transparent); }
+
+/* 詳細モーダル */
+html:has(.entry-dialog[open]) { overflow: hidden; }
+.entry-dialog {
+  width: min(440px, calc(100% - 2 * var(--gutter)));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .28);
+}
+.entry-dialog::backdrop { background: color-mix(in srgb, var(--shade) 62%, transparent); }
+.entry-dialog-body { padding: 18px 22px 24px; border-top: 4px solid var(--cat); }
+.entry-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: -6px -10px 6px 0;
+}
+.entry-dialog-cat { font-size: var(--fs-sm); font-weight: 700; color: var(--cat); }
+.entry-dialog-close {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ink);
+  font-size: 24px;
+  cursor: pointer;
+}
+.entry-dialog-close:hover { background: var(--mist); }
+.entry-dialog-bib {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-en);
+  font-size: clamp(34px, 9vw, 44px);
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--cat);
+  font-variant-numeric: tabular-nums;
+}
+.entry-dialog-bib span {
+  font-family: var(--font-data);
+  font-size: var(--fs-micro);
+  font-weight: 500;
+  letter-spacing: .12em;
+  color: var(--sub);
+}
+.entry-dialog-title {
+  margin: 14px 0 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-h3);
+  font-weight: 700;
+  line-height: 1.4;
+}
+.entry-dialog-kana {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: 400;
+  letter-spacing: .08em;
+  color: var(--sub);
+}
+.entry-dialog-list { display: grid; gap: 10px; }
+.entry-dialog-list div { display: grid; grid-template-columns: 5em 1fr; gap: 12px; }
+.entry-dialog-list dt { font-size: var(--fs-sm); color: var(--sub); }
+.entry-dialog-list dd { font-size: var(--fs-base); }
+
+@media (max-width: 419px) {
+  .entries-tab { flex-direction: column; align-items: flex-start; gap: 0; font-size: var(--fs-xs); }
+}
+
 /* ---------- フッター ---------- */
 .site-footer {
   background: var(--forest);

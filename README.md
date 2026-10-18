@@ -8,6 +8,7 @@ Next.js（React）製の静的サイトです。GitHub Pagesで無料公開で�
 ├── app/
 │   ├── page.jsx          # トップページ
 │   ├── news/page.jsx     # 最新情報一覧ページ
+│   ├── entries/page.jsx  # エントリーリスト（管理シートから自動反映。docs/entry-list.md）
 │   ├── layout.jsx        # 共通レイアウト（ヘッダー・フッター）
 │   ├── fonts.js          # フォント（Noto Sans JP／Roboto。ビルド時に取り込み自サイトから配信）
 │   └── globals.css       # サイト全体のデザイン（色・レイアウト）
@@ -17,6 +18,7 @@ Next.js（React）製の静的サイトです。GitHub Pagesで無料公開で�
 ├── lib/
 │   ├── event.js          # ★開催日・参加費・定員など大会情報（毎年ここを更新）
 │   ├── site.js           # ★エントリーフォーム等のURL設定
+│   ├── entries.js        # エントリーリストの列名・カテゴリの設定
 │   ├── assets.js         # 使用アイコンの一覧と写真の配信設定
 │   └── sanitize.js       # microCMSの記事HTMLから危険なタグを取り除く設定
 ├── public/img/           # ★画像置き場（.jpgが元写真、.avif/.webpは自動生成）
