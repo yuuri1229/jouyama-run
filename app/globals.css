@@ -841,13 +841,11 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 .race-card {
   background: var(--paper);
   border: 1px solid var(--line);
-  border-top: 6px solid var(--pine);
   padding: clamp(22px, 3vw, 38px);
   display: flex;
   flex-direction: column;
   gap: clamp(20px, 2.4vw, 28px);
 }
-.race-card--12 { border-top-color: var(--pine-l); }
 .race-head {
   display: flex;
   align-items: flex-end;
