@@ -1,0 +1,12 @@
+# Cloudflare Pages 用のレスポンスヘッダー（GitHub Pages では無視される）
+# CSP 本体は scripts/postbuild-csp.mjs が各HTMLの <meta> に書き込む。
+# <meta> では指定できない項目（埋め込み禁止など）をここで補う。
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+# ビルドごとにファイル名が変わる資産は長期キャッシュしてよい
+/_next/static/*
+  Cache-Control: public, max-age=31536000, immutable
