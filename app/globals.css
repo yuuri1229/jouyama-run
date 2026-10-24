@@ -841,13 +841,11 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 .race-card {
   background: var(--paper);
   border: 1px solid var(--line);
-  border-top: 6px solid var(--pine);
   padding: clamp(22px, 3vw, 38px);
   display: flex;
   flex-direction: column;
   gap: clamp(20px, 2.4vw, 28px);
 }
-.race-card--12 { border-top-color: var(--pine-l); }
 .race-head {
   display: flex;
   align-items: flex-end;
@@ -1371,7 +1369,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   display: block;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--pine);
   padding: clamp(24px, 3vw, 32px);
   color: var(--ink);
   transition: border-color .2s ease, background .2s ease;
@@ -1379,7 +1376,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 .news-card-link:hover {
   background: color-mix(in srgb, var(--pine) 4%, transparent);
   border-color: color-mix(in srgb, var(--pine) 35%, transparent);
-  border-left-color: var(--pine-d);
   color: var(--ink);
 }
 .news-card-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
