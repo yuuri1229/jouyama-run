@@ -15,6 +15,7 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { cfBeaconToken } from "../lib/site.js";
 
 const OUT_DIR = "out";
 
@@ -27,6 +28,11 @@ const GA_CONNECT = [
   "https://*.analytics.google.com",
   "https://*.googletagmanager.com",
 ];
+// Cloudflare Web Analytics（トークン設定時のみ許可）。手動設置のビーコンは
+// static.cloudflareinsights.com から読み込み、cloudflareinsights.com/cdn-cgi/rum へ送信する
+// https://developers.cloudflare.com/web-analytics/data-metrics/data-origin-and-collection/
+const CF_SCRIPT = cfBeaconToken ? ["https://static.cloudflareinsights.com"] : [];
+const CF_CONNECT = cfBeaconToken ? ["https://cloudflareinsights.com"] : [];
 // microCMS の記事に載せた画像
 const MICROCMS_IMG = ["https://images.microcms-assets.io"];
 // 記事に埋め込める動画・地図（lib/sanitize.js の EMBED_PATHS と揃える）
@@ -39,12 +45,12 @@ const FRAMES = [
 function policy(scriptHashes) {
   const directives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", ...scriptHashes, ...GA_SCRIPT],
+    "script-src": ["'self'", ...scriptHashes, ...GA_SCRIPT, ...CF_SCRIPT],
     // React の style 属性（タイムバンドの色など）があるため、スタイルだけはインラインを許可
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", ...MICROCMS_IMG, ...GA_IMG],
     "font-src": ["'self'"],
-    "connect-src": ["'self'", ...GA_CONNECT],
+    "connect-src": ["'self'", ...GA_CONNECT, ...CF_CONNECT],
     "frame-src": FRAMES,
     "object-src": ["'none'"],
     "base-uri": ["'self'"],

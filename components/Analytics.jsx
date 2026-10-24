@@ -3,9 +3,9 @@
 import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { basePath, SITE } from "../lib/site";
+import { basePath, cfBeaconToken, SITE } from "../lib/site";
 
-// Googleアナリティクス（GA4）
+// アクセス解析：Googleアナリティクス（GA4）と Cloudflare Web Analytics
 // ・測定IDは公開値のためコードに直接記載しています（lib/site.js の gaId）。
 //   形式（G-英数字）以外の値は使わない（環境変数の誤設定でスクリプトが壊れないように）。
 // ・Next.jsのApp Routerはページ遷移時にリロードが起きないため、
@@ -43,12 +43,23 @@ export default function Analytics() {
     });
   }, [pathname]);
 
-  if (!GA_ID) return null;
-
   return (
-    <Script
-      src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
-      strategy="lazyOnload"
-    />
+    <>
+      {GA_ID && (
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="lazyOnload"
+        />
+      )}
+      {/* Cloudflare Web Analytics（Cookie を使わない）。spa: true でページ遷移も
+          ビーコン自身が検知して計測するため、上の page_view のような送信処理は不要。 */}
+      {cfBeaconToken && (
+        <Script
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={JSON.stringify({ token: cfBeaconToken, spa: true })}
+          strategy="lazyOnload"
+        />
+      )}
+    </>
   );
 }
