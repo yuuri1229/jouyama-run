@@ -488,7 +488,7 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   font-family: var(--font-en);
   font-weight: 400;
   font-size: clamp(58px, 9.8vw, 132px);
-  color: var(--day);
+  color: #fff;
   padding-bottom: .02em;
 }
 .hero-num-row .unit {
