@@ -39,16 +39,10 @@ const GALLERY = [
   { src: "/img/gallery-4.jpg", alt: "公園内の周回コース" },
 ];
 
-// セクション見出し「01 ─ [icon] NEWS ／ 最新情報」。番号は上から順に振る
-function SectionHead({ num, icon, en, title }) {
+// セクション見出し（和文タイトルのみ。番号や英字ラベルは付けない）
+function SectionHead({ title }) {
   return (
     <Reveal as="header" className="sec-head">
-      <p className="sec-eyebrow">
-        <span className="sec-num">{num}</span>
-        <span className="sec-bar" aria-hidden="true" />
-        <Icon name={icon} />
-        {en}
-      </p>
       <h2 className="sec-title">{title}</h2>
     </Reveal>
   );
@@ -123,7 +117,6 @@ export default async function HomePage() {
           <dl className="facts-grid">
             <div className="fact">
               <dt>
-                <Icon name="calendar_month" />
                 開催日
               </dt>
               <dd className="fact-main fact-main--num">{LABEL.factDate}</dd>
@@ -131,7 +124,6 @@ export default async function HomePage() {
             </div>
             <div className="fact">
               <dt>
-                <Icon name="location_on" />
                 会場
               </dt>
               <dd className="fact-main fact-main--text">{EVENT.venue.name}</dd>
@@ -139,7 +131,6 @@ export default async function HomePage() {
             </div>
             <div className="fact">
               <dt>
-                <Icon name="route" />
                 1周の距離
               </dt>
               <dd className="fact-main fact-main--num">
@@ -150,7 +141,6 @@ export default async function HomePage() {
             </div>
             <div className="fact">
               <dt>
-                <Icon name="edit_calendar" />
                 エントリー締切
               </dt>
               <dd className="fact-main fact-main--num">
@@ -171,7 +161,7 @@ export default async function HomePage() {
         {/* ================= 1. 最新情報 ================= */}
         <section className="section" id="news">
           <div className="container">
-            <SectionHead num="01" icon="campaign" en="NEWS" title="最新情報" />
+            <SectionHead title="最新情報" />
 
             <ul className="news-list">
               {newsItems.slice(0, NEWS_ON_TOP).map((item) => (
@@ -198,19 +188,17 @@ export default async function HomePage() {
         {/* ================= 2. 大会概要 ================= */}
         <section className="section section-mist" id="outline">
           <div className="container">
-            <SectionHead num="02" icon="flag" en="OUTLINE" title="大会概要" />
+            <SectionHead title="大会概要" />
 
             <Reveal as="dl" className="outline-table">
               <div className="outline-row">
                 <dt>
-                  <Icon name="calendar_month" />
                   開催日
                 </dt>
                 <dd>{LABEL.eventDateRange}</dd>
               </div>
               <div className="outline-row">
                 <dt>
-                  <Icon name="location_on" />
                   開催場所
                 </dt>
                 <dd>
@@ -229,14 +217,12 @@ export default async function HomePage() {
               </div>
               <div className="outline-row">
                 <dt>
-                  <Icon name="edit_calendar" />
                   エントリー期間
                 </dt>
                 <dd>{LABEL.entryPeriod}</dd>
               </div>
               <div className="outline-row">
                 <dt>
-                  <Icon name="payments" />
                   参加費
                 </dt>
                 <dd>
@@ -265,7 +251,6 @@ export default async function HomePage() {
               </div>
               <div className="outline-row">
                 <dt>
-                  <Icon name="groups" />
                   主催
                 </dt>
                 <dd>
@@ -278,7 +263,6 @@ export default async function HomePage() {
 
             {/* 種目 */}
             <Reveal as="h3" className="sub-title">
-              <Icon name="directions_run" />
               競技種目
             </Reveal>
 
@@ -308,15 +292,12 @@ export default async function HomePage() {
                 </div>
                 <ul className="race-spec">
                   <li>
-                    <Icon name="timer" />
                     スタート：{formatDateTime(EVENT.race24.startAt)}
                   </li>
                   <li>
-                    <Icon name="sports_score" />
                     制限時間：{formatDateTime(EVENT.race24.finishAt)}
                   </li>
                   <li>
-                    <Icon name="verified" />
                     エントリー資格：{EVENT.race24.qualification}
                   </li>
                 </ul>
@@ -356,30 +337,25 @@ export default async function HomePage() {
                 </div>
                 <ul className="race-spec">
                   <li className="icon-day">
-                    <Icon name="light_mode" />
                     デイスタート：{formatDateTime(EVENT.race12.day.startAt)}
                     （制限時間 {formatDateTime(EVENT.race12.day.finishAt)}）
                   </li>
                   <li className="icon-night">
-                    <Icon name="dark_mode" />
                     ナイトスタート：{formatDateTime(EVENT.race12.night.startAt)}
                     （制限時間 {formatDateTime(EVENT.race12.night.finishAt)}）
                   </li>
                   <li>
-                    <Icon name="verified" />
                     エントリー資格：{EVENT.race12.qualification}
                   </li>
                 </ul>
               </Reveal>
             </div>
             <Reveal as="p" className="race-note">
-              <Icon name="directions_walk" />
               両カテゴリにおけるウォーカーの参加歓迎
             </Reveal>
 
             {/* スケジュール */}
             <Reveal as="h3" className="sub-title">
-              <Icon name="schedule" />
               イベントスケジュール
             </Reveal>
             <div className="schedule-grid">
@@ -481,7 +457,7 @@ export default async function HomePage() {
         {/* ================= コース ================= */}
         <section className="section" id="course">
           <div className="container">
-            <SectionHead num="03" icon="route" en="COURSE" title="コース" />
+            <SectionHead title="コース" />
             <div className="course-wrap">
               <Reveal as="figure" className="course-map">
                 <img
@@ -503,15 +479,12 @@ export default async function HomePage() {
                 </p>
                 <ul className="course-points">
                   <li>
-                    <Icon name="restaurant" />
                     エイド：豚汁、レトルト（カレー、ハヤシライス、親子丼、牛丼）、カップラーメン、おかゆ、パン、スープ類、味噌汁、菓子類、各種ドリンク等
                   </li>
                   <li>
-                    <Icon name="home_work" />
                     管理棟は9時〜翌日15時まで利用可能（更衣室、浴室、和室4室ほか貸切）
                   </li>
                   <li>
-                    <Icon name="battery_charging_full" />
                     1Fロビーに選手用の充電スペースあり
                   </li>
                 </ul>
@@ -590,7 +563,6 @@ export default async function HomePage() {
                 <WhenEntryOpen>
                   <div className="entry-deadline">
                     <div className="entry-deadline-head">
-                      <p className="entry-deadline-en">DEADLINE</p>
                       <p className="entry-deadline-text">
                         エントリー締切 {formatDate(EVENT.entryCloseAt)}
                       </p>
@@ -606,7 +578,6 @@ export default async function HomePage() {
                 </WhenEntryOpen>
                 <div className="entry-kit">
                   <h3>
-                    <Icon name="checklist" />
                     必携品
                   </h3>
                   <p>
@@ -621,11 +592,10 @@ export default async function HomePage() {
         {/* ================= ルール ================= */}
         <section className="section section-mist" id="rules">
           <div className="container">
-            <SectionHead num="04" icon="gavel" en="RULES" title="大会ルール" />
+            <SectionHead title="大会ルール" />
 
             <Reveal as="article" className="rule">
               <h3 className="rule-title">
-                <Icon name="warning" />
                 注意事項
               </h3>
               <div className="rule-body">
@@ -663,7 +633,6 @@ export default async function HomePage() {
 
             <Reveal as="article" className="rule" delay={1}>
               <h3 className="rule-title">
-                <Icon name="timer" />
                 計測について
               </h3>
               <div className="rule-body">
@@ -687,7 +656,6 @@ export default async function HomePage() {
 
             <Reveal as="article" className="rule" delay={2}>
               <h3 className="rule-title">
-                <Icon name="info" />
                 その他・会場のご案内
               </h3>
               <div className="rule-body">

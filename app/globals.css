@@ -60,7 +60,6 @@
   --fs-lead:  clamp(15.5px, 1.4vw, 17px);   /* リード文・本文大 */
   --fs-h3:    clamp(19px, 2vw, 24px);       /* 中見出し */
   --fs-h2:    clamp(26px, 3vw, 38px);       /* セクション見出し */
-  --fs-display: clamp(52px, 9vw, 120px);    /* ENTRY等の特大英字 */
 
   /* 和文の行長。全角40字前後で折り返すと読み疲れしない */
   --measure: 40em;
@@ -169,7 +168,7 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   gap: 8px;
   font-weight: 700;
   font-size: var(--fs-base);
-  letter-spacing: .07em;
+  letter-spacing: .04em;
   text-decoration: none;
   padding: 16px 28px;
   border-radius: var(--radius);
@@ -193,7 +192,7 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   color: var(--pine);
   font-weight: 700;
   font-size: var(--fs-sm);
-  letter-spacing: .08em;
+  letter-spacing: .04em;
   border-bottom: 1px solid color-mix(in srgb, var(--pine) 45%, transparent);
   padding-bottom: 6px;
 }
@@ -226,13 +225,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   gap: 12px;
   color: var(--ink);
 }
-.brand::before {
-  content: "";
-  display: block;
-  width: 10px; height: 26px;
-  background: var(--pine);
-  flex-shrink: 0;
-}
 .brand-name {
   font-weight: 700;
   font-size: clamp(13.5px, 1.3vw, 15px);
@@ -247,7 +239,7 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   color: var(--ink);
   font-size: var(--fs-sm);
   font-weight: 500;
-  letter-spacing: .06em;
+  letter-spacing: .04em;
   white-space: nowrap;   /* ラベルの途中で改行させない */
   transition: color .2s ease;
 }
@@ -323,13 +315,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 }
 .mobile-nav-item:hover { color: var(--ink); }
 .mobile-nav-label { display: flex; align-items: baseline; gap: 14px; }
-.mobile-nav-num {
-  font-family: var(--font-en);
-  font-size: var(--fs-micro);
-  font-weight: 500;
-  letter-spacing: .14em;
-  color: var(--pine);
-}
 .mobile-nav-icon { color: var(--pine); }
 .mobile-nav-icon.is-external { font-size: 19px; color: var(--sub); }
 .mobile-nav .mobile-nav-cta {
@@ -437,39 +422,14 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   padding: clamp(24px, 7vh, 150px) var(--gutter) clamp(24px, 3.4vh, 52px);
 }
 
-/* 2つの独立したチップ（枠を共有しないので折り返しでも崩れない） */
+/* 会場と日付を1行の文章として置く（枠・下地・大文字化はしない） */
 .hero-bib {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 8px;
   margin: 0 0 clamp(14px, 2.6vh, 32px);
-  font-family: var(--font-data);
-  font-weight: 400;
-  font-size: clamp(11.5px, .95vw, 13.5px);
-  letter-spacing: .12em;
-  text-transform: uppercase;
+  font-weight: 500;
+  font-size: clamp(14px, 1.2vw, 17px);
+  letter-spacing: .04em;
   color: #fff;
 }
-/* blockにしないと、flexアイテム化した <b> と続くテキストの間の
-   半角スペースが除去され「NIIGATA/ JOYAMA PARK」と詰まって見える */
-.hero-bib span {
-  display: block;
-  padding: 10px 16px;
-  line-height: 1.5;
-  white-space: nowrap;
-}
-/* 枠だけだと写真の明るい部分に重なったとき文字が読みにくいので、
-   ごく薄い下地を敷いてどの写真でも可読性を確保する */
-.hero-bib span:first-child {
-  border: 1px solid rgba(255, 255, 255, .34);
-  background: color-mix(in srgb, var(--shade) 42%, transparent);
-}
-.hero-bib span:last-child {
-  background: var(--pine);
-  font-weight: 500;
-}
-.hero-bib b { font-weight: inherit; }
 
 .hero-num-row {
   display: flex;
@@ -501,13 +461,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   line-height: 1;
   color: #fff;
   padding: 0 0 clamp(8px, 1.2vw, 18px) clamp(6px, 1vw, 14px);
-}
-.hero-num-row .unit small {
-  font-family: var(--font-data);
-  font-weight: 400;
-  font-size: clamp(11px, .95vw, 13px);
-  letter-spacing: .16em;
-  text-shadow: 0 1px 8px rgba(0, 0, 0, .75);   /* 明るい写真でも小さな英字が読めるように */
 }
 
 .hero-lede {
@@ -559,7 +512,7 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   z-index: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
   /* 左右の余白を .container（最大1240px＋余白32px）の文字位置に揃える。
      100vw だとWindowsなどでスクロールバーの幅まで含んでしまい、数px ずれるので
@@ -568,26 +521,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   border-top: 1px solid rgba(255, 255, 255, .18);
   background: color-mix(in srgb, var(--shade) 55%, transparent);
 }
-.lap-strip {
-  display: flex;
-  align-items: center;
-  gap: clamp(8px, 1.2vw, 14px);
-  min-width: 0;
-  font-family: var(--font-data);
-  font-size: clamp(11.5px, 1vw, 13px);
-  letter-spacing: .12em;
-  line-height: 1.5;
-  color: #fff;
-  white-space: nowrap;
-}
-.lap-strip i {
-  display: block;
-  width: clamp(12px, 5vw, 70px);
-  height: 1px;
-  background: rgba(255, 255, 255, .4);
-}
-.lap-strip span[aria-hidden] { opacity: .6; }
-.lap-strip b { color: var(--day); font-weight: 700; letter-spacing: .1em; }
 .hero-dots {
   display: flex;
   flex-shrink: 0;
@@ -638,13 +571,12 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--fs-micro);
-  font-weight: 700;
-  letter-spacing: .08em;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: .04em;
   line-height: 1.4;
-  color: var(--pine);
+  color: var(--sub);
 }
-.fact dt .icon { font-size: 17px; }
 .fact-main { font-weight: 700; }
 .fact-main--num {
   font-family: var(--font-en);
@@ -688,25 +620,8 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   gap: 10px clamp(18px, 2.4vw, 32px);
   margin-bottom: var(--space-xl);
   border-bottom: 1px solid var(--line);
-  padding-bottom: 18px;
+  padding-bottom: 16px;
 }
-.sec-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  /* 本文用の行間（1.85）のままだとアイコン18pxの行box が33px になり、
-     折り返し時に見た目以上の余白が生まれるため行間を詰める */
-  line-height: 1;
-  color: var(--pine);
-  font-family: var(--font-data);
-  font-weight: 500;
-  font-size: var(--fs-micro);
-  letter-spacing: .18em;
-}
-.sec-eyebrow .icon { font-size: 18px; }
-/* 「01 ─」。番号は墨色、短い罫線で英字ラベルへつなぐ */
-.sec-num { color: var(--ink); }
-.sec-bar { display: block; width: 18px; height: 1px; background: var(--pine); }
 .sec-title {
   margin: 0;
   font-size: var(--fs-h2);
@@ -717,23 +632,12 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 }
 
 .sub-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
   margin: var(--space-2xl) 0 clamp(20px, 2.5vw, 28px);
   font-size: var(--fs-h3);
   font-weight: 700;
   letter-spacing: .02em;
   color: var(--ink);
 }
-.sub-title::before {
-  content: "";
-  display: block;
-  width: 8px; height: 22px;
-  background: var(--pine);
-  flex-shrink: 0;
-}
-.sub-title .icon { color: var(--pine); }
 
 .sec-more { margin-top: var(--space-lg); }
 
@@ -789,16 +693,12 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 }
 .outline-row:first-child { border-top: none; }
 .outline-row dt {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 1.9em;
   font-size: var(--fs-sm);
   font-weight: 700;
-  letter-spacing: .06em;
-  color: var(--pine);
+  letter-spacing: .04em;
+  line-height: 1.9;
+  color: var(--sub);
 }
-.outline-row dt .icon { font-size: 18px; }
 .outline-row dd {
   max-width: var(--measure);
   font-size: clamp(15.5px, 1.4vw, var(--fs-md));
@@ -932,36 +832,20 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 
 .race-spec { list-style: none; display: grid; gap: 12px; }
 .race-spec li {
-  display: grid;
-  grid-template-columns: 20px 1fr;
-  gap: 12px;
   max-width: calc(var(--measure) + 32px);
   font-size: var(--fs-base);
   line-height: var(--lh-body);
   letter-spacing: .02em;
 }
-.race-spec .icon {
-  font-size: 19px;
-  color: var(--pine);
-  margin-top: 4px;
-}
-.race-spec .icon-day .icon { color: var(--day); }
-.race-spec .icon-night .icon { color: var(--night); }
 
 .race-note {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   margin-top: clamp(18px, 2vw, 24px);
-  padding: 17px 20px;
-  background: color-mix(in srgb, var(--pine) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--pine) 20%, transparent);
-  color: var(--pine-d);
+  padding: 16px 20px;
+  background: var(--paper);
+  border: 1px solid var(--line);
   font-size: var(--fs-base);
-  font-weight: 500;
   letter-spacing: .02em;
 }
-.race-note .icon { font-size: 20px; color: var(--pine); }
 
 /* スケジュール */
 .schedule-grid {
@@ -1066,20 +950,12 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 }
 .course-points { list-style: none; display: grid; gap: 16px; }
 .course-points li {
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  gap: 14px;
   border-top: 1px solid var(--line);
   padding-top: 16px;
   max-width: calc(var(--measure) + 36px);
   font-size: var(--fs-base);
   line-height: var(--lh-body);
   letter-spacing: .02em;
-}
-.course-points .icon {
-  font-size: 21px;
-  color: var(--pine);
-  margin-top: 4px;
 }
 
 /* ---------- フォトバンド ---------- */
@@ -1100,14 +976,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   position: relative;
   overflow: hidden;
 }
-.entry::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(90% 120% at 85% 0%,
-    color-mix(in srgb, var(--pine-d) 45%, transparent) 0%, color-mix(in srgb, var(--pine-d) 0%, transparent) 62%);
-  pointer-events: none;
-}
 /* 左＝見出し・受付状態・ボタン、右＝締切カウントダウンと必携品。
    狭い幅では右が左の下に回り込んで1カラムになる */
 .entry-inner {
@@ -1120,16 +988,14 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 .entry-main { display: grid; gap: clamp(20px, 2.5vw, 28px); }
 .entry-side { display: grid; gap: 16px; }
 .entry-title {
-  font-size: var(--fs-display);
-  line-height: .85;
-  letter-spacing: .02em;
+  font-size: clamp(44px, 6vw, 80px);
+  line-height: .9;
+  letter-spacing: 0;
 }
 .entry-lead {
   font-size: clamp(15.5px, 1.5vw, 19px);
   font-weight: 500;
   letter-spacing: .04em;
-  border-left: 3px solid rgba(255, 255, 255, .65);
-  padding-left: 16px;
   line-height: 1.6;
 }
 .entry-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
@@ -1156,13 +1022,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   border: 1px solid rgba(255, 255, 255, .22);
 }
 .entry-deadline-head { display: grid; gap: 6px; }
-.entry-deadline-en {
-  font-family: var(--font-en);
-  font-size: var(--fs-micro);
-  font-weight: 500;
-  letter-spacing: .16em;
-  line-height: 1.4;
-}
 .entry-deadline-text {
   font-size: 15px;
   font-weight: 700;
@@ -1190,12 +1049,9 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   padding: clamp(20px, 2.4vw, 28px);
 }
 .entry-kit h3 {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   font-size: var(--fs-base);
   font-weight: 700;
-  letter-spacing: .09em;
+  letter-spacing: .04em;
   margin-bottom: 12px;
 }
 .entry-kit p {
@@ -1220,14 +1076,12 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   gap: 12px;
   margin: 0;
   padding: clamp(18px, 2.2vw, 24px) clamp(18px, 2.6vw, 32px);
-  background: color-mix(in srgb, var(--pine) 6%, transparent);
   font-size: clamp(16px, 1.6vw, 19px);
   font-weight: 700;
   letter-spacing: .04em;
   line-height: 1.5;
   color: var(--ink);
 }
-.rule-title .icon { font-size: 22px; color: var(--pine); }
 .rule-body {
   padding: clamp(18px, 2.2vw, 24px) clamp(18px, 2.6vw, 32px) clamp(22px, 2.6vw, 32px);
   border-top: 1px solid var(--line-soft);
@@ -1248,16 +1102,16 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 .rule-body li::before {
   content: "";
   position: absolute;
-  left: 2px; top: .7em;
-  width: 7px; height: 7px;
-  background: var(--pine);
+  left: 4px; top: .85em;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--sub);
 }
 .rule-em {
   margin-top: 22px;
   padding: 14px 16px;
-  background: color-mix(in srgb, var(--day) 14%, transparent);
-  border-left: 3px solid var(--day);
-  color: var(--pine-d);
+  background: var(--mist);
+  color: var(--ink);
   font-size: var(--fs-sm);
   font-weight: 500;
   line-height: 1.9;
@@ -1598,47 +1452,9 @@ html[data-menu-open] .sticky-entry { display: none; }
   .sched-table th { width: 38%; }
 }
 
-/* =========================================================
-   表示エフェクト
-   1) ページ読み込み時：ヒーローの要素が順番にふわっと表示
-   2) スクロール時：各セクションの要素が下からフェードイン
-   ========================================================= */
-@keyframes riseIn {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.hero-bib, .hero-num-row, .hero-lede, .hero-actions {
-  opacity: 0;
-  animation: riseIn .9s cubic-bezier(.22, .61, .36, 1) forwards;
-}
-.hero-bib     { animation-delay: .1s; }
-.hero-num-row { animation-delay: .25s; }
-.hero-lede    { animation-delay: .45s; }
-.hero-actions { animation-delay: .6s; }
-
-.reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity .7s cubic-bezier(.2, .7, .3, 1),
-              transform .7s cubic-bezier(.2, .7, .3, 1);
-}
-.reveal.is-visible { opacity: 1; transform: translateY(0); }
-.reveal[data-delay="1"] { transition-delay: .12s; }
-.reveal[data-delay="2"] { transition-delay: .24s; }
-.reveal[data-delay="3"] { transition-delay: .36s; }
-
-/* JSが無効/失敗した環境で本文が見えなくならないようにする。
-   （layout.jsx の <noscript> と合わせた二重の保険） */
-@media (scripting: none) {
-  .reveal { opacity: 1; transform: none; }
-  .hero-bib, .hero-num-row, .hero-lede, .hero-actions { animation: none; opacity: 1; }
-}
-
 /* ---------- アニメーション設定への配慮（動きを減らす設定の端末） ---------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .hero-slide { transition: opacity .3s ease; }
   .btn { transition: none; }
-  .hero-bib, .hero-num-row, .hero-lede, .hero-actions { animation: none; opacity: 1; }
-  .reveal { opacity: 1; transform: none; transition: none; }
 }
