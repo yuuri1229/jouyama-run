@@ -35,10 +35,6 @@ export default async function NewsPage() {
         </nav>
 
         <header className="sec-head">
-          <p className="sec-eyebrow">
-            <Icon name="campaign" />
-            NEWS
-          </p>
           <h1 className="sec-title">最新情報</h1>
         </header>
 
