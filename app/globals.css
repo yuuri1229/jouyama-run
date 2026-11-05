@@ -223,15 +223,7 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
   color: var(--ink);
-}
-.brand::before {
-  content: "";
-  display: block;
-  width: 10px; height: 26px;
-  background: var(--pine);
-  flex-shrink: 0;
 }
 .brand-name {
   font-weight: 700;
