@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Icon from "./Icon";
 import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
@@ -94,6 +95,22 @@ const DESKTOP_NAV = "(min-width: 1020px)";
 export default function Header() {
   const [open, setOpen] = useState(false);
   const toggleRef = useRef(null);
+  const pathname = usePathname();
+
+  // すでにトップページにいるとき、Next.js の Link は同じ場所への移動として
+  // ほぼ何もしない（固定ヘッダーがあるためスクロールも戻らない）。
+  // そのためロゴをタップしても先頭へ戻らなかった。トップにいる場合は
+  // 自前でページ先頭へスクロールし、#news などのハッシュも外す。
+  const onBrandClick = (e) => {
+    setOpen(false);
+    if (pathname === "/") {
+      e.preventDefault();
+      if (window.location.hash) {
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   // メニューが開いている間だけ有効にする挙動をまとめる。
   //  ・Escapeで閉じてハンバーガーにフォーカスを戻す（キーボード操作）
@@ -139,7 +156,7 @@ export default function Header() {
           href="/"
           prefetch={false}
           className="brand"
-          onClick={() => setOpen(false)}
+          onClick={onBrandClick}
         >
           <span className="brand-name">新潟・城山運動公園24&amp;12時間走</span>
         </Link>
