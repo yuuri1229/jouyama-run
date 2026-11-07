@@ -20,6 +20,11 @@ export default async function sitemap() {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: `${siteUrl}/results/`,
+      changeFrequency: "yearly",
+      priority: 0.6,
+    },
   ];
 
   const articleUrls = newsItems.map((item) => ({
