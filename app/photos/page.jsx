@@ -52,11 +52,8 @@ export default function PhotosPage() {
             <li className="album" key={a.id}>
               <div className="album-txt">
                 <p className="album-ed">
-                  {a.label}
-                  <small>
-                    {a.year}
-                    {a.sub ? `・${a.sub}` : ""}
-                  </small>
+                  {a.year}
+                  {a.sub ? `・${a.sub}` : ""}
                 </p>
                 <h2 className="album-title">{a.title}</h2>
               </div>
