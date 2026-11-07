@@ -25,6 +25,11 @@ export default async function sitemap() {
       changeFrequency: "yearly",
       priority: 0.6,
     },
+    {
+      url: `${siteUrl}/photos/`,
+      changeFrequency: "yearly",
+      priority: 0.5,
+    },
   ];
 
   const articleUrls = newsItems.map((item) => ({
