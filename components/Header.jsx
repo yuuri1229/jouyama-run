@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: "/#outline", label: "大会概要" },
   { href: "/#course", label: "コース" },
   { href: "/#rules", label: "ルール" },
+  { href: "/results/", label: "リザルト" },
   { href: SITE.contactFormUrl, label: "お問い合わせ", external: true },
 ];
 
