@@ -543,16 +543,13 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   .hero-actions { margin-top: clamp(18px, 3.4svh, 40px); }
 }
 
-/* 下端：ラップ表記＋写真切り替え */
-/* 帯自体を「ラップ表記（左）／写真切替（右）」の1行にする。
-   以前は .lap-strip だけが余白を持ち、狭い幅で中身を消すと
-   空の帯が残っていたため、余白は親側に集約した。 */
+/* 下端：写真切り替え（右寄せ）。選択中の線は5秒かけて伸びる */
 .hero-foot {
   position: relative;
   z-index: 1;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 16px;
   /* 左右の余白を .container（最大1240px＋余白32px）の文字位置に揃える。
      100vw だとWindowsなどでスクロールバーの幅まで含んでしまい、数px ずれるので
@@ -561,26 +558,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   border-top: 1px solid rgba(255, 255, 255, .18);
   background: color-mix(in srgb, var(--shade) 55%, transparent);
 }
-.lap-strip {
-  display: flex;
-  align-items: center;
-  gap: clamp(8px, 1.2vw, 14px);
-  min-width: 0;
-  font-family: var(--font-data);
-  font-size: clamp(11.5px, 1vw, 13px);
-  letter-spacing: .12em;
-  line-height: 1.5;
-  color: #fff;
-  white-space: nowrap;
-}
-.lap-strip i {
-  display: block;
-  width: clamp(12px, 5vw, 70px);
-  height: 1px;
-  background: rgba(255, 255, 255, .4);
-}
-.lap-strip span[aria-hidden] { opacity: .6; }
-.lap-strip b { color: var(--day); font-weight: 700; letter-spacing: .1em; }
 .hero-dots {
   display: flex;
   flex-shrink: 0;
@@ -605,7 +582,23 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
   background: rgba(255, 255, 255, .34);
   transition: background .2s;
 }
-.hero-dots button.is-active::before { background: #fff; }
+.hero-dots button { position: relative; }
+.hero-dots button.is-active::before { background: rgba(255, 255, 255, .34); }
+.hero-dots button::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 3px;
+  margin-top: -1.5px;
+  background: #fff;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+.hero-dots button.is-active::after {
+  animation: hero-progress 5s linear forwards; /* 自動送りの間隔と揃える */
+}
+.hero-foot:hover .hero-dots button.is-active::after { animation-play-state: paused; }
+@keyframes hero-progress { to { transform: scaleX(1); } }
 
 /* ---------- 基本情報バー（ヒーロー直下） ---------- */
 /* 4つのセルを1pxの罫線でつなぐ。罫線は「背景色＋gap:1px」で描いている */
@@ -1575,9 +1568,6 @@ html[data-menu-open] .sticky-entry { display: none; }
         color-mix(in srgb, var(--shade) 72%, transparent) 78%,
         color-mix(in srgb, var(--shade) 84%, transparent) 100%);
   }
-  /* 「LAP 960m × 24:00:00」は狭い幅でも残す（1周の距離と制限時間は大会の根幹）。
-     罫線は短くなるだけで消さない */
-  .hero-foot { gap: 12px; }
   .btn { justify-content: center; }
   /* 日付とタグを同じセルに重ねて margin-left:100px でずらしていたため、
      文字幅が変わると衝突していた。素直に列として並べる */
@@ -1709,6 +1699,7 @@ html[data-menu-open] .sticky-entry { display: none; }
 
 /* ---------- アニメーション設定への配慮（動きを減らす設定の端末） ---------- */
 @media (prefers-reduced-motion: reduce) {
+  .hero-dots button.is-active::after { animation: none; transform: scaleX(1); }
   html { scroll-behavior: auto; }
   .hero-slide { transition: opacity .3s ease; }
   .btn { transition: none; }
