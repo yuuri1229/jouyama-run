@@ -47,14 +47,12 @@ function NavItem({ item, onClick }) {
   );
 }
 
-// モバイルメニューの1行。「01 最新情報 ›」のように番号を添える。
+// モバイルメニューの1行。
 // 外部リンクは › ではなく「別タブで開く」アイコンにする。
 function MobileNavItem({ item, index, onClick }) {
-  const num = String(index + 1).padStart(2, "0");
   const label = (
     <>
       <span className="mobile-nav-label">
-        <span className="mobile-nav-num">{num}</span>
         {item.label}
       </span>
       <Icon
