@@ -4,20 +4,18 @@ import { useState } from "react";
 
 // リザルトの切替表示。上段で大会（第2回／第1回）、下段で種目を選ぶ。
 // データは data/results.js。表彰対象の強調はしない（全員同じ見た目）。
+// 距離は数値のみ（比率バーは付けない）。
 
 const fmt = (n) => n.toFixed(1);
 const sexLabel = (sex, rank) =>
   sex ? `${sex === "M" ? "男子" : "女子"} ${rank}位` : "";
 
-function DistanceCell({ km, max }) {
+function DistanceCell({ km }) {
   return (
     <td className="res-dist">
       <span className="res-km">
         {fmt(km)}
         <small>km</small>
-      </span>
-      <span className="res-bar" aria-hidden="true">
-        <i style={{ width: `${(km / max) * 100}%` }} />
       </span>
     </td>
   );
@@ -26,7 +24,6 @@ function DistanceCell({ km, max }) {
 function ResultTable({ category }) {
   const { columns, rows } = category;
   const dist = (r) => r[r.length - 1];
-  const max = Math.max(...rows.map(dist));
 
   if (columns === "full") {
     const hasSex = rows.some((r) => r[3]);
@@ -37,7 +34,7 @@ function ResultTable({ category }) {
             <th scope="col">順位</th>
             <th scope="col">氏名</th>
             <th scope="col" className="res-wide">居住地</th>
-            <th scope="col">距離</th>
+            <th scope="col" className="res-num">距離</th>
             {hasSex ? <th scope="col" className="res-wide">男女別</th> : null}
           </tr>
         </thead>
@@ -53,7 +50,7 @@ function ResultTable({ category }) {
                 </span>
               </td>
               <td className="res-wide">{home}</td>
-              <DistanceCell km={km} max={max} />
+              <DistanceCell km={km} />
               {hasSex ? (
                 <td className="res-wide res-sex">{sexLabel(sex, sexRank)}</td>
               ) : null}
@@ -79,7 +76,7 @@ function ResultTable({ category }) {
           ) : (
             <th scope="col" className="res-wide res-num">周回</th>
           )}
-          <th scope="col">距離</th>
+          <th scope="col" className="res-num">距離</th>
         </tr>
       </thead>
       <tbody>
@@ -89,7 +86,7 @@ function ResultTable({ category }) {
             <td className="res-name">{r[1]}</td>
             <td className="res-wide res-num">{r[2]}</td>
             {twoLaps ? <td className="res-wide res-num">{r[3]}</td> : null}
-            <DistanceCell km={dist(r)} max={max} />
+            <DistanceCell km={dist(r)} />
           </tr>
         ))}
       </tbody>
