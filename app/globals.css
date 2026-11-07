@@ -555,8 +555,6 @@ button, a { -webkit-tap-highlight-color: color-mix(in srgb, var(--pine) 12%, tra
      100vw だとWindowsなどでスクロールバーの幅まで含んでしまい、数px ずれるので
      ヒーロー自身の幅（%）を基準にする */
   padding: 13px max(var(--gutter), calc((100% - 1240px) / 2 + 32px));
-  border-top: 1px solid rgba(255, 255, 255, .18);
-  background: color-mix(in srgb, var(--shade) 55%, transparent);
 }
 .hero-dots {
   display: flex;
