@@ -29,9 +29,6 @@ const SLIDES = [
   })),
 }));
 
-// 「24:00:00」のような制限時間表記
-const HOURS_LABEL = `${String(EVENT.race24.hours).padStart(2, "0")}:00:00`;
-
 export default function Hero() {
   // current = 表示中、prev = 直前。prevはフェード中の下地として使う
   const [{ current, prev }, setSlide] = useState({ current: 0, prev: null });
@@ -135,7 +132,7 @@ export default function Hero() {
       start();
     };
 
-    // マウスで「操作部（ラップ表記とドットの帯）」に乗ったときだけ止める。
+    // マウスで「操作部（写真切り替えの帯）」に乗ったときだけ止める。
     // 以前は写真全体＝ほぼ画面全域で止めていたため、マウスが乗って
     // いるだけで送りが止まり、離すたびに5秒を数え直していた。
     const onEnter = (e) => e.pointerType === "mouse" && pause();
@@ -266,13 +263,6 @@ export default function Hero() {
       </div>
 
       <div className="hero-foot" ref={footRef}>
-        <div className="lap-strip">
-          <span>LAP {EVENT.lapMeters}m</span>
-          <i aria-hidden="true"></i>
-          <span aria-hidden="true">×</span>
-          <i aria-hidden="true"></i>
-          <b>{HOURS_LABEL}</b>
-        </div>
         {/* 写真は装飾（hero-mediaはaria-hidden）なので、ドットは
             タブではなく「今どれを見せるか」の選択ボタンとして扱う。 */}
         <div className="hero-dots" role="group" aria-label="ヒーロー写真の切り替え">
