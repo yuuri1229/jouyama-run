@@ -1,6 +1,7 @@
 import "./globals.css";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
+import { EntryClock } from "../components/EntryClock";
 import Analytics from "../components/Analytics";
 import IconSprite from "../components/IconSprite";
 import { JsonLd } from "../components/JsonLd";
@@ -151,9 +152,13 @@ export default function RootLayout({ children }) {
         <a className="skip-link" href="#main">
           本文へスキップ
         </a>
-        <Header />
-        {children}
-        <Footer />
+        {/* ヘッダー／フッターの「エントリー」導線も締切後に切り替えるため、
+            受付状態を配る EntryClock で包む（トップ内の EntryClock は入れ子で問題なし） */}
+        <EntryClock builtAt={Date.now()}>
+          <Header />
+          {children}
+          <Footer />
+        </EntryClock>
         <Analytics />
       </body>
     </html>
