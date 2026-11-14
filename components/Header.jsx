@@ -6,6 +6,7 @@ import Icon from "./Icon";
 import SocialLinks from "./SocialLinks";
 import { SITE } from "../lib/site";
 import { EVENT, LABEL } from "../lib/event";
+import { EntryCtaLink } from "./EntryClock";
 
 // external: true はサイト外へ出るリンク。別タブで開くので、
 // 文字だけだと予告なくサイトを離れることになる。小さなアイコンを添えて
@@ -151,15 +152,13 @@ export default function Header() {
             <NavItem key={item.href} item={item} />
           ))}
           <SocialLinks className="header-social" />
-          <a
+          <EntryCtaLink
             className="nav-cta"
-            href={SITE.entryFormUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            openLabel="エントリー"
+            closedLabel="エントリーリスト"
           >
-            エントリー
             <Icon name="arrow_outward" />
-          </a>
+          </EntryCtaLink>
         </nav>
 
         <button
@@ -187,16 +186,14 @@ export default function Header() {
             onClick={() => setOpen(false)}
           />
         ))}
-        <a
+        <EntryCtaLink
           className="mobile-nav-cta"
-          href={SITE.entryFormUrl}
-          target="_blank"
-          rel="noopener noreferrer"
+          openLabel="エントリーフォーム"
+          closedLabel="エントリーリスト"
           onClick={() => setOpen(false)}
         >
-          エントリーフォーム
           <Icon name="arrow_outward" />
-        </a>
+        </EntryCtaLink>
         <p className="mobile-nav-date">
           {LABEL.bibDate} ／ {EVENT.venue.name}
         </p>

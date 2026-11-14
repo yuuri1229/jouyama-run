@@ -10,6 +10,7 @@ import {
   imageSrcSet,
 } from "../lib/assets";
 import { EVENT, LABEL } from "../lib/event";
+import { EntryCtaLink } from "./EntryClock";
 
 const SLIDE_INTERVAL = 5000; // 写真の切り替え間隔（ミリ秒）
 
@@ -246,15 +247,13 @@ export default function Hero() {
         </p>
 
         <div className="hero-actions">
-          <a
+          <EntryCtaLink
             className="btn btn-primary"
-            href={SITE.entryFormUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+            openLabel="エントリーする"
+            closedLabel="エントリーリストを見る"
           >
-            エントリーする
             <Icon name="arrow_outward" />
-          </a>
+          </EntryCtaLink>
           <a className="btn btn-ghost" href="#outline">
             大会概要を見る
             <Icon name="arrow_downward" />

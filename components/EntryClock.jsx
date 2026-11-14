@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { entryStatus } from "../lib/event";
+import { SITE } from "../lib/site";
 
 // =========================================================
 // エントリー受付状態を「ブラウザの現在時刻」で出し分ける
@@ -83,6 +84,23 @@ export function EntryChip() {
 
 export function DaysLeft() {
   return useEntryStatus().daysLeft;
+}
+
+// 受付中はエントリーフォーム、受付終了後はエントリーリストへ向けるリンク。
+// 締切後も「エントリー」の導線が申込フォームのまま残らないようにする。
+export function EntryCtaLink({ openLabel, closedLabel, children, ...rest }) {
+  const { open } = useEntryStatus();
+  return (
+    <a
+      {...rest}
+      href={open ? SITE.entryFormUrl : SITE.entryListUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {open ? openLabel : closedLabel}
+      {children}
+    </a>
+  );
 }
 
 export function WhenEntryOpen({ children }) {
