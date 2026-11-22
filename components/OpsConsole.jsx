@@ -1,0 +1,440 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+// =========================================================
+// 計測管制コンソール（/ops/）
+// ---------------------------------------------------------
+// 周回計測BLE（Android受信アプリ）→ Google Apps Script → スプレッドシート
+// に集まったデータを表示し、設定・遠隔コマンド・選手の紐付けを操作する。
+// 合言葉（管制用）はコードに書かず、画面で入力してもらう。
+// =========================================================
+
+// Apps Script ウェブアプリのURL（URLだけでは読み書きできない。合言葉が必要）
+const ENDPOINT =
+  "https://script.google.com/macros/s/AKfycbzqREVgPY7kD4nG0q0VVrzEz9cYAj55X31Oofjn9t6rUUaJ_pHzOrCepXuyNwjs4iB_/exec";
+const LAP_METERS = 960;
+const REFRESH_SEC = 15;
+const KEY_STORE = "ops-console-key";
+const CATEGORIES = ["", "24時間", "12時間デイ", "12時間ナイト", "スタッフ", "予備"];
+const COMMANDS = [
+  { value: "setLaps", label: "周回数を設定", needBib: true, needValue: true },
+  { value: "add", label: "周回 +1", needBib: true },
+  { value: "del", label: "周回 −1", needBib: true },
+  { value: "restartScan", label: "スキャン再起動" },
+];
+
+async function call(action, key, payload = {}) {
+  // text/plain で送ると、ブラウザの事前確認（CORSプリフライト）なしで Apps Script に届く
+  const res = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action, consoleKey: key, ...payload }),
+  });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error || "エラー");
+  return j;
+}
+
+// rows_() の {head, rows} を [{列名: 値}] に
+const toObjects = (t) =>
+  !t || !t.head ? [] : t.rows.map((r) => Object.fromEntries(t.head.map((h, i) => [h, r[i]])));
+
+// "11/22 13:57:19" と サーバー時刻 "2026/11/22 13:57:22" の差（秒）
+function ageSec(mmddhhmmss, serverTime) {
+  if (!mmddhhmmss || !serverTime) return null;
+  const year = serverTime.slice(0, 4);
+  const t = Date.parse(`${year}/${mmddhhmmss}`);
+  const s = Date.parse(serverTime);
+  return Number.isNaN(t) || Number.isNaN(s) ? null : Math.round((s - t) / 1000);
+}
+
+const num = (v) => (v === "" || v == null || Number.isNaN(Number(v)) ? null : Number(v));
+
+function Level({ value, max = 4 }) {
+  const n = num(value);
+  return (
+    <span className="ops-bars" aria-label={`電波レベル ${n ?? "-"} / ${max}`}>
+      {Array.from({ length: max }, (_, i) => (
+        <i key={i} className={n != null && i < n ? "on" : ""} style={{ height: `${(i + 1) * 25}%` }} />
+      ))}
+    </span>
+  );
+}
+
+function Spark({ values }) {
+  const v = values.filter((x) => x != null);
+  if (v.length < 2) return <span className="ops-muted">履歴なし</span>;
+  const w = 160, h = 32;
+  const pts = v.map((y, i) => `${(i / (v.length - 1)) * w},${h - (y / 100) * h}`).join(" ");
+  return (
+    <svg className="ops-spark" viewBox={`0 0 ${w} ${h}`} width={w} height={h} aria-label="電池残量の推移">
+      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function Login({ onLogin, error }) {
+  const [v, setV] = useState("");
+  return (
+    <form
+      className="ops-login"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (v.trim()) onLogin(v.trim());
+      }}
+    >
+      <h1>計測管制コンソール</h1>
+      <p>大会スタッフ専用です。管制用の合言葉を入力してください。</p>
+      <input type="password" value={v} onChange={(e) => setV(e.target.value)} placeholder="合言葉" autoComplete="off" />
+      <button type="submit">開く</button>
+      {error && <p className="ops-error">{error}</p>}
+    </form>
+  );
+}
+
+export default function OpsConsole() {
+  const [key, setKey] = useState("");
+  const [data, setData] = useState(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [auto, setAuto] = useState(true);
+  const [fetchedAt, setFetchedAt] = useState(null);
+  const [toast, setToast] = useState("");
+  const [filter, setFilter] = useState("");
+
+  useEffect(() => {
+    try {
+      const k = sessionStorage.getItem(KEY_STORE);
+      if (k) setKey(k);
+    } catch {}
+  }, []);
+
+  const load = useCallback(
+    async (k = key) => {
+      if (!k) return;
+      setBusy(true);
+      try {
+        const j = await call("console", k);
+        setData(j);
+        setError("");
+        setFetchedAt(new Date());
+        try { sessionStorage.setItem(KEY_STORE, k); } catch {}
+      } catch (e) {
+        setError(e.message === "key mismatch" ? "合言葉が違います" : `読み込み失敗: ${e.message}`);
+        if (e.message === "key mismatch") { setKey(""); setData(null); try { sessionStorage.removeItem(KEY_STORE); } catch {} }
+      } finally {
+        setBusy(false);
+      }
+    },
+    [key]
+  );
+
+  useEffect(() => { if (key) load(key); }, [key, load]);
+  useEffect(() => {
+    if (!key || !auto) return;
+    const id = setInterval(() => load(key), REFRESH_SEC * 1000);
+    return () => clearInterval(id);
+  }, [key, auto, load]);
+
+  const act = async (action, payload, msg) => {
+    try {
+      await call(action, key, payload);
+      setToast(msg);
+      setTimeout(() => setToast(""), 4000);
+      load(key);
+    } catch (e) {
+      setToast(`失敗: ${e.message}`);
+    }
+  };
+
+  const view = useMemo(() => {
+    if (!data) return null;
+    const runners = toObjects(data.runners).filter((r) => String(r["ゼッケン"] ?? "").trim() !== "");
+    const byBib = Object.fromEntries(runners.map((r) => [String(r["ゼッケン"]), r]));
+    const current = toObjects(data.current).map((c) => ({ ...c, runner: byBib[String(c["ゼッケン"])] || {} }));
+    current.sort((a, b) => num(b["周回"]) - num(a["周回"]) || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
+    const devices = toObjects(data.devices);
+    const log = toObjects(data.deviceLog);
+    const config = toObjects(data.config);
+    const passes = toObjects(data.passes).reverse();
+    const commands = toObjects(data.commands).reverse();
+    const cfg = Object.fromEntries(config.map((c) => [c["項目"], c["値"]]));
+
+    const alerts = [];
+    if (!devices.length) alerts.push(["warn", "受信端末の状態がまだ届いていません（アプリ v1.4 以降で送信）"]);
+    devices.forEach((d) => {
+      const name = d["端末"];
+      const age = ageSec(d["受信時刻"], data.serverTime);
+      if (age != null && age > 90) alerts.push(["bad", `${name}: ${Math.round(age / 60)}分以上 連絡がありません（電源・回線・アプリを確認）`]);
+      const bat = num(d["電池%"]);
+      if (bat != null && bat < 30 && d["充電"] === "なし") alerts.push([bat < 15 ? "bad" : "warn", `${name}: 電池 ${bat}%・充電していません`]);
+      else if (d["充電"] === "なし") alerts.push(["info", `${name}: 充電していません（電池 ${bat ?? "-"}%）`]);
+      const temp = num(d["電池温度℃"]);
+      if (temp != null && temp >= 42) alerts.push(["warn", `${name}: 電池温度 ${temp}℃（日陰・風通しを確保）`]);
+      if (d["Bluetooth"] === "OFF") alerts.push(["bad", `${name}: Bluetooth がオフです`]);
+      if (String(d["計測状態"]).startsWith("停止")) alerts.push(["bad", `${name}: 計測が停止しています`]);
+      const lp = num(d["最終受信(秒前)"]);
+      if (lp != null && lp > 120) alerts.push(["warn", `${name}: ${Math.round(lp / 60)}分間 チップを受信していません`]);
+      const skew = num(d["時刻ズレ(秒)"]);
+      if (skew != null && Math.abs(skew) > 5) alerts.push(["warn", `${name}: 端末の時計が ${skew}秒 ずれています（自動設定を確認）`]);
+      const lvl = num(d["電波レベル(0-4)"]);
+      if (lvl != null && lvl <= 1 && d["回線"] === "モバイル") alerts.push(["warn", `${name}: モバイル電波が弱い（レベル${lvl}）`]);
+    });
+    const latest = num(cfg.latestVersionCode);
+    devices.forEach((d) => {
+      const v = num(d["アプリ版"]);
+      if (latest && v && v < latest) alerts.push(["info", `${d["端末"]}: アプリ更新待ち（端末 ${v} → 配信 ${latest}）`]);
+    });
+    return { runners, current, devices, log, config, passes, commands, cfg, alerts };
+  }, [data]);
+
+  if (!key) return <Login onLogin={(k) => setKey(k)} error={error} />;
+  if (!view) return <p className="ops-loading">{error || "読み込み中…"}</p>;
+
+  const q = filter.trim();
+  const shown = q
+    ? view.current.filter((c) => String(c["ゼッケン"]).includes(q) || String(c.runner["氏名"] || "").includes(q))
+    : view.current;
+
+  return (
+    <div className="ops">
+      <header className="ops-top">
+        <h1>計測管制コンソール</h1>
+        <div className="ops-top-meta">
+          <span>サーバー時刻 {data.serverTime}</span>
+          <span>取得 {fetchedAt ? fetchedAt.toLocaleTimeString("ja-JP") : "-"}</span>
+          <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {REFRESH_SEC}秒ごとに更新</label>
+          <button onClick={() => load()} disabled={busy}>{busy ? "更新中…" : "今すぐ更新"}</button>
+          <button className="ops-ghost" onClick={() => { try { sessionStorage.removeItem(KEY_STORE); } catch {} setKey(""); setData(null); }}>閉じる</button>
+        </div>
+      </header>
+      {toast && <p className="ops-toast" role="status">{toast}</p>}
+      {error && <p className="ops-error">{error}</p>}
+      {view.cfg.message && <p className="ops-banner">端末に表示中のお知らせ：{view.cfg.message}</p>}
+
+      <section className="ops-sec">
+        <h2>アラート</h2>
+        {view.alerts.length ? (
+          <ul className="ops-alerts">{view.alerts.map(([lv, t], i) => <li key={i} className={`ops-${lv}`}>{t}</li>)}</ul>
+        ) : <p className="ops-ok">異常はありません</p>}
+      </section>
+
+      <section className="ops-sec">
+        <h2>受信端末</h2>
+        <div className="ops-devices">
+          {view.devices.map((d) => {
+            const age = ageSec(d["受信時刻"], data.serverTime);
+            const bat = num(d["電池%"]);
+            const hist = view.log.filter((l) => l["端末"] === d["端末"]).map((l) => num(l["電池%"]));
+            return (
+              <article key={d["端末"]} className="ops-card">
+                <h3>{d["端末"]} <small>アプリ {d["アプリ版"]}</small></h3>
+                <p className={`ops-age ${age != null && age > 90 ? "ops-bad" : ""}`}>最終連絡 {d["受信時刻"]}（{age ?? "-"}秒前）</p>
+                <dl>
+                  <dt>電池</dt>
+                  <dd>
+                    <span className="ops-gauge"><span style={{ width: `${bat ?? 0}%` }} className={bat != null && bat < 30 ? "low" : ""} /></span>
+                    {bat ?? "-"}%・充電 {d["充電"]}・{d["電池温度℃"]}℃
+                  </dd>
+                  <dt>電池の推移</dt><dd><Spark values={hist} /></dd>
+                  <dt>回線</dt><dd>{d["回線"]} <Level value={d["電波レベル(0-4)"]} /> {d["電波dBm"] ? `${d["電波dBm"]}dBm` : ""}</dd>
+                  <dt>Bluetooth</dt><dd>{d["Bluetooth"]}</dd>
+                  <dt>計測</dt><dd>{d["計測状態"]}</dd>
+                  <dt>受信</dt><dd>{d["受信/分"] || "-"} パケット/分・最終 {d["最終受信(秒前)"] || "-"}秒前</dd>
+                  <dt>時刻ズレ</dt><dd>{d["時刻ズレ(秒)"] || 0}秒</dd>
+                  <dt>空き容量</dt><dd>{d["空き容量MB"]}MB・未送信 {d["未送信KB"] || 0}KB</dd>
+                  <dt>稼働</dt><dd>{d["稼働(分)"]}分</dd>
+                </dl>
+              </article>
+            );
+          })}
+          {!view.devices.length && <p className="ops-muted">まだ届いていません</p>}
+        </div>
+      </section>
+
+      <section className="ops-sec">
+        <h2>周回状況 <small>{view.current.length}人・1周{LAP_METERS}m</small></h2>
+        <input className="ops-filter" placeholder="ゼッケン・氏名で絞り込み" value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <div className="ops-scroll">
+          <table className="ops-table">
+            <thead><tr><th>順</th><th>No.</th><th>氏名</th><th>種目</th><th>周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
+            <tbody>
+              {shown.map((c, i) => (
+                <tr key={c["ゼッケン"]}>
+                  <td>{i + 1}</td>
+                  <td className="ops-num">{c["ゼッケン"]}</td>
+                  <td>{c.runner["氏名"] || <span className="ops-muted">未登録</span>}</td>
+                  <td>{c.runner["種目"]}</td>
+                  <td className="ops-num ops-strong">{c["周回"]}</td>
+                  <td className="ops-num">{((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2)}km</td>
+                  <td>{c["最終通過"]}</td>
+                  <td>{c["ラップ"]}</td>
+                  <td className="ops-num">{c["RSSI"] === "127" ? "-" : c["RSSI"]}</td>
+                  <td>{c["最終受信"]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <CommandPanel devices={view.devices} commands={view.commands} onSend={(p) => act("addCommand", p, "コマンドを登録しました（次の送信で端末が実行）")} />
+
+      <RunnerPanel runners={view.runners} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)} />
+
+      <ConfigPanel config={view.config} onSave={(name, value) => act("setConfig", { name, value }, `${name} を ${value} に変更しました（次の送信で端末に反映）`)} />
+
+      <section className="ops-sec">
+        <h2>最近の通過記録 <small>新しい順・最大100件</small></h2>
+        <div className="ops-scroll">
+          <table className="ops-table">
+            <thead><tr><th>時刻</th><th>No.</th><th>周回</th><th>判定</th><th>最大RSSI</th><th>受信数</th><th>ラップ(秒)</th><th>端末</th></tr></thead>
+            <tbody>
+              {view.passes.map((p, i) => (
+                <tr key={i} className={`ops-st-${p.status}`}>
+                  <td>{String(p.time).slice(11, 19)}</td>
+                  <td className="ops-num">{p.bib}</td>
+                  <td className="ops-num">{p.lap}</td>
+                  <td>{STATUS[p.status] || p.status}</td>
+                  <td className="ops-num">{p.peak_rssi}</td>
+                  <td className="ops-num">{p.packets}</td>
+                  <td className="ops-num">{p.lap_time_sec}</td>
+                  <td>{p.device}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+const STATUS = {
+  OK: "周回",
+  FIRST: "起点",
+  DUP: "二重(無視)",
+  STAY: "滞在(無視)",
+  MANUAL_ADD: "手動+1",
+  MANUAL_DEL: "手動−1",
+  MANUAL_SET: "手動設定",
+};
+
+function CommandPanel({ devices, commands, onSend }) {
+  const [cmd, setCmd] = useState("setLaps");
+  const [bib, setBib] = useState("");
+  const [value, setValue] = useState("");
+  const [target, setTarget] = useState("all");
+  const [err, setErr] = useState("");
+  const def = COMMANDS.find((c) => c.value === cmd);
+  return (
+    <section className="ops-sec">
+      <h2>遠隔コマンド</h2>
+      <form
+        className="ops-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (def.needBib && !/^\d+$/.test(bib)) return setErr("ゼッケン番号を数字で入力してください");
+          if (def.needValue && !/^\d+$/.test(value)) return setErr("周回数を数字で入力してください");
+          setErr("");
+          const label = `${def.label}${def.needBib ? `（No.${bib}${def.needValue ? ` → ${value}周` : ""}）` : ""}`;
+          if (!window.confirm(`${label} を実行しますか？`)) return;
+          onSend({ cmd, bib: def.needBib ? Number(bib) : "", value: def.needValue ? Number(value) : "", target });
+          setBib(""); setValue("");
+        }}
+      >
+        <select value={cmd} onChange={(e) => setCmd(e.target.value)}>{COMMANDS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</select>
+        {def.needBib && <input inputMode="numeric" placeholder="ゼッケン" value={bib} onChange={(e) => { setBib(e.target.value); setErr(""); }} />}
+        {def.needValue && <input inputMode="numeric" placeholder="周回数" value={value} onChange={(e) => { setValue(e.target.value); setErr(""); }} />}
+        <select value={target} onChange={(e) => setTarget(e.target.value)}>
+          <option value="all">全端末</option>
+          {devices.map((d) => <option key={d["端末"]} value={d["端末"]}>{d["端末"]}</option>)}
+        </select>
+        <button type="submit">登録</button>
+        {err && <span className="ops-error">{err}</span>}
+      </form>
+      <div className="ops-scroll">
+        <table className="ops-table">
+          <thead><tr><th>作成</th><th>対象</th><th>コマンド</th><th>No.</th><th>値</th><th>状態</th><th>実行</th></tr></thead>
+          <tbody>
+            {commands.map((c) => (
+              <tr key={c.ID}>
+                <td>{c["作成"]}</td><td>{c["対象端末"]}</td>
+                <td>{(COMMANDS.find((x) => x.value === c["コマンド"]) || {}).label || c["コマンド"]}</td>
+                <td>{c["ゼッケン"]}</td><td>{c["値"]}</td>
+                <td className={c["状態"] === "pending" ? "ops-warn" : c["状態"] === "done" ? "ops-good" : "ops-bad"}>{c["状態"] === "pending" ? "待機中" : c["状態"] === "done" ? "完了" : c["状態"]}</td>
+                <td>{c["実行"]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+function RunnerRow({ r, onSave }) {
+  const [name, setName] = useState(r["氏名"] || "");
+  const [cat, setCat] = useState(r["種目"] || "");
+  const [note, setNote] = useState(r["備考"] || "");
+  const dirty = name !== (r["氏名"] || "") || cat !== (r["種目"] || "") || note !== (r["備考"] || "");
+  return (
+    <tr>
+      <td className="ops-num">{r["ゼッケン"]}</td>
+      <td><input value={name} onChange={(e) => setName(e.target.value)} placeholder="氏名" /></td>
+      <td><select value={cat} onChange={(e) => setCat(e.target.value)}>{CATEGORIES.map((c) => <option key={c} value={c}>{c || "—"}</option>)}</select></td>
+      <td className="ops-mono">{r["MAC"]}</td>
+      <td>{r["初回検出"]}</td>
+      <td><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="備考" /></td>
+      <td><button disabled={!dirty} onClick={() => onSave({ bib: r["ゼッケン"], name, category: cat, note })}>保存</button></td>
+    </tr>
+  );
+}
+
+function RunnerPanel({ runners, onSave }) {
+  const [bib, setBib] = useState("");
+  const sorted = [...runners].sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]));
+  return (
+    <section className="ops-sec">
+      <h2>選手・ビーコンの紐付け <small>受信したチップは自動で追加（ゼッケン＝iBeacon Minor）</small></h2>
+      <div className="ops-scroll">
+        <table className="ops-table">
+          <thead><tr><th>No.</th><th>氏名</th><th>種目</th><th>MAC</th><th>初回検出</th><th>備考</th><th></th></tr></thead>
+          <tbody>{sorted.map((r) => <RunnerRow key={`${r["ゼッケン"]}-${r["氏名"]}-${r["種目"]}-${r["備考"]}`} r={r} onSave={onSave} />)}</tbody>
+        </table>
+      </div>
+      <form className="ops-form" onSubmit={(e) => { e.preventDefault(); if (/^\d+$/.test(bib)) { onSave({ bib: Number(bib), name: "", category: "", note: "" }); setBib(""); } }}>
+        <input inputMode="numeric" placeholder="ゼッケンを手動追加" value={bib} onChange={(e) => setBib(e.target.value)} />
+        <button type="submit">追加</button>
+      </form>
+    </section>
+  );
+}
+
+function ConfigRow({ c, onSave }) {
+  const [v, setV] = useState(c["値"]);
+  const readOnly = c["項目"].startsWith("latest");
+  return (
+    <tr>
+      <td className="ops-mono">{c["項目"]}</td>
+      <td>{readOnly ? c["値"] : <input value={v} onChange={(e) => setV(e.target.value)} />}</td>
+      <td className="ops-desc">{c["説明"]}</td>
+      <td>{!readOnly && <button disabled={v === c["値"]} onClick={() => { if (window.confirm(`${c["項目"]} を「${v}」に変更しますか？`)) onSave(c["項目"], v); }}>反映</button>}</td>
+    </tr>
+  );
+}
+
+function ConfigPanel({ config, onSave }) {
+  return (
+    <section className="ops-sec">
+      <h2>遠隔設定 <small>反映すると次の送信（約20秒以内）で端末に適用</small></h2>
+      <div className="ops-scroll">
+        <table className="ops-table">
+          <thead><tr><th>項目</th><th>値</th><th>説明</th><th></th></tr></thead>
+          <tbody>{config.map((c) => <ConfigRow key={`${c["項目"]}-${c["値"]}`} c={c} onSave={onSave} />)}</tbody>
+        </table>
+      </div>
+    </section>
+  );
+}

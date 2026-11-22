@@ -36,7 +36,12 @@ const FRAMES = [
   "https://www.google.com/maps/embed",
 ];
 
-function policy(scriptHashes) {
+// 計測管制コンソール（/ops/）だけが通信する Google Apps Script。
+// 他のページには許可しない
+const OPS_CONNECT = ["https://script.google.com", "https://script.googleusercontent.com"];
+const isOpsPage = (file) => file.split(path.sep).includes("ops");
+
+function policy(scriptHashes, extraConnect = []) {
   const directives = {
     "default-src": ["'self'"],
     "script-src": ["'self'", ...scriptHashes, ...GA_SCRIPT],
@@ -44,7 +49,7 @@ function policy(scriptHashes) {
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", ...MICROCMS_IMG, ...GA_IMG],
     "font-src": ["'self'"],
-    "connect-src": ["'self'", ...GA_CONNECT],
+    "connect-src": ["'self'", ...GA_CONNECT, ...extraConnect],
     "frame-src": FRAMES,
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
@@ -88,7 +93,7 @@ for await (const file of htmlFiles(OUT_DIR)) {
 
   // CSP の meta は、それより後ろに書かれたものにしか効かない。
   // 文字コード指定の直後＝どのスクリプトよりも前に置く。
-  const meta = `<meta http-equiv="Content-Security-Policy" content="${policy([...hashes])}"/>`;
+  const meta = `<meta http-equiv="Content-Security-Policy" content="${policy([...hashes], isOpsPage(file) ? OPS_CONNECT : [])}"/>`;
   const charset = /<meta charSet="utf-8"\/>/i;
   if (!charset.test(html)) throw new Error(`[csp] ${file} に <meta charSet> が見つかりません`);
   html = html.replace(charset, (m) => `${m}${meta}`);

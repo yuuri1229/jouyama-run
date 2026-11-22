@@ -1,0 +1,63 @@
+/* 計測管制コンソール（/ops/）専用。クラス名はすべて ops- で始める */
+.ops-main { padding-left: var(--gutter); padding-right: var(--gutter); }
+.ops { max-width: 1400px; margin: 0 auto; font-size: 14px; color: var(--ink); }
+.ops h1 { font-size: 22px; margin: 0; }
+.ops h2 { font-size: 17px; margin: 0 0 10px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ops h2 small, .ops h3 small { font-size: 12px; color: var(--sub); font-weight: 400; }
+.ops h3 { font-size: 15px; margin: 0 0 4px; }
+.ops button, .ops-login button {
+  font: inherit; padding: 6px 14px; border: 1px solid var(--pine); background: var(--pine); color: #fff;
+  border-radius: 4px; cursor: pointer;
+}
+.ops button:disabled { opacity: .4; cursor: default; }
+.ops button.ops-ghost { background: transparent; color: var(--pine); }
+.ops input, .ops select, .ops-login input {
+  font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 4px; background: #fff; min-width: 0;
+}
+.ops-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding-bottom: 12px; border-bottom: 2px solid var(--pine); margin-bottom: 14px; }
+.ops-top-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: var(--sub); font-size: 13px; }
+.ops-sec { background: var(--paper); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; }
+.ops-alerts { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ops-alerts li { padding: 8px 10px; border-radius: 4px; border-left: 4px solid; }
+.ops-alerts .ops-bad { background: #fdecec; border-color: #c62828; color: #8a1c1c; }
+.ops-alerts .ops-warn { background: #fff6e0; border-color: #c98a1e; color: #6b4a0c; }
+.ops-alerts .ops-info { background: #e8f1fb; border-color: #2f6fb0; color: #1d4672; }
+.ops-ok { color: var(--pine); margin: 0; }
+.ops-bad { color: #c62828; }
+.ops-warn { color: #a86d06; }
+.ops-good { color: var(--pine); }
+.ops-muted { color: var(--sub); }
+.ops-error { color: #c62828; }
+.ops-toast { background: var(--pine-d); color: #fff; padding: 8px 12px; border-radius: 4px; }
+.ops-banner { background: #fdecec; color: #8a1c1c; padding: 8px 12px; border-radius: 4px; font-weight: 700; }
+.ops-loading { text-align: center; padding: 60px 0; }
+.ops-devices { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.ops-card { border: 1px solid var(--line-soft); border-radius: 6px; padding: 12px; background: var(--ground); }
+.ops-card dl { display: grid; grid-template-columns: 6em 1fr; gap: 4px 8px; margin: 8px 0 0; }
+.ops-card dt { color: var(--sub); }
+.ops-card dd { margin: 0; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.ops-age { margin: 0; font-size: 12px; color: var(--sub); }
+.ops-gauge { display: inline-block; width: 80px; height: 10px; border: 1px solid var(--line); border-radius: 2px; background: #fff; }
+.ops-gauge span { display: block; height: 100%; background: var(--pine); }
+.ops-gauge span.low { background: #c62828; }
+.ops-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; }
+.ops-bars i { display: block; width: 4px; background: var(--line); }
+.ops-bars i.on { background: var(--pine); }
+.ops-spark { color: var(--pine); }
+.ops-scroll { overflow-x: auto; max-height: 520px; overflow-y: auto; }
+.ops-table { border-collapse: collapse; width: 100%; white-space: nowrap; }
+.ops-table th, .ops-table td { padding: 5px 8px; border-bottom: 1px solid var(--line-soft); text-align: left; }
+.ops-table th { position: sticky; top: 0; background: var(--mist); font-weight: 700; font-size: 12px; z-index: 1; }
+.ops-table input { width: 100%; min-width: 8em; }
+.ops-num { text-align: right !important; font-variant-numeric: tabular-nums; }
+.ops-strong { font-weight: 700; font-size: 16px; }
+.ops-mono { font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.ops-desc { white-space: normal; color: var(--sub); font-size: 12px; min-width: 18em; }
+.ops-filter { margin-bottom: 8px; width: min(320px, 100%); }
+.ops-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 0 0 10px; }
+.ops-st-OK td { background: #f1f8f1; }
+.ops-st-DUP td, .ops-st-STAY td { color: var(--sub); }
+.ops-st-MANUAL_ADD td, .ops-st-MANUAL_DEL td, .ops-st-MANUAL_SET td { background: #fff6e0; }
+.ops-login { max-width: 360px; margin: 40px auto; display: grid; gap: 12px; text-align: center; }
+.ops-login h1 { font-size: 22px; margin: 0; }
