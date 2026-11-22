@@ -42,7 +42,7 @@ function ichiranMap(list) {
   const out = {};
   const head = (list && list.head) || [];
   const ix = (n) => head.indexOf(n);
-  const [iTag, iShort, iName, iKana, iSex] = ["タグ番号", "short_label", "label", "label_kana", "gender"].map(ix);
+  const [iTag, iShort, iName, iKana, iSex, iPre] = ["タグ番号", "short_label", "label", "label_kana", "gender", "周回済み"].map(ix);
   if (iTag < 0) return out;
   ((list && list.rows) || []).forEach((r) => {
     const tag = String(r[iTag] ?? "").trim();
@@ -50,6 +50,7 @@ function ichiranMap(list) {
     const sex = String(r[iSex] ?? "").trim();
     out[String(Number(tag))] = {
       short: String(r[iShort] ?? "").trim(), name: String(r[iName] ?? "").trim(),
+      pre: /^\d+$/.test(String(r[iPre] ?? "").trim()) ? Number(String(r[iPre]).trim()) : 0,
       kana: String(r[iKana] ?? "").trim(), sex: sex === "男性" || sex === "女性" ? sex : "",
     };
   });
@@ -198,9 +199,10 @@ export default function OpsConsole() {
     const current = toObjects(data.current).map((c) => {
       const r = byBib[String(c["ゼッケン"])] || {};
       const info = ich[String(c["ゼッケン"])] || {};
-      return { ...c, short: info.short || "", kana: info.kana || "", sex: info.sex || "", runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
+      const pre = info.pre || 0;
+      return { ...c, pre, total: pre + (num(c["周回"]) || 0), short: info.short || "", kana: info.kana || "", sex: info.sex || "", runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
     });
-    current.sort((a, b) => num(b["周回"]) - num(a["周回"]) || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
+    current.sort((a, b) => b.total - a.total || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
     const devices = toObjects(data.devices);
     const log = toObjects(data.deviceLog);
     const config = toObjects(data.config);
@@ -373,11 +375,11 @@ function ExportPanel({ view, exportAll }) {
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
   const lapsCsv = () =>
-    downloadCsv(`周回状況_${stamp()}.csv`, ["タグ番号", "ゼッケン", "氏名", "種目", "周回", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
+    downloadCsv(`周回状況_${stamp()}.csv`, ["タグ番号", "ゼッケン", "氏名", "種目", "事前周回", "計測周回", "合計周回", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
       [...view.current]
         .sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]))
-        .map((c) => [c["ゼッケン"], c.short, c.runner["氏名"] || "", c.runner["種目"] || "", c["周回"],
-          ((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2), c["最終通過"], lapText(c["ラップ"]), c["RSSI"], c["最終受信"]]));
+        .map((c) => [c["ゼッケン"], c.short, c.runner["氏名"] || "", c.runner["種目"] || "", c.pre, c["周回"], c.total,
+          (c.total * LAP_METERS / 1000).toFixed(2), c["最終通過"], lapText(c["ラップ"]), c["RSSI"], c["最終受信"]]));
   const allCsv = async (kind) => {
     setBusy(kind); setErr("");
     try {
@@ -429,13 +431,13 @@ function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps
     if (!bibs.length) return setErr("選手を選んでください");
     setErr("");
     const label = bibs.length > 5 ? `${bibs.length}人` : bibs.map((b) => `No.${b} ${view.names[b] || ""}`).join("、");
-    if (!window.confirm(`${label} の周回数を ${value}周 に設定しますか？\n（次の送信で端末に反映されます）`)) return;
+    if (!window.confirm(`${label} の計測周回（事前周回は別）を ${value}周 に設定しますか？\n（次の送信で端末に反映されます）`)) return;
     onSetLaps(bibs.map((b) => ({ target: "all", cmd: "setLaps", bib: Number(b), value: Number(value) })), `${bibs.length}人の周回数を ${value}周 に設定しました（次の送信で端末に反映）`);
     setSel(new Set());
   };
   return (
     <section className="ops-sec">
-      <h2>周回状況 <small>{view.current.length}人・1周{LAP_METERS}m</small></h2>
+      <h2>周回状況 <small>{view.current.length}人・1周{LAP_METERS}m・合計＝一覧の事前周回＋計測周回</small></h2>
       <div className="ops-form">
         <input className="ops-filter" placeholder="ゼッケン・氏名で絞り込み" value={filter} onChange={(e) => setFilter(e.target.value)} />
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="並び順">
@@ -444,7 +446,7 @@ function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps
         </select>
       </div>
       <div className="ops-form ops-bulk">
-        <span>選択 {sel.size}人 → 周回数を</span>
+        <span>選択 {sel.size}人 → 計測周回を</span>
         <input inputMode="numeric" value={laps} onChange={(e) => { setLaps(e.target.value); setErr(""); }} style={{ width: "5em" }} aria-label="設定する周回数" />
         <span>周に</span>
         <button onClick={() => apply([...sel], laps)} disabled={!sel.size}>設定</button>
@@ -453,7 +455,7 @@ function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps
       </div>
       <div className="ops-scroll">
         <table className="ops-table">
-          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>#</th><th>タグ</th><th>ゼッケン</th><th>氏名</th><th>種目</th><th>周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
+          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>#</th><th>タグ</th><th>ゼッケン</th><th>氏名</th><th>種目</th><th>事前</th><th>計測</th><th>合計</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
           <tbody>
             {shown.map((c, i) => {
               const bib = String(c["ゼッケン"]);
@@ -465,8 +467,10 @@ function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps
                   <td className="ops-num ops-strong">{c.short}</td>
                   <td title={[c.kana, c.sex].filter(Boolean).join(" / ")}>{c.runner["氏名"] || <span className="ops-muted">未登録</span>}</td>
                   <td>{c.runner["種目"]}</td>
-                  <td className="ops-num ops-strong">{c["周回"]}</td>
-                  <td className="ops-num">{((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2)}km</td>
+                  <td className="ops-num ops-muted">{c.pre}</td>
+                  <td className="ops-num">{c["周回"]}</td>
+                  <td className="ops-num ops-strong">{c.total}</td>
+                  <td className="ops-num">{(c.total * LAP_METERS / 1000).toFixed(2)}km</td>
                   <td>{c["最終通過"]}</td>
                   <td>{lapText(c["ラップ"])}</td>
                   <td className="ops-num">{c["RSSI"] === "127" ? "-" : c["RSSI"]}</td>
