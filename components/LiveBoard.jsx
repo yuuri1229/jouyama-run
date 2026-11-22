@@ -20,11 +20,19 @@ const CAT_ORDER = ["24時間", "12時間デイ", "12時間ナイト"];
 const hm = (t) => (t && /^\d+:\d\d/.test(t) ? t.slice(0, t.lastIndexOf(":")).padStart(5, "0") : "");
 const kmText = (laps) => (laps * LAP_KM).toFixed(2);
 
-function rankRows(items) {
-  // 周回数の多い順 → 同じなら最終通過が早い順
-  const rows = items.slice().sort((a, b) => b.l - a.l || (a.t || "99").localeCompare(b.t || "99") || a.b.localeCompare(b.b, "ja", { numeric: true }));
-  let prev = null;
-  rows.forEach((r, i) => { r.rank = i + 1; prev = r; });
+// "HH:mm:ss" を サーバー時刻からの経過秒に直す（日付をまたぐ夜間でも順序が狂わないように）
+function agoSec(hms, serverTime) {
+  const m = /^(\d+):(\d\d):(\d\d)$/.exec(hms || "");
+  const n = /(\d+):(\d\d):(\d\d)$/.exec(serverTime || "");
+  if (!m || !n) return -1;
+  const d = (Number(n[1]) * 3600 + Number(n[2]) * 60 + Number(n[3])) - (Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3]));
+  return d < 0 ? d + 86400 : d;
+}
+
+function rankRows(items, serverTime) {
+  // 周回数の多い順 → 同じなら最終通過が早い順（経過秒が大きい方が先）。通過なしは最後
+  const rows = items.slice().sort((a, b) => b.l - a.l || agoSec(b.t, serverTime) - agoSec(a.t, serverTime) || a.b.localeCompare(b.b, "ja", { numeric: true }));
+  rows.forEach((r, i) => { r.rank = i + 1; });
   return rows;
 }
 
@@ -75,8 +83,8 @@ export default function LiveBoard() {
   const activeTab = tv ? tvCats[tvCatIx % tvCats.length] : tab;
   const rows = useMemo(() => {
     const base = activeTab === "all" ? items : items.filter((x) => x.c === activeTab);
-    return rankRows(base.map((x) => ({ ...x })));
-  }, [items, activeTab]);
+    return rankRows(base.map((x) => ({ ...x })), data ? data.serverTime : "");
+  }, [items, activeTab, data]);
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
     return !s || tv ? rows : rows.filter((r) => r.b.toLowerCase().includes(s) || r.n.replace(/\s/g, "").toLowerCase().includes(s.replace(/\s/g, "")) || r.k.replace(/\s/g, "").toLowerCase().includes(s.replace(/\s/g, "")));
@@ -106,7 +114,12 @@ export default function LiveBoard() {
   };
   useEffect(() => {
     const onFs = () => { if (!document.fullscreenElement && tv && !new URLSearchParams(window.location.search).get("tv")) setTv(false); };
-    const onKey = (e) => { if (e.key === "f" || e.key === "F") { tv ? leaveTv() : enterTv(); } };
+    const onKey = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return; // 検索欄の入力は無視
+      if (e.key === "f" || e.key === "F") { tv ? leaveTv() : enterTv(); }
+    };
     document.addEventListener("fullscreenchange", onFs); window.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("fullscreenchange", onFs); window.removeEventListener("keydown", onKey); };
   });
