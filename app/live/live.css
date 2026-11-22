@@ -41,3 +41,13 @@
 .live-tv .live-table .lap { font-size: 1.15em; color: #ffe08a; }
 .live-tv .live-table .rank { color: #8fe0b4; }
 @media (max-width: 640px) { .live-table th, .live-table td { padding: 8px 6px; font-size: 14px; } .live-total { margin-left: 0; } }
+
+/* 表としての見た目を強める：格子の罫線・見出しの背景・縞模様 */
+.live-table { border: 1px solid var(--line); background: #fff; }
+.live-table th, .live-table td { border: 1px solid var(--line); }
+.live-table thead th { background: var(--pine); color: #fff; font-size: 13px; }
+.live-table tbody tr:nth-child(even) { background: rgba(0, 0, 0, .035); }
+.live-tv .live-table { border-color: #2f6b52; background: transparent; }
+.live-tv .live-table th, .live-tv .live-table td { border: 1px solid #2f6b52; }
+.live-tv .live-table thead th { background: #1c4a38; color: #e8f4ed; font-size: 2.2vh; }
+.live-tv .live-table tbody tr:nth-child(even) { background: rgba(255, 255, 255, .05); }
