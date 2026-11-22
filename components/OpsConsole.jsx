@@ -244,8 +244,11 @@ export default function OpsConsole() {
     // （一覧が空のときは判定できないので除外しない）
     const hasIch = Object.keys(ich).length > 0;
     const isSpare = (tag) => hasIch && (!ich[String(tag)] || /^(予備|計測器)/.test(ich[String(tag)].name || "") || !ich[String(tag)].name);
-    const isHid = (tag) => hidden.has(String(tag)) || isSpare(tag);
-    current.forEach((c) => { c.spare = isSpare(c["ゼッケン"]); });
+    // 「計測しない」に設定したタグ（選手タブで設定・設定シート excludeTags に保存し、全スタッフで共通）
+    const exRow = toObjects(data.config).find((c) => c["項目"] === "excludeTags");
+    const excluded = new Set(String(exRow ? exRow["値"] : "").split(/[,\s、]+/).filter((x) => /^\d+$/.test(x)).map((x) => String(Number(x))));
+    const isHid = (tag) => hidden.has(String(tag)) || isSpare(tag) || excluded.has(String(tag));
+    current.forEach((c) => { c.spare = isSpare(c["ゼッケン"]); c.excluded = excluded.has(String(c["ゼッケン"])); });
     const hiddenRows = current.filter((c) => isHid(c["ゼッケン"]));
     const visible = current.filter((c) => !isHid(c["ゼッケン"]));
     const devices = toObjects(data.devices);
@@ -288,7 +291,7 @@ export default function OpsConsole() {
     const shorts = Object.fromEntries(Object.keys(ich).map((t) => [t, ich[t].short]));
     // 一覧にあるのに一度も受信していないタグ（計測器・予備などタグ番号なしの行は対象外）
     const seen = new Set(toObjects(data.current).map((c) => String(c["ゼッケン"])));
-    const unseen = Object.keys(ich).filter((t) => !seen.has(t) && ich[t].name && !/^(計測器|予備)/.test(ich[t].name));
+    const unseen = Object.keys(ich).filter((t) => !seen.has(t) && !excluded.has(t) && ich[t].name && !/^(計測器|予備)/.test(ich[t].name));
     if (unseen.length) {
       const sh = unseen.slice(0, 8).map((t) => `${ich[t].short || "-"} ${ich[t].name}(タグ${t})`).join("、");
       alerts.push(["info", `一覧に登録済みで未受信のタグ: ${unseen.length}件 — ${sh}${unseen.length > 8 ? " ほか" : ""}`]);
@@ -301,7 +304,7 @@ export default function OpsConsole() {
     const maxTotal = Math.max(1, ...visible.map((c) => c.total));
     const recentOk = passes.filter((x) => x.status === "OK" && !isHid(x.bib)).slice(0, 8);
     const pass5 = passes.filter((x) => x.status === "OK" && !isHid(x.bib) && (ageSecFull(x.time, data.serverTime) ?? 1e9) <= 300).length;
-    return { runners: Object.values(byBib), current: visible, allCurrent: current, hiddenRows, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich, worst, running, totalLaps, maxTotal, recentOk, pass5 };
+    return { runners: Object.values(byBib), current: visible, allCurrent: current, hiddenRows, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich, excluded, worst, running, totalLaps, maxTotal, recentOk, pass5 };
   }, [data, hidden]);
 
   if (!key) return <Login onLogin={(k) => setKey(k)} error={error} />;
@@ -456,7 +459,11 @@ export default function OpsConsole() {
       </>)}
 
       {tab === "runners" && (
-      <RunnerPanel runners={view.runners} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)} />)}
+      <RunnerPanel runners={view.runners} excluded={view.excluded} onMeasure={(bib, measure) => {
+          const n = new Set(view.excluded);
+          measure ? n.delete(String(bib)) : n.add(String(bib));
+          act("setConfig", { name: "excludeTags", value: [...n].sort((a, b) => a - b).join(",") }, `タグ${bib} を${measure ? "計測する" : "計測しない"}に設定しました`);
+        }} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)} />)}
 
       {tab === "passes" && (
       <PassPanel
@@ -607,7 +614,7 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
                 <tr key={bib} className={sel.has(bib) ? "ops-selected" : ""}>
                   <td><input type="checkbox" checked={sel.has(bib)} onChange={() => toggle(bib)} aria-label={`No.${bib} を選択`} /></td>
                   <td><b className="ops-bibchip">{c.short || `タグ${bib}`}</b></td>
-                  <td title={[c.kana, c.sex].filter(Boolean).join(" / ")}>{c.runner["氏名"] || <span className="ops-muted">{c.spare ? "予備・未登録チップ（自動除外）" : "未登録"}</span>}</td>
+                  <td title={[c.kana, c.sex].filter(Boolean).join(" / ")}>{c.runner["氏名"] || <span className="ops-muted">{c.excluded ? "計測対象外（選手タブで設定）" : c.spare ? "予備・未登録チップ（自動除外）" : "未登録"}</span>}</td>
                   <td><span className={`ops-state ops-state-${st[0]}`}>{STATE_ICON[st[0]] && <MIcon name={STATE_ICON[st[0]]} />}{st[1]}</span></td>
                   <td className="ops-totalcell">
                     <b className="ops-big">{c.total}</b>
@@ -751,15 +758,21 @@ function CommandPanel({ devices, commands, names, onSend }) {
   );
 }
 
-function RunnerRow({ r, onSave }) {
+function RunnerRow({ r, onSave, excluded, onMeasure }) {
   const [name, setName] = useState(r["氏名"] || "");
   const [cat, setCat] = useState(r["種目"] || "");
   const [note, setNote] = useState(r["備考"] || "");
   const dirty = name !== (r["氏名"] || "") || cat !== (r["種目"] || "") || note !== (r["備考"] || "");
   return (
-    <tr>
+    <tr className={excluded ? "ops-excluded" : ""}>
       <td className="ops-num">{r["ゼッケン"]}</td>
       <td className="ops-num ops-strong">{r._short}</td>
+      <td>
+        <label className="ops-measure">
+          <input type="checkbox" checked={!excluded} onChange={(e) => onMeasure(r["ゼッケン"], e.target.checked)} aria-label={`タグ${r["ゼッケン"]}を計測する`} />
+          <span>{excluded ? "計測しない" : "計測する"}</span>
+        </label>
+      </td>
       <td><input value={name} onChange={(e) => setName(e.target.value)} placeholder={r._seed || "氏名"} /></td>
       <td><select value={cat} onChange={(e) => setCat(e.target.value)}>{CATEGORIES.map((c) => <option key={c} value={c}>{c || "—"}</option>)}</select></td>
       <td className="ops-mono">{r["MAC"]}</td>
@@ -770,17 +783,17 @@ function RunnerRow({ r, onSave }) {
   );
 }
 
-function RunnerPanel({ runners, onSave }) {
+function RunnerPanel({ runners, excluded, onMeasure, onSave }) {
   const [bib, setBib] = useState("");
   const [err, setErr] = useState("");
   const sorted = [...runners].sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]));
   return (
     <section className="ops-sec">
-      <h2>選手・ビーコンの紐付け <small>受信したチップは自動で追加（ゼッケン＝iBeacon Minor）</small></h2>
+      <h2>選手・ビーコンの紐付け <small>受信したチップは自動で追加（ゼッケン＝iBeacon Minor）・「計測しない」にした選手は周回状況・集計に出ません（全スタッフ共通。端末の記録自体は続きます）</small></h2>
       <div className="ops-scroll">
         <table className="ops-table">
-          <thead><tr><th>タグ</th><th>ゼッケン</th><th>氏名</th><th>種目</th><th>MAC</th><th>初回検出</th><th>備考</th><th></th></tr></thead>
-          <tbody>{sorted.map((r) => <RunnerRow key={`${r["ゼッケン"]}-${r["氏名"]}-${r["種目"]}-${r["備考"]}`} r={r} onSave={onSave} />)}</tbody>
+          <thead><tr><th>タグ</th><th>ゼッケン</th><th>計測</th><th>氏名</th><th>種目</th><th>MAC</th><th>初回検出</th><th>備考</th><th></th></tr></thead>
+          <tbody>{sorted.map((r) => <RunnerRow key={`${r["ゼッケン"]}-${r["氏名"]}-${r["種目"]}-${r["備考"]}`} r={r} onSave={onSave} excluded={excluded.has(String(r["ゼッケン"]))} onMeasure={onMeasure} />)}</tbody>
         </table>
       </div>
       <form
@@ -822,7 +835,7 @@ function ConfigPanel({ config, onSave }) {
       <div className="ops-scroll">
         <table className="ops-table">
           <thead><tr><th>項目</th><th>値</th><th>説明</th><th></th></tr></thead>
-          <tbody>{config.map((c) => <ConfigRow key={`${c["項目"]}-${c["値"]}`} c={c} onSave={onSave} />)}</tbody>
+          <tbody>{config.filter((c) => c["項目"] !== "excludeTags").map((c) => <ConfigRow key={`${c["項目"]}-${c["値"]}`} c={c} onSave={onSave} />)}</tbody>
         </table>
       </div>
     </section>
