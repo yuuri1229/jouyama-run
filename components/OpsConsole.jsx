@@ -444,7 +444,7 @@ export default function OpsConsole() {
       {view.cfg.message && <p className="ops-banner">端末に表示中のお知らせ：{view.cfg.message}</p>}
 
       <nav className="ops-tabs" role="tablist" aria-label="表示切替">
-        {[["status", "状況"], ["laps", "周回"], ["passes", "通過記録"], ["ops", "操作・設定"], ["runners", "選手"], ["export", "CSV"]].map(([id, label]) => (
+        {[["status", "状況"], ["laps", "周回"], ["passes", "通過記録"], ["compare", "2拠点比較"], ["ops", "操作・設定"], ["runners", "選手"], ["export", "CSV"]].map(([id, label]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
             {label}
             {id === "status" && view.alerts.filter((a) => a[0] !== "info").length > 0 && <i className={`ops-badge ops-badge-${view.worst}`}>{view.alerts.filter((a) => a[0] !== "info").length}</i>}
@@ -558,6 +558,14 @@ export default function OpsConsole() {
         onDelete={(items, adjustLaps) =>
           act("deletePasses", { items, adjustLaps }, `${items.length}件を削除しました${adjustLaps ? "（周回だった記録の分は端末の周回数からも差し引きます）" : ""}`)
         }
+      />)}
+
+      {tab === "compare" && (
+      <ComparePanel
+        view={view}
+        rawPasses={toObjects(data.passes)}
+        mPasses={toObjects(data.mpasses || { head: [], rows: [] })}
+        onSaveAll={(list) => act("setRunners", { list }, `${list.length}人の採用・コメントを保存しました`)}
       />)}
 
       {tab === "export" && <ExportPanel view={view} exportAll={() => call("export", key)} />}
@@ -756,6 +764,104 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
 }
 
 // ---------- 通過記録（選択して削除） ----------
+
+// ---- 2拠点比較：中間とゴール手前の計測を並べて比べ、どちらを採用するか・引き継ぎコメントを残す ----
+// 採用の選択とコメントは「選手」シートの備考に保存する（〔採用:中間〕のような印を末尾に付ける）。
+// 公式の周回数は変えない。ここで選んだ「採用周回数」は目安として横に出すだけ。
+const COMPARE_START_STORE = "ops-compare-start";
+const ADOPT_RE = /\s*〔採用:(中間|ゴール|手入力)(?:=(-?\d+))?〕\s*$/;
+const normT = (t) => String(t || "").replace(/^(\d{4}-\d\d-\d\d) (\d):/, "$1 0$2:");
+function parseNote(note) {
+  const s = String(note || "");
+  const m = s.match(ADOPT_RE);
+  return { comment: s.replace(ADOPT_RE, "").trim(), adopt: m ? m[1] : "自動", manual: m && m[2] != null ? m[2] : "" };
+}
+function buildNote({ comment, adopt, manual }) {
+  const c = String(comment || "").trim();
+  const tag = adopt === "手入力" ? `〔採用:手入力=${manual === "" ? 0 : Number(manual)}〕` : adopt === "中間" || adopt === "ゴール" ? `〔採用:${adopt}〕` : "";
+  return [c, tag].filter(Boolean).join(" ");
+}
+function ComparePanel({ view, rawPasses, mPasses, onSaveAll }) {
+  const [start, setStart] = useState(() => {
+    try { return localStorage.getItem(COMPARE_START_STORE) || "2026-11-23T07:34"; } catch { return "2026-11-23T07:34"; }
+  });
+  const [onlyDiff, setOnlyDiff] = useState(false);
+  const [drafts, setDrafts] = useState({});
+  const startT = `${start.replace("T", " ")}:00`;
+  const midDev = String(view.cfg.preDevice || "");
+  const names = (view.devices || []).map((d) => d["端末"]);
+  const goalDev = names.find((n) => n !== midDev) || "";
+  const covered = rawPasses.length ? normT(rawPasses[0].time) : "";
+  const coverNote = covered && covered > startT ? `取得できた通過記録は ${covered.slice(5, 16)} 以降です（それ以前の分は数えられていません）` : "";
+  const rows = useMemo(() => {
+    const cnt = {};
+    const bump = (k, f) => { cnt[k] = cnt[k] || { mid: 0, goal: 0, mrg: 0 }; cnt[k][f] += 1; };
+    rawPasses.forEach((p) => { if (p.status === "OK" && normT(p.time) >= startT) { if (p.device === midDev) bump(String(p.bib), "mid"); else if (p.device === goalDev) bump(String(p.bib), "goal"); } });
+    mPasses.forEach((p) => { if (p.status === "OK" && normT(p.time) >= startT) bump(String(p.bib), "mrg"); });
+    return view.current.map((c) => {
+      const tag = String(c["ゼッケン"]);
+      const k = cnt[tag] || { mid: 0, goal: 0, mrg: 0 };
+      const r = c.runner || {};
+      const base = parseNote(r["備考"]);
+      const d = { ...base, ...(drafts[tag] || {}) };
+      const mx = Math.max(k.mid, k.goal);
+      const judge = !k.mid && !k.goal && !k.mrg ? "-" : k.mid === k.goal ? (k.mrg === k.mid ? "一致" : "統合差あり") : k.mid > k.goal ? "中間多" : "ゴール多";
+      const cur = c.total;
+      const adopted = d.adopt === "中間" ? cur - k.mrg + k.mid : d.adopt === "ゴール" ? cur - k.mrg + k.goal : d.adopt === "手入力" ? num(d.manual) ?? 0 : cur;
+      const dirty = d.comment !== base.comment || d.adopt !== base.adopt || (d.adopt === "手入力" && String(d.manual) !== String(base.manual));
+      return { tag, c, r, k, mx, judge, cur, adopted, d, base, dirty, diff: mx - k.mrg };
+    });
+  }, [view.current, rawPasses, mPasses, startT, midDev, goalDev, drafts]);
+  const shownRows = (onlyDiff ? rows.filter((x) => x.judge !== "一致" && x.judge !== "-") : rows).sort((a, b) => b.diff - a.diff || num(a.c.short) - num(b.c.short));
+  const dirtyRows = rows.filter((x) => x.dirty);
+  const patch = (tag, v) => setDrafts((x) => ({ ...x, [tag]: { ...(x[tag] || {}), ...v } }));
+  const save = async (list) => {
+    const items = list.map((x) => ({ bib: x.r["ゼッケン"] ?? x.tag, name: x.r["氏名"] || "", category: x.r["種目"] || "", note: buildNote(x.d) }));
+    if (await onSaveAll(items)) setDrafts((cur) => { const n = { ...cur }; list.forEach((x) => delete n[x.tag]); return n; });
+  };
+  return (
+    <section className="ops-sec">
+      <h2>2拠点比較 <small>中間（{midDev || "未設定"}）とゴール手前（{goalDev || "—"}）が数えた周回を比べ、どちらを採用するか・引き継ぎコメントを残します。公式の周回数は変わりません</small></h2>
+      <div className="ops-form ops-bulk">
+        <label>比較の開始 <input type="datetime-local" value={start} onChange={(e) => { setStart(e.target.value); try { localStorage.setItem(COMPARE_START_STORE, e.target.value); } catch {} }} /></label>
+        <label className="ops-measure"><input type="checkbox" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} /><span>差のある選手だけ</span></label>
+        <button disabled={!dirtyRows.length} onClick={() => { if (window.confirm(`${dirtyRows.length}人の採用・コメントを保存しますか？（選手の備考に保存されます）`)) save(dirtyRows); }}>まとめて保存（{dirtyRows.length}人）</button>
+        <button className="ops-ghost" disabled={!dirtyRows.length} onClick={() => setDrafts({})}>変更を破棄</button>
+      </div>
+      {coverNote && <p className="ops-warn">{coverNote}</p>}
+      <div className="ops-scroll">
+        <table className="ops-table">
+          <thead><tr><th>ゼッケン</th><th>氏名</th><th>現在の周回</th><th>中間</th><th>ゴール手前</th><th>統合</th><th>判定</th><th>採用</th><th>手入力</th><th>採用周回数</th><th>コメント（引き継ぎ）</th><th></th></tr></thead>
+          <tbody>
+            {shownRows.map((x) => (
+              <tr key={x.tag} className={x.dirty ? "ops-dirty" : ""}>
+                <td className="ops-num ops-strong">{x.c.short || x.tag}</td>
+                <td>{(x.c.runner || {})["氏名"] || "未登録"}</td>
+                <td className="ops-num">{x.cur}</td>
+                <td className="ops-num">{x.k.mid}</td>
+                <td className="ops-num">{x.k.goal}</td>
+                <td className="ops-num">{x.k.mrg}</td>
+                <td className={x.judge === "一致" || x.judge === "-" ? "" : "ops-bad"}>{x.judge}</td>
+                <td>
+                  <select value={x.d.adopt} onChange={(e) => patch(x.tag, { adopt: e.target.value })}>
+                    {["自動", "中間", "ゴール", "手入力"].map((o) => <option key={o} value={o}>{o === "自動" ? "自動（統合）" : o}</option>)}
+                  </select>
+                </td>
+                <td><input className="ops-narrow" inputMode="numeric" disabled={x.d.adopt !== "手入力"} value={x.d.manual} onChange={(e) => patch(x.tag, { manual: e.target.value.replace(/[^\d-]/g, "") })} /></td>
+                <td className={`ops-num ${x.adopted !== x.cur ? "ops-strong" : ""}`}>{x.adopted}</td>
+                <td><input value={x.d.comment} onChange={(e) => patch(x.tag, { comment: e.target.value })} placeholder="例：ゴール手前が弱い・目視で+1確認" /></td>
+                <td><button disabled={!x.dirty} onClick={() => save([x])}>保存</button></td>
+              </tr>
+            ))}
+            {!shownRows.length && <tr><td colSpan={12} className="ops-muted">該当する選手がいません</td></tr>}
+          </tbody>
+        </table>
+      </div>
+      <p className="ops-muted">「中間」「ゴール手前」は各端末が周回として判定した件数です。端末ごとに数え方が少し違うため、差があっても取りこぼしとは限りません。採用周回数は参考値で、周回タブ・速報には反映されません。</p>
+    </section>
+  );
+}
+
 function PassPanel({ view, onDelete }) {
   const [sel, setSel] = useState(() => new Set());
   const [adjust, setAdjust] = useState(true);
