@@ -17,6 +17,7 @@ const ENDPOINT =
 const LAP_METERS = 960;
 const REFRESH_CHOICES = [2, 3, 5, 10, 15, 30];
 const REFRESH_STORE = "ops-console-refresh-sec";
+const SOURCE_STORE = "ops-console-source";
 const KEY_STORE = "ops-console-key";
 const HIDE_STORE = "ops-console-hidden-bibs";
 const CATEGORIES = ["", "24時間", "12時間デイ", "12時間ナイト", "スタッフ", "予備"];
@@ -96,6 +97,13 @@ function runState(sec) {
 }
 const STATE_ICON = { run: "directions_run", check: "schedule", rest: "pause_circle" };
 const LV_ICON = { bad: "error", warn: "warning", info: "info" };
+// 端末の画面・Doze の状態（画面が消える/Doze に入ると Bluetooth 受信が止まる恐れがある）
+const sleepState = (d) => {
+  if (d["Doze"] === "Doze中") return { label: "Doze中", bad: true };
+  if (d["画面"] === "OFF") return { label: "スリープ", bad: true };
+  if (d["画面"] === "ON") return { label: "画面ON", bad: false };
+  return { label: "-", bad: false };
+};
 
 // ラップ「43:12」がスプレッドシートで時刻（43:12:00）に変換されて届く場合があるので「43分12秒」に戻す
 const lapText = (v) => {
@@ -155,6 +163,10 @@ export default function OpsConsole() {
   const [auto, setAuto] = useState(true);
   const [refreshSec, setRefreshSec] = useState(() => {
     try { const v = Number(localStorage.getItem(REFRESH_STORE)); return REFRESH_CHOICES.includes(v) ? v : 5; } catch { return 5; }
+  });
+  // 周回の元データ: device=端末の判定 / merged=複数端末の合成（mergeEnabled=1 のとき）
+  const [source, setSource] = useState(() => {
+    try { return localStorage.getItem(SOURCE_STORE) === "merged" ? "merged" : "device"; } catch { return "device"; }
   });
   const inFlight = useRef(false);
   const [fetchedAt, setFetchedAt] = useState(null);
@@ -245,7 +257,8 @@ export default function OpsConsole() {
     const nameOf = (tag, r) => (r && String(r["氏名"] || "").trim()) || (ich[String(tag)] && ich[String(tag)].name) || "";
     const shortOf = (tag) => (ich[String(tag)] && ich[String(tag)].short) || "";
     const byBib = Object.fromEntries(runners.map((r) => [String(r["ゼッケン"]), { ...r, _short: shortOf(r["ゼッケン"]), _seed: (ich[String(r["ゼッケン"])] || {}).name || "" }]));
-    const current = toObjects(data.current).map((c) => {
+    const useMerged = source === "merged" && data.mcurrent && data.mcurrent.rows && data.mcurrent.rows.length > 0;
+    const current = toObjects(useMerged ? data.mcurrent : data.current).map((c) => {
       const r = byBib[String(c["ゼッケン"])] || {};
       const info = ich[String(c["ゼッケン"])] || {};
       const pre = info.pre || 0;
@@ -266,7 +279,7 @@ export default function OpsConsole() {
     const devices = toObjects(data.devices);
     const log = toObjects(data.deviceLog);
     const config = toObjects(data.config);
-    const passes = toObjects(data.passes).reverse();
+    const passes = toObjects(useMerged ? data.mpasses : data.passes).reverse();
     const commands = toObjects(data.commands).reverse();
     const cfg = Object.fromEntries(config.map((c) => [c["項目"], c["値"]]));
 
@@ -283,6 +296,8 @@ export default function OpsConsole() {
       if (temp != null && temp >= 42) alerts.push(["warn", `${name}: 電池温度 ${temp}℃（日陰・風通しを確保）`]);
       if (d["Bluetooth"] === "OFF") alerts.push(["bad", `${name}: Bluetooth がオフです`]);
       if (d["電池最適化"] === "未除外") alerts.push(["warn", `${name}: 電池の最適化が有効です（画面オフ中に通信が止まる恐れ。アプリの赤いボタンから解除）`]);
+      if (d["Doze"] === "Doze中") alerts.push(["bad", `${name}: Doze（深い省電力）中です。Bluetooth の受信が止まっている恐れ — 画面を点けてください`]);
+      else if (d["画面"] === "OFF") alerts.push(["warn", `${name}: 画面が消えています（スリープ）。受信が止まる恐れ — 開発者向けオプション「スリープモードにしない」を確認`]);
       if (d["省電力"] === "ON") alerts.push(["warn", `${name}: 省電力モードがオンです（スキャン・送信が間引かれる恐れ）`]);
       if (String(d["計測状態"]).startsWith("停止")) alerts.push(["bad", `${name}: 計測が停止しています`]);
       const lp = num(d["最終受信(秒前)"]);
@@ -302,7 +317,7 @@ export default function OpsConsole() {
     runners.forEach((r) => { if (String(r["氏名"] || "").trim()) names[String(r["ゼッケン"])] = r["氏名"]; });
     const shorts = Object.fromEntries(Object.keys(ich).map((t) => [t, ich[t].short]));
     // 一覧にあるのに一度も受信していないタグ（計測器・予備などタグ番号なしの行は対象外）
-    const seen = new Set(toObjects(data.current).map((c) => String(c["ゼッケン"])));
+    const seen = new Set(toObjects(useMerged ? data.mcurrent : data.current).map((c) => String(c["ゼッケン"])));
     const unseen = Object.keys(ich).filter((t) => !seen.has(t) && !excluded.has(t) && ich[t].name && !/^(計測器|予備)/.test(ich[t].name));
     if (unseen.length) {
       const sh = unseen.slice(0, 8).map((t) => `${ich[t].short || "-"} ${ich[t].name}(タグ${t})`).join("、");
@@ -317,7 +332,7 @@ export default function OpsConsole() {
     const recentOk = passes.filter((x) => x.status === "OK" && !isHid(x.bib)).slice(0, 8);
     const pass5 = passes.filter((x) => x.status === "OK" && !isHid(x.bib) && (ageSecFull(x.time, data.serverTime) ?? 1e9) <= 300).length;
     return { runners: Object.values(byBib), current: visible, allCurrent: current, hiddenRows, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich, excluded, worst, running, totalLaps, maxTotal, recentOk, pass5 };
-  }, [data, hidden]);
+  }, [data, hidden, source]);
 
   if (!key) return <Login onLogin={(k) => setKey(k)} error={error} />;
   if (!view) return <p className="ops-loading">{error || "読み込み中…"}</p>;
@@ -349,6 +364,10 @@ export default function OpsConsole() {
             <select value={refreshSec} aria-label="更新間隔" onChange={(e) => { const v = Number(e.target.value); setRefreshSec(v); try { localStorage.setItem(REFRESH_STORE, String(v)); } catch {} }}>
               {REFRESH_CHOICES.map((n) => <option key={n} value={n}>{n}秒ごと</option>)}
             </select>
+            <select value={source} aria-label="周回の元データ" onChange={(e) => { const v = e.target.value; setSource(v); try { localStorage.setItem(SOURCE_STORE, v); } catch {} }}>
+              <option value="device">周回: 端末判定</option>
+              <option value="merged">周回: 合成（複数端末）</option>
+            </select>
             <button onClick={() => load()} disabled={busy}>{busy ? "更新中…" : "更新"}</button>
             <button className="ops-ghost" onClick={close}>閉じる</button>
           </div>
@@ -361,11 +380,12 @@ export default function OpsConsole() {
           {view.devices.map((d) => {
             const age = ageSec(d["受信時刻"], data.serverTime);
             const bat = num(d["電池%"]);
-            const bad = (age != null && age > 90) || (bat != null && bat < 15);
+            const sl = sleepState(d);
+            const bad = (age != null && age > 90) || (bat != null && bat < 15) || sl.bad;
             return (
               <div key={d["端末"]} className={`ops-kpi ${bad ? "ops-kpi-bad" : ""}`}>
                 <b><MIcon name="battery_full" />{bat ?? "-"}<small>%</small>{d["充電"] === "あり" && <MIcon name="bolt" />}</b>
-                <span>{d["端末"]}・{mins(age)}</span>
+                <span>{d["端末"]}・{mins(age)}・{sl.label}</span>
               </div>
             );
           })}
@@ -427,6 +447,7 @@ export default function OpsConsole() {
                   </div>
                   <div className="ops-tile"><b><Level value={d["電波レベル(0-4)"]} /></b><span>{d["回線"]} {d["電波dBm"] ? `${d["電波dBm"]}dBm` : ""}</span></div>
                   <div className={`ops-tile ${d["Bluetooth"] === "OFF" || String(d["計測状態"]).startsWith("停止") ? "ops-tile-bad" : ""}`}><b>{d["Bluetooth"]}</b><span>{d["計測状態"]}</span></div>
+                  <div className={`ops-tile ${sleepState(d).bad ? "ops-tile-bad" : ""}`}><b>{sleepState(d).label}</b><span>画面・Doze（消えると受信が止まる恐れ）</span></div>
                   <div className="ops-tile"><b>{d["受信/分"] || "-"}</b><span>パケット/分・最終 {d["最終受信(秒前)"] || "-"}秒前</span></div>
                 </div>
                 <details className="ops-more">
