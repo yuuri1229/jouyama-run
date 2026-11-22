@@ -164,9 +164,9 @@ export default function OpsConsole() {
   const [refreshSec, setRefreshSec] = useState(() => {
     try { const v = Number(localStorage.getItem(REFRESH_STORE)); return REFRESH_CHOICES.includes(v) ? v : 5; } catch { return 5; }
   });
-  // 周回の元データ: device=端末の判定 / merged=複数端末の合成（mergeEnabled=1 のとき）
+  // 周回の元データ: merged=複数端末の合成（既定。2台以上の受信を重複なく数える） / device=端末ごとの判定（最後に送った端末の値）
   const [source, setSource] = useState(() => {
-    try { return localStorage.getItem(SOURCE_STORE) === "merged" ? "merged" : "device"; } catch { return "device"; }
+    try { return localStorage.getItem(SOURCE_STORE) === "device" ? "device" : "merged"; } catch { return "merged"; }
   });
   const inFlight = useRef(false);
   const [fetchedAt, setFetchedAt] = useState(null);
