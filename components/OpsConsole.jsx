@@ -49,6 +49,12 @@ function ageSec(mmddhhmmss, serverTime) {
   return Number.isNaN(t) || Number.isNaN(s) ? null : Math.round((s - t) / 1000);
 }
 
+// ラップ「43:12」がスプレッドシートで時刻（43:12:00）に変換されて届く場合があるので「43分12秒」に戻す
+const lapText = (v) => {
+  const m = String(v || "").match(/^(\d+):(\d\d)(?::00)?$/);
+  return m ? `${Number(m[1])}分${m[2]}秒` : v || "";
+};
+
 const num = (v) => (v === "" || v == null || Number.isNaN(Number(v)) ? null : Number(v));
 
 function Level({ value, max = 4 }) {
@@ -102,6 +108,7 @@ export default function OpsConsole() {
   const [fetchedAt, setFetchedAt] = useState(null);
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
   // 「閉じる」のたびに進める番号。閉じる前に出した通信の結果は捨てる
   // （閉じた後に合言葉が sessionStorage へ書き戻されるのを防ぐ）
   const session = useRef(0);
@@ -202,16 +209,21 @@ export default function OpsConsole() {
       const v = num(d["アプリ版"]);
       if (latest && v && v < latest) alerts.push(["info", `${d["端末"]}: アプリ更新待ち（端末 ${v} → 配信 ${latest}）`]);
     });
-    return { runners, current, devices, log, config, passes, commands, cfg, alerts };
+    const names = Object.fromEntries(runners.map((r) => [String(r["ゼッケン"]), r["氏名"]]));
+    return { runners, current, devices, log, config, passes, commands, cfg, alerts, names };
   }, [data]);
 
   if (!key) return <Login onLogin={(k) => setKey(k)} error={error} />;
   if (!view) return <p className="ops-loading">{error || "読み込み中…"}</p>;
 
   const q = filter.trim();
-  const shown = q
+  const base = q
     ? view.current.filter((c) => String(c["ゼッケン"]).includes(q) || String(c.runner["氏名"] || "").includes(q))
     : view.current;
+  // 最近の通過順（既定）：いま走っている選手が上に来る
+  const shown = sortBy === "recent"
+    ? [...base].sort((a, b) => String(b["最終通過"]).localeCompare(String(a["最終通過"])))
+    : base;
 
   return (
     <div className="ops">
@@ -272,10 +284,16 @@ export default function OpsConsole() {
 
       <section className="ops-sec">
         <h2>周回状況 <small>{view.current.length}人・1周{LAP_METERS}m</small></h2>
-        <input className="ops-filter" placeholder="ゼッケン・氏名で絞り込み" value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <div className="ops-form">
+          <input className="ops-filter" placeholder="ゼッケン・氏名で絞り込み" value={filter} onChange={(e) => setFilter(e.target.value)} />
+          <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="並び順">
+            <option value="recent">最近の通過順</option>
+            <option value="laps">周回数の多い順</option>
+          </select>
+        </div>
         <div className="ops-scroll">
           <table className="ops-table">
-            <thead><tr><th>順</th><th>No.</th><th>氏名</th><th>種目</th><th>周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
+            <thead><tr><th>#</th><th>No.</th><th>氏名</th><th>種目</th><th>周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
             <tbody>
               {shown.map((c, i) => (
                 <tr key={c["ゼッケン"]}>
@@ -286,7 +304,7 @@ export default function OpsConsole() {
                   <td className="ops-num ops-strong">{c["周回"]}</td>
                   <td className="ops-num">{((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2)}km</td>
                   <td>{c["最終通過"]}</td>
-                  <td>{c["ラップ"]}</td>
+                  <td>{lapText(c["ラップ"])}</td>
                   <td className="ops-num">{c["RSSI"] === "127" ? "-" : c["RSSI"]}</td>
                   <td>{c["最終受信"]}</td>
                 </tr>
@@ -296,7 +314,7 @@ export default function OpsConsole() {
         </div>
       </section>
 
-      <CommandPanel devices={view.devices} commands={view.commands} onSend={(p) => act("addCommand", p, "コマンドを登録しました（次の送信で端末が実行）")} />
+      <CommandPanel devices={view.devices} commands={view.commands} names={view.names} onSend={(p) => act("addCommand", p, "コマンドを登録しました（次の送信で端末が実行）")} />
 
       <RunnerPanel runners={view.runners} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)} />
 
@@ -306,12 +324,13 @@ export default function OpsConsole() {
         <h2>最近の通過記録 <small>新しい順・最大100件</small></h2>
         <div className="ops-scroll">
           <table className="ops-table">
-            <thead><tr><th>時刻</th><th>No.</th><th>周回</th><th>判定</th><th>最大RSSI</th><th>受信数</th><th>ラップ(秒)</th><th>端末</th></tr></thead>
+            <thead><tr><th>時刻</th><th>No.</th><th>氏名</th><th>周回</th><th>判定</th><th>最大RSSI</th><th>受信数</th><th>ラップ(秒)</th><th>端末</th></tr></thead>
             <tbody>
               {view.passes.map((p, i) => (
                 <tr key={i} className={`ops-st-${p.status}`}>
                   <td>{String(p.time).slice(11, 19)}</td>
                   <td className="ops-num">{p.bib}</td>
+                  <td>{view.names[String(p.bib)] || ""}</td>
                   <td className="ops-num">{p.lap}</td>
                   <td>{STATUS[p.status] || p.status}</td>
                   <td className="ops-num">{p.peak_rssi}</td>
@@ -338,7 +357,7 @@ const STATUS = {
   MANUAL_SET: "手動設定",
 };
 
-function CommandPanel({ devices, commands, onSend }) {
+function CommandPanel({ devices, commands, names, onSend }) {
   const [cmd, setCmd] = useState("setLaps");
   const [bib, setBib] = useState("");
   const [value, setValue] = useState("");
@@ -379,7 +398,7 @@ function CommandPanel({ devices, commands, onSend }) {
               <tr key={c.ID}>
                 <td>{c["作成"]}</td><td>{c["対象端末"]}</td>
                 <td>{(COMMANDS.find((x) => x.value === c["コマンド"]) || {}).label || c["コマンド"]}</td>
-                <td>{c["ゼッケン"]}</td><td>{c["値"]}</td>
+                <td>{c["ゼッケン"]} {names[String(c["ゼッケン"])] || ""}</td><td>{c["値"]}</td>
                 <td className={c["状態"] === "pending" ? "ops-warn" : c["状態"] === "done" ? "ops-good" : "ops-bad"}>{c["状態"] === "pending" ? "待機中" : c["状態"] === "done" ? "完了" : c["状態"]}</td>
                 <td>{c["実行"]}</td>
               </tr>
