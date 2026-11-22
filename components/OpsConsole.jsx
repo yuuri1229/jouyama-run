@@ -689,6 +689,34 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
         {!showHidden && <button className="ops-ghost" onClick={() => apply(view.current.map((c) => String(c["ゼッケン"])), 0)}>全員を0周にリセット（非表示を除く）</button>}
         {err && <span className="ops-error">{err}</span>}
       </div>
+      <details className="ops-more ops-criteria">
+        <summary>補正・判定の基準（誤カウントと欠測の見方）</summary>
+        <div className="ops-criteria-body">
+          <h4>公式の周回数（変更しない）</h4>
+          <ul>
+            <li>受信強度 {view.cfg.threshold ?? "-"} dBm 以上を通過候補にし、{view.cfg.gapSec ?? "-"}秒以内の受信を1回の通過にまとめます。</li>
+            <li>前回の通過から {view.cfg.minLapSec ?? "-"}秒未満は二重検出（DUP）、{view.cfg.awaySec ?? "-"}秒以上離れていない滞留（STAY）は数えません。</li>
+            <li>前回から300秒未満で、1〜2パケット・−85dBm未満の弱い検知は保留（HOLD）にして数えません。</li>
+            <li>弱い単発（件数1以下・−90dBm未満）が、周回0または1800秒以上空いた後に来た場合も保留（HOLD）です。</li>
+            <li>12時間ナイト（タグ22〜30）は 11/23 0:00 より前の検知を数えません（PRE）。</li>
+          </ul>
+          <h4>補正列（目安・公式の周回は書き換えません）</h4>
+          <ul>
+            <li>同じ選手の直前3周以上のラップ中央値（直近6周）を基準にします。</li>
+            <li><b>誤カウント疑い</b>：ラップが中央値の0.6倍未満で、かつ検知が弱い（件数1以下 または −90dBm未満）通過。</li>
+            <li><b>欠測推定</b>：ラップが中央値の1.7倍を超え4倍以下の空き。round(ラップ÷中央値)−1 周を加算（1回あたり最大5周）。</li>
+            <li><b>補正後</b> ＝ 現在の合計 − 誤カウント疑い ＋ 欠測推定（0周を下回らない）。</li>
+            <li>手動の周回変更や周回数の減少があると、その時点から基準を取り直します。補正は45秒ごとに更新します。</li>
+          </ul>
+          <h4>「要確認」の出し方</h4>
+          <ul>
+            <li>周回の要確認：補正後との差が2周以上、または 疑い＋欠測 が3以上。</li>
+            <li>欠測の確認：合計周回が1以上で、最終通過から30分以上たった選手。</li>
+            <li>走行状態：最終通過から900秒以内=走行中、3600秒以内=要確認、それ以上=休憩？、通過なし=未通過。</li>
+          </ul>
+          <p className="ops-muted">補正は推定です。夜間や受信が弱いときは外れることがあります。目視や記録員の確認で最終判断してください。</p>
+        </div>
+      </details>
       <div className="ops-scroll">
         <table className="ops-table">
           <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>ゼッケン</th><th>氏名</th><th>状態</th><th>合計周回</th><th>補正</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>事前+計測</th><th className="ops-dim">タグ</th><th className="ops-dim">種目</th><th className="ops-dim">RSSI</th></tr></thead>
