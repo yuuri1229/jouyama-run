@@ -15,7 +15,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 const ENDPOINT =
   "https://script.google.com/macros/s/AKfycbzqREVgPY7kD4nG0q0VVrzEz9cYAj55X31Oofjn9t6rUUaJ_pHzOrCepXuyNwjs4iB_/exec";
 const LAP_METERS = 960;
-const REFRESH_SEC = 15;
+const REFRESH_CHOICES = [2, 3, 5, 10, 15, 30];
+const REFRESH_STORE = "ops-console-refresh-sec";
 const KEY_STORE = "ops-console-key";
 const HIDE_STORE = "ops-console-hidden-bibs";
 const CATEGORIES = ["", "24時間", "12時間デイ", "12時間ナイト", "スタッフ", "予備"];
@@ -152,6 +153,10 @@ export default function OpsConsole() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [auto, setAuto] = useState(true);
+  const [refreshSec, setRefreshSec] = useState(() => {
+    try { const v = Number(localStorage.getItem(REFRESH_STORE)); return REFRESH_CHOICES.includes(v) ? v : 5; } catch { return 5; }
+  });
+  const inFlight = useRef(false);
   const [fetchedAt, setFetchedAt] = useState(null);
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
@@ -182,6 +187,7 @@ export default function OpsConsole() {
       if (!k) return;
       const gen = session.current;
       setBusy(true);
+      inFlight.current = true;
       try {
         const j = await call("console", k);
         if (gen !== session.current) return;
@@ -194,6 +200,7 @@ export default function OpsConsole() {
         setError(e.message === "key mismatch" ? "合言葉が違います" : `読み込み失敗: ${e.message}`);
         if (e.message === "key mismatch") { setKey(""); setData(null); try { sessionStorage.removeItem(KEY_STORE); } catch {} }
       } finally {
+        inFlight.current = false;
         if (gen === session.current) setBusy(false);
       }
     },
@@ -203,9 +210,12 @@ export default function OpsConsole() {
   useEffect(() => { if (key) load(key); }, [key, load]);
   useEffect(() => {
     if (!key || !auto) return;
-    const id = setInterval(() => load(key), REFRESH_SEC * 1000);
-    return () => clearInterval(id);
-  }, [key, auto, load]);
+    // 前回の取得が終わっていなければ重ねて取らない
+    const id = setInterval(() => { if (!inFlight.current && !document.hidden) load(key); }, refreshSec * 1000);
+    const onVis = () => { if (!document.hidden && !inFlight.current) load(key); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => { clearInterval(id); document.removeEventListener("visibilitychange", onVis); };
+  }, [key, auto, load, refreshSec]);
 
   const act = async (action, payload, msg) => {
     const gen = session.current;
@@ -334,6 +344,9 @@ export default function OpsConsole() {
           <div className="ops-top-meta">
             <span>更新 {fetchedAt ? fetchedAt.toLocaleTimeString("ja-JP") : "-"}</span>
             <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> 自動更新</label>
+            <select value={refreshSec} aria-label="更新間隔" onChange={(e) => { const v = Number(e.target.value); setRefreshSec(v); try { localStorage.setItem(REFRESH_STORE, String(v)); } catch {} }}>
+              {REFRESH_CHOICES.map((n) => <option key={n} value={n}>{n}秒ごと</option>)}
+            </select>
             <button onClick={() => load()} disabled={busy}>{busy ? "更新中…" : "更新"}</button>
             <button className="ops-ghost" onClick={close}>閉じる</button>
           </div>
@@ -829,9 +842,17 @@ function ConfigRow({ c, onSave }) {
 }
 
 function ConfigPanel({ config, onSave }) {
+  const upInt = (config.find((c) => c["項目"] === "uploadIntervalSec") || {})["値"];
   return (
     <section className="ops-sec">
-      <h2>遠隔設定 <small>反映すると次の送信（約20秒以内）で端末に適用</small></h2>
+      <h2>遠隔設定 <small>反映すると端末の次の送信で適用（送信間隔は下のボタンで変更）</small></h2>
+      <div className="ops-form">
+        <b>端末への反映速度</b>
+        {[[5, "5秒（高速）"], [10, "10秒"], [20, "20秒（省電力）"]].map(([n, label]) => (
+          <button key={n} className={String(upInt) === String(n) ? "" : "ops-ghost"} onClick={() => onSave("uploadIntervalSec", n)}>{label}</button>
+        ))}
+        <span className="ops-muted">現在 {upInt || "-"}秒ごとに端末が送受信（短いほど変更が早く届くが電池を使う）</span>
+      </div>
       <div className="ops-scroll">
         <table className="ops-table">
           <thead><tr><th>項目</th><th>値</th><th>説明</th><th></th></tr></thead>
