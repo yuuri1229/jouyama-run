@@ -37,6 +37,25 @@ async function call(action, key, payload = {}) {
 }
 
 // rows_() の {head, rows} を [{列名: 値}] に
+// 一覧シート（タグ番号 ↔ 印字ゼッケン・氏名）を タグ番号 をキーにした辞書へ
+function ichiranMap(list) {
+  const out = {};
+  const head = (list && list.head) || [];
+  const ix = (n) => head.indexOf(n);
+  const [iTag, iShort, iName, iKana, iSex] = ["タグ番号", "short_label", "label", "label_kana", "gender"].map(ix);
+  if (iTag < 0) return out;
+  ((list && list.rows) || []).forEach((r) => {
+    const tag = String(r[iTag] ?? "").trim();
+    if (!/^\d+$/.test(tag)) return;
+    const sex = String(r[iSex] ?? "").trim();
+    out[String(Number(tag))] = {
+      short: String(r[iShort] ?? "").trim(), name: String(r[iName] ?? "").trim(),
+      kana: String(r[iKana] ?? "").trim(), sex: sex === "男性" || sex === "女性" ? sex : "",
+    };
+  });
+  return out;
+}
+
 const toObjects = (t) =>
   !t || !t.head ? [] : t.rows.map((r) => Object.fromEntries(t.head.map((h, i) => [h, r[i]])));
 
@@ -172,8 +191,15 @@ export default function OpsConsole() {
   const view = useMemo(() => {
     if (!data) return null;
     const runners = toObjects(data.runners).filter((r) => String(r["ゼッケン"] ?? "").trim() !== "");
-    const byBib = Object.fromEntries(runners.map((r) => [String(r["ゼッケン"]), r]));
-    const current = toObjects(data.current).map((c) => ({ ...c, runner: byBib[String(c["ゼッケン"])] || {} }));
+    const ich = ichiranMap(data.list);
+    const nameOf = (tag, r) => (r && String(r["氏名"] || "").trim()) || (ich[String(tag)] && ich[String(tag)].name) || "";
+    const shortOf = (tag) => (ich[String(tag)] && ich[String(tag)].short) || "";
+    const byBib = Object.fromEntries(runners.map((r) => [String(r["ゼッケン"]), { ...r, _short: shortOf(r["ゼッケン"]), _seed: (ich[String(r["ゼッケン"])] || {}).name || "" }]));
+    const current = toObjects(data.current).map((c) => {
+      const r = byBib[String(c["ゼッケン"])] || {};
+      const info = ich[String(c["ゼッケン"])] || {};
+      return { ...c, short: info.short || "", kana: info.kana || "", sex: info.sex || "", runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
+    });
     current.sort((a, b) => num(b["周回"]) - num(a["周回"]) || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
     const devices = toObjects(data.devices);
     const log = toObjects(data.deviceLog);
@@ -209,8 +235,18 @@ export default function OpsConsole() {
       const v = num(d["アプリ版"]);
       if (latest && v && v < latest) alerts.push(["info", `${d["端末"]}: アプリ更新待ち（端末 ${v} → 配信 ${latest}）`]);
     });
-    const names = Object.fromEntries(runners.map((r) => [String(r["ゼッケン"]), r["氏名"]]));
-    return { runners, current, devices, log, config, passes, commands, cfg, alerts, names };
+    const names = {};
+    Object.keys(ich).forEach((t) => { if (ich[t].name) names[t] = ich[t].name; });
+    runners.forEach((r) => { if (String(r["氏名"] || "").trim()) names[String(r["ゼッケン"])] = r["氏名"]; });
+    const shorts = Object.fromEntries(Object.keys(ich).map((t) => [t, ich[t].short]));
+    // 一覧にあるのに一度も受信していないタグ（計測器・予備などタグ番号なしの行は対象外）
+    const seen = new Set(toObjects(data.current).map((c) => String(c["ゼッケン"])));
+    const unseen = Object.keys(ich).filter((t) => !seen.has(t) && ich[t].name && !/^(計測器|予備)/.test(ich[t].name));
+    if (unseen.length) {
+      const sh = unseen.slice(0, 8).map((t) => `${ich[t].short || "-"} ${ich[t].name}(タグ${t})`).join("、");
+      alerts.push(["info", `一覧に登録済みで未受信のタグ: ${unseen.length}件 — ${sh}${unseen.length > 8 ? " ほか" : ""}`]);
+    }
+    return { runners: Object.values(byBib), current, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich };
   }, [data]);
 
   if (!key) return <Login onLogin={(k) => setKey(k)} error={error} />;
@@ -337,20 +373,23 @@ function ExportPanel({ view, exportAll }) {
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
   const lapsCsv = () =>
-    downloadCsv(`周回状況_${stamp()}.csv`, ["ゼッケン", "氏名", "種目", "周回", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
+    downloadCsv(`周回状況_${stamp()}.csv`, ["タグ番号", "ゼッケン", "氏名", "種目", "周回", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
       [...view.current]
         .sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]))
-        .map((c) => [c["ゼッケン"], c.runner["氏名"] || "", c.runner["種目"] || "", c["周回"],
+        .map((c) => [c["ゼッケン"], c.short, c.runner["氏名"] || "", c.runner["種目"] || "", c["周回"],
           ((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2), c["最終通過"], lapText(c["ラップ"]), c["RSSI"], c["最終受信"]]));
   const allCsv = async (kind) => {
     setBusy(kind); setErr("");
     try {
       const j = await exportAll();
       if (kind === "passes") {
-        const names = Object.fromEntries(j.runners.rows.map((r) => [String(r[0]), r[1]]));
+        const ich = ichiranMap(j.list);
+        const names = {};
+        Object.keys(ich).forEach((t) => { if (ich[t].name) names[t] = ich[t].name; });
+        j.runners.rows.forEach((r) => { if (String(r[1] || "").trim()) names[String(r[0])] = r[1]; });
         const ib = j.passes.head.indexOf("bib");
-        downloadCsv(`通過記録_${stamp()}.csv`, [...j.passes.head.slice(0, ib + 1), "name", ...j.passes.head.slice(ib + 1)],
-          j.passes.rows.map((r) => [...r.slice(0, ib + 1), names[String(r[ib])] || "", ...r.slice(ib + 1)]));
+        downloadCsv(`通過記録_${stamp()}.csv`, [...j.passes.head.slice(0, ib + 1), "short_bib", "name", ...j.passes.head.slice(ib + 1)],
+          j.passes.rows.map((r) => [...r.slice(0, ib + 1), (ich[String(r[ib])] || {}).short || "", names[String(r[ib])] || "", ...r.slice(ib + 1)]));
       } else {
         downloadCsv(`選手_${stamp()}.csv`, j.runners.head, j.runners.rows.filter((r) => String(r[0]).trim() !== ""));
       }
@@ -414,7 +453,7 @@ function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps
       </div>
       <div className="ops-scroll">
         <table className="ops-table">
-          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>#</th><th>No.</th><th>氏名</th><th>種目</th><th>周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
+          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>#</th><th>タグ</th><th>ゼッケン</th><th>氏名</th><th>種目</th><th>周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
           <tbody>
             {shown.map((c, i) => {
               const bib = String(c["ゼッケン"]);
@@ -423,7 +462,8 @@ function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps
                   <td><input type="checkbox" checked={sel.has(bib)} onChange={() => toggle(bib)} aria-label={`No.${bib} を選択`} /></td>
                   <td>{i + 1}</td>
                   <td className="ops-num">{bib}</td>
-                  <td>{c.runner["氏名"] || <span className="ops-muted">未登録</span>}</td>
+                  <td className="ops-num ops-strong">{c.short}</td>
+                  <td title={[c.kana, c.sex].filter(Boolean).join(" / ")}>{c.runner["氏名"] || <span className="ops-muted">未登録</span>}</td>
                   <td>{c.runner["種目"]}</td>
                   <td className="ops-num ops-strong">{c["周回"]}</td>
                   <td className="ops-num">{((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2)}km</td>
@@ -472,7 +512,7 @@ function PassPanel({ view, onDelete }) {
       </div>
       <div className="ops-scroll">
         <table className="ops-table">
-          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の記録をすべて選択" /></th><th>時刻</th><th>No.</th><th>氏名</th><th>周回</th><th>判定</th><th>最大RSSI</th><th>受信数</th><th>ラップ(秒)</th><th>端末</th></tr></thead>
+          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の記録をすべて選択" /></th><th>時刻</th><th>タグ</th><th>ゼッケン</th><th>氏名</th><th>周回</th><th>判定</th><th>最大RSSI</th><th>受信数</th><th>ラップ(秒)</th><th>端末</th></tr></thead>
           <tbody>
             {rows.map((p) => {
               const k = keyOf(p);
@@ -481,6 +521,7 @@ function PassPanel({ view, onDelete }) {
                   <td><input type="checkbox" checked={sel.has(k)} onChange={() => toggle(k)} aria-label={`${String(p.time).slice(11, 19)} No.${p.bib} を選択`} /></td>
                   <td>{String(p.time).slice(11, 19)}</td>
                   <td className="ops-num">{p.bib}</td>
+                  <td className="ops-num ops-strong">{view.shorts[String(p.bib)] || ""}</td>
                   <td>{view.names[String(p.bib)] || ""}</td>
                   <td className="ops-num">{p.lap}</td>
                   <td>{STATUS[p.status] || p.status}</td>
@@ -569,7 +610,8 @@ function RunnerRow({ r, onSave }) {
   return (
     <tr>
       <td className="ops-num">{r["ゼッケン"]}</td>
-      <td><input value={name} onChange={(e) => setName(e.target.value)} placeholder="氏名" /></td>
+      <td className="ops-num ops-strong">{r._short}</td>
+      <td><input value={name} onChange={(e) => setName(e.target.value)} placeholder={r._seed || "氏名"} /></td>
       <td><select value={cat} onChange={(e) => setCat(e.target.value)}>{CATEGORIES.map((c) => <option key={c} value={c}>{c || "—"}</option>)}</select></td>
       <td className="ops-mono">{r["MAC"]}</td>
       <td>{r["初回検出"]}</td>
@@ -588,7 +630,7 @@ function RunnerPanel({ runners, onSave }) {
       <h2>選手・ビーコンの紐付け <small>受信したチップは自動で追加（ゼッケン＝iBeacon Minor）</small></h2>
       <div className="ops-scroll">
         <table className="ops-table">
-          <thead><tr><th>No.</th><th>氏名</th><th>種目</th><th>MAC</th><th>初回検出</th><th>備考</th><th></th></tr></thead>
+          <thead><tr><th>タグ</th><th>ゼッケン</th><th>氏名</th><th>種目</th><th>MAC</th><th>初回検出</th><th>備考</th><th></th></tr></thead>
           <tbody>{sorted.map((r) => <RunnerRow key={`${r["ゼッケン"]}-${r["氏名"]}-${r["種目"]}-${r["備考"]}`} r={r} onSave={onSave} />)}</tbody>
         </table>
       </div>
