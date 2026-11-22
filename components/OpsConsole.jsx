@@ -257,11 +257,17 @@ export default function OpsConsole() {
     const nameOf = (tag, r) => (r && String(r["氏名"] || "").trim()) || (ich[String(tag)] && ich[String(tag)].name) || "";
     const shortOf = (tag) => (ich[String(tag)] && ich[String(tag)].short) || "";
     const byBib = Object.fromEntries(runners.map((r) => [String(r["ゼッケン"]), { ...r, _short: shortOf(r["ゼッケン"]), _seed: (ich[String(r["ゼッケン"])] || {}).name || "" }]));
-    const useMerged = source === "merged" && data.mcurrent && data.mcurrent.rows && data.mcurrent.rows.length > 0;
+    // 合成データの鮮度（合成の更新列 = 最後に合成した時刻）。止まっていたら端末判定へ自動で切り替える
+    const mRows = toObjects(data.mcurrent || { head: [], rows: [] });
+    const mLag = mRows.length ? Math.min(...mRows.map((r) => sinceSec(r["更新"], data.serverTime)).filter((x) => x != null), 1e9) : null;
+    const mergeStale = source === "merged" && mRows.length > 0 && mLag != null && mLag > 180;
+    const useMerged = source === "merged" && !mergeStale && mRows.length > 0;
     const current = toObjects(useMerged ? data.mcurrent : data.current).map((c) => {
       const r = byBib[String(c["ゼッケン"])] || {};
       const info = ich[String(c["ゼッケン"])] || {};
       const pre = info.pre || 0;
+      // 0周の行の「最終通過/ラップ」は通過ではなく初回の近接受信（端末設置時など）なので表示しない
+      if (useMerged && !(num(c["周回"]) > 0)) { c = { ...c, "最終通過": "", "ラップ": "" }; }
       return { ...c, pre, total: pre + (num(c["周回"]) || 0), short: info.short || "", kana: info.kana || "", sex: info.sex || "", runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
     });
     current.sort((a, b) => b.total - a.total || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
@@ -306,6 +312,22 @@ export default function OpsConsole() {
       if (skew != null && Math.abs(skew) > 5) alerts.push(["warn", `${name}: 端末の時計が ${skew}秒 ずれています（自動設定を確認）`]);
       const lvl = num(d["電波レベル(0-4)"]);
       if (lvl != null && lvl <= 1 && d["回線"] === "モバイル") alerts.push(["warn", `${name}: モバイル電波が弱い（レベル${lvl}）`]);
+    });
+    // ---- 2台体制の監視 ----
+    const live = devices.filter((d) => { const a = ageSec(d["受信時刻"], data.serverTime); return a != null && a <= 30; });
+    if (devices.length >= 2 && live.length === 1) alerts.push(["warn", `2台体制のうち ${live[0]["端末"]} だけが稼働中です（もう1台の電源・回線・アプリを確認）。合成は稼働中の1台分で動きます`]);
+    if (source === "merged" && mergeStale) alerts.push(["bad", `合成データが ${Math.round(mLag / 60)}分 更新されていません。端末判定の値に自動で切り替えています（二重計上の恐れ）`]);
+    if (devices.length >= 2) {
+      const sk = devices.map((d) => num(d["時刻ズレ(秒)"])).filter((x) => x != null);
+      if (sk.length >= 2 && Math.max(...sk) - Math.min(...sk) >= 3) alerts.push(["warn", `2台の時計が ${Math.max(...sk) - Math.min(...sk)}秒 ずれています（通過時刻の精度低下・3秒以上で二重検出の恐れ。自動時刻設定を確認）`]);
+    }
+    // 充電中でも電池が減っている／低い端末（USB給電は充電が遅い）
+    devices.forEach((d) => {
+      const bat = num(d["電池%"]);
+      if (bat == null || d["充電"] === "なし") return;
+      const mine = log.filter((l) => l["端末"] === d["端末"]).map((l) => num(l["電池%"])).filter((x) => x != null);
+      const prev = mine.length >= 6 ? mine[mine.length - 6] : null;
+      if (bat < 50 && prev != null && bat <= prev) alerts.push(["warn", `${d["端末"]}: 充電中ですが電池が増えていません（${bat}%・${d["充電"]}）— 充電器（AC）に替えてください`]);
     });
     const latest = num(cfg.latestVersionCode);
     devices.forEach((d) => {
