@@ -345,6 +345,20 @@ export default function OpsConsole() {
       const sh = unseen.slice(0, 8).map((t) => `${ich[t].short || "-"} ${ich[t].name}(タグ${t})`).join("、");
       alerts.push(["info", `一覧に登録済みで未受信のタグ: ${unseen.length}件 — ${sh}${unseen.length > 8 ? " ほか" : ""}`]);
     }
+    // 欠測の早期発見：走っているはずなのに長く通過がない選手（休憩・リタイアのこともある。チップ不良・欠測の確認用）
+    const SILENT_MIN = 30;
+    const silent = visible
+      .map((c) => ({ c, s: sinceSec(c["最終通過"], data.serverTime) }))
+      .filter((x) => x.s != null && x.s > SILENT_MIN * 60 && x.c.total > 0)
+      .sort((a, b) => b.s - a.s);
+    const unseenRan = unseen.filter((t) => (ich[t].pre || 0) > 0);
+    if (silent.length || unseenRan.length) {
+      const pick = (arr, f) => arr.slice(0, 8).map(f).join("、") + (arr.length > 8 ? " ほか" : "");
+      const parts = [];
+      if (silent.length) parts.push(`${SILENT_MIN}分以上通過なし ${silent.length}人 — ${pick(silent, (x) => `${x.c.short || "-"} ${x.c.runner["氏名"] || ""}(${Math.round(x.s / 60)}分)`)}`);
+      if (unseenRan.length) parts.push(`リセット後 未受信 ${unseenRan.length}人 — ${pick(unseenRan, (t) => `${ich[t].short || "-"} ${ich[t].name}(タグ${t})`)}`);
+      alerts.push(["warn", `欠測の確認（休憩・リタイアなら問題なし。走っているなら目視・チップ確認）: ${parts.join(" ／ ")}`]);
+    }
     const order = { bad: 0, warn: 1, info: 2 };
     alerts.sort((a, b) => order[a[0]] - order[b[0]]);
     const worst = alerts.some((a) => a[0] === "bad") ? "bad" : alerts.some((a) => a[0] === "warn") ? "warn" : "ok";
