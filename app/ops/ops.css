@@ -131,3 +131,6 @@
 .ops-chips button.on .ops-mi { color: #fff !important; }
 .ops-state { display: inline-flex; align-items: center; }
 .ops-allok { display: flex; align-items: center; gap: 4px; }
+.ops-measure { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; white-space: nowrap; }
+.ops-measure input { width: 20px; height: 20px; }
+.ops-excluded td { background: #f0f0f0; color: var(--sub); }
