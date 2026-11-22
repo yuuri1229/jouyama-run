@@ -39,7 +39,7 @@ const FRAMES = [
 // 計測管制コンソール（/ops/）だけが通信する Google Apps Script。
 // 他のページには許可しない
 const OPS_CONNECT = ["https://script.google.com", "https://script.googleusercontent.com"];
-const isOpsPage = (file) => file.split(path.sep).includes("ops");
+const isOpsPage = (file) => file.split(path.sep).some((x) => x === "ops" || x === "live");
 
 function policy(scriptHashes, extraConnect = []) {
   const directives = {
