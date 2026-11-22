@@ -69,6 +69,30 @@ function ageSec(mmddhhmmss, serverTime) {
   return Number.isNaN(t) || Number.isNaN(s) ? null : Math.round((s - t) / 1000);
 }
 
+// 最終通過 "15:21:13" からの経過秒（サーバー時刻基準。日付をまたぐ場合は+24h）
+function sinceSec(hms, serverTime) {
+  if (!hms || !serverTime || !/^\d+:\d\d:\d\d$/.test(hms)) return null;
+  const now = Date.parse(serverTime);
+  let t = Date.parse(`${serverTime.slice(0, 10)} ${hms}`);
+  if (Number.isNaN(now) || Number.isNaN(t)) return null;
+  if (t > now + 60000) t -= 86400000;
+  return Math.max(0, Math.round((now - t) / 1000));
+}
+// "2026-11-22 15:21:13" とサーバー時刻の差（秒）
+function ageSecFull(t, serverTime) {
+  const a = Date.parse(String(t).replace(/-/g, "/")); const b = Date.parse(serverTime);
+  return Number.isNaN(a) || Number.isNaN(b) ? null : Math.round((b - a) / 1000);
+}
+const mins = (sec) => (sec == null ? "-" : sec < 90 ? `${sec}秒前` : sec < 5400 ? `${Math.round(sec / 60)}分前` : `${(sec / 3600).toFixed(1)}時間前`);
+// 走行状態：色だけに頼らず文言も出す
+function runState(sec) {
+  if (sec == null) return ["none", "未通過"];
+  if (sec <= 900) return ["run", "走行中"];
+  if (sec <= 3600) return ["check", "要確認"];
+  return ["rest", "休憩？"];
+}
+const LV_ICON = { bad: "⛔", warn: "⚠️", info: "ℹ️" };
+
 // ラップ「43:12」がスプレッドシートで時刻（43:12:00）に変換されて届く場合があるので「43分12秒」に戻す
 const lapText = (v) => {
   const m = String(v || "").match(/^(\d+):(\d\d)(?::00)?$/);
@@ -129,6 +153,7 @@ export default function OpsConsole() {
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState("recent");
+  const [tab, setTab] = useState("status");
   // 「閉じる」のたびに進める番号。閉じる前に出した通信の結果は捨てる
   // （閉じた後に合言葉が sessionStorage へ書き戻されるのを防ぐ）
   const session = useRef(0);
@@ -218,7 +243,7 @@ export default function OpsConsole() {
       if (age != null && age > 90) alerts.push(["bad", `${name}: ${Math.round(age / 60)}分以上 連絡がありません（電源・回線・アプリを確認）`]);
       const bat = num(d["電池%"]);
       if (bat != null && bat < 30 && d["充電"] === "なし") alerts.push([bat < 15 ? "bad" : "warn", `${name}: 電池 ${bat}%・充電していません`]);
-      else if (d["充電"] === "なし") alerts.push(["info", `${name}: 充電していません（電池 ${bat ?? "-"}%）`]);
+      else if (d["充電"] === "なし") alerts.push(["warn", `${name}: 充電していません（電池 ${bat ?? "-"}%）— 電源につないでください`]);
       const temp = num(d["電池温度℃"]);
       if (temp != null && temp >= 42) alerts.push(["warn", `${name}: 電池温度 ${temp}℃（日陰・風通しを確保）`]);
       if (d["Bluetooth"] === "OFF") alerts.push(["bad", `${name}: Bluetooth がオフです`]);
@@ -248,7 +273,15 @@ export default function OpsConsole() {
       const sh = unseen.slice(0, 8).map((t) => `${ich[t].short || "-"} ${ich[t].name}(タグ${t})`).join("、");
       alerts.push(["info", `一覧に登録済みで未受信のタグ: ${unseen.length}件 — ${sh}${unseen.length > 8 ? " ほか" : ""}`]);
     }
-    return { runners: Object.values(byBib), current, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich };
+    const order = { bad: 0, warn: 1, info: 2 };
+    alerts.sort((a, b) => order[a[0]] - order[b[0]]);
+    const worst = alerts.some((a) => a[0] === "bad") ? "bad" : alerts.some((a) => a[0] === "warn") ? "warn" : "ok";
+    const running = current.filter((c) => { const x = sinceSec(c["最終通過"], data.serverTime); return x != null && x <= 900; }).length;
+    const totalLaps = current.reduce((a, c) => a + c.total, 0);
+    const maxTotal = Math.max(1, ...current.map((c) => c.total));
+    const recentOk = passes.filter((x) => x.status === "OK").slice(0, 8);
+    const pass5 = passes.filter((x) => x.status === "OK" && (ageSecFull(x.time, data.serverTime) ?? 1e9) <= 300).length;
+    return { runners: Object.values(byBib), current, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich, worst, running, totalLaps, maxTotal, recentOk, pass5 };
   }, [data]);
 
   if (!key) return <Login onLogin={(k) => setKey(k)} error={error} />;
@@ -261,29 +294,79 @@ export default function OpsConsole() {
   // 最近の通過順（既定）：いま走っている選手が上に来る
   const shown = sortBy === "recent"
     ? [...base].sort((a, b) => String(b["最終通過"]).localeCompare(String(a["最終通過"])))
-    : base;
+    : sortBy === "bib"
+      ? [...base].sort((a, b) => num(a.short) - num(b.short) || num(a["ゼッケン"]) - num(b["ゼッケン"]))
+      : base;
 
   return (
     <div className="ops">
-      <header className="ops-top">
-        <h1>計測管制コンソール</h1>
-        <div className="ops-top-meta">
-          <span>サーバー時刻 {data.serverTime}</span>
-          <span>取得 {fetchedAt ? fetchedAt.toLocaleTimeString("ja-JP") : "-"}</span>
-          <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {REFRESH_SEC}秒ごとに更新</label>
-          <button onClick={() => load()} disabled={busy}>{busy ? "更新中…" : "今すぐ更新"}</button>
-          <button className="ops-ghost" onClick={close}>閉じる</button>
+      <header className={`ops-hud ops-hud-${view.worst}`}>
+        <div className="ops-hud-row">
+          <div className="ops-pill" role="status">
+            <b>{view.worst === "bad" ? "⛔ 要対応" : view.worst === "warn" ? "⚠️ 注意" : "✅ 正常"}</b>
+            <span>{view.alerts.filter((a) => a[0] !== "info").length ? `アラート ${view.alerts.filter((a) => a[0] !== "info").length}件` : "異常なし"}</span>
+          </div>
+          <h1>計測管制コンソール</h1>
+          <div className="ops-top-meta">
+            <span>更新 {fetchedAt ? fetchedAt.toLocaleTimeString("ja-JP") : "-"}</span>
+            <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> 自動更新</label>
+            <button onClick={() => load()} disabled={busy}>{busy ? "更新中…" : "更新"}</button>
+            <button className="ops-ghost" onClick={close}>閉じる</button>
+          </div>
+        </div>
+        <div className="ops-kpis">
+          <div className="ops-kpi"><b>{view.running}<small>/{view.current.length}人</small></b><span>走行中（15分以内に通過）</span></div>
+          <div className="ops-kpi"><b>{view.pass5}<small>件</small></b><span>直近5分の通過</span></div>
+          <div className="ops-kpi"><b>{view.totalLaps}<small>周</small></b><span>全員の合計周回</span></div>
+          <div className="ops-kpi"><b>{(view.totalLaps * LAP_METERS / 1000).toFixed(0)}<small>km</small></b><span>全員の合計距離</span></div>
+          {view.devices.map((d) => {
+            const age = ageSec(d["受信時刻"], data.serverTime);
+            const bat = num(d["電池%"]);
+            const bad = (age != null && age > 90) || (bat != null && bat < 15);
+            return (
+              <div key={d["端末"]} className={`ops-kpi ${bad ? "ops-kpi-bad" : ""}`}>
+                <b>🔋{bat ?? "-"}<small>%</small> {d["充電"] === "あり" ? "⚡" : ""}</b>
+                <span>{d["端末"]}・{mins(age)}</span>
+              </div>
+            );
+          })}
         </div>
       </header>
       {toast && <p className="ops-toast" role="status">{toast}</p>}
       {error && <p className="ops-error">{error}</p>}
       {view.cfg.message && <p className="ops-banner">端末に表示中のお知らせ：{view.cfg.message}</p>}
 
+      <nav className="ops-tabs" role="tablist" aria-label="表示切替">
+        {[["status", "状況"], ["laps", "周回"], ["passes", "通過記録"], ["ops", "操作・設定"], ["runners", "選手"], ["export", "CSV"]].map(([id, label]) => (
+          <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
+            {label}
+            {id === "status" && view.alerts.filter((a) => a[0] !== "info").length > 0 && <i className={`ops-badge ops-badge-${view.worst}`}>{view.alerts.filter((a) => a[0] !== "info").length}</i>}
+          </button>
+        ))}
+      </nav>
+
+      {tab === "status" && (<>
       <section className="ops-sec">
         <h2>アラート</h2>
         {view.alerts.length ? (
-          <ul className="ops-alerts">{view.alerts.map(([lv, t], i) => <li key={i} className={`ops-${lv}`}>{t}</li>)}</ul>
-        ) : <p className="ops-ok">異常はありません</p>}
+          <ul className="ops-alerts">{view.alerts.map(([lv, t], i) => <li key={i} className={`ops-${lv}`}><span aria-hidden="true">{LV_ICON[lv]}</span> {t}</li>)}</ul>
+        ) : <p className="ops-allok">✅ 異常はありません</p>}
+      </section>
+
+      <section className="ops-sec">
+        <h2>いま通過した選手 <small>直近の周回カウント（新しい順）</small></h2>
+        {view.recentOk.length ? (
+          <ol className="ops-feed">
+            {view.recentOk.map((x, i) => (
+              <li key={i}>
+                <time>{String(x.time).slice(11, 19)}</time>
+                <b className="ops-bibchip">{view.shorts[String(x.bib)] || `タグ${x.bib}`}</b>
+                <span className="ops-feed-name">{view.names[String(x.bib)] || "未登録"}</span>
+                <span className="ops-feed-lap">合計{(num(x.lap) || 0) + ((view.ich[String(x.bib)] || {}).pre || 0)}周</span>
+              </li>
+            ))}
+          </ol>
+        ) : <p className="ops-muted">まだありません</p>}
       </section>
 
       <section className="ops-sec">
@@ -296,54 +379,64 @@ export default function OpsConsole() {
             return (
               <article key={d["端末"]} className="ops-card">
                 <h3>{d["端末"]} <small>アプリ {d["アプリ版"]}</small></h3>
-                <p className={`ops-age ${age != null && age > 90 ? "ops-bad" : ""}`}>最終連絡 {d["受信時刻"]}（{age ?? "-"}秒前）</p>
-                <dl>
-                  <dt>電池</dt>
-                  <dd>
+                <p className={`ops-age ${age != null && age > 90 ? "ops-bad" : ""}`}>最終連絡 {d["受信時刻"]}（{mins(age)}）</p>
+                <div className="ops-tiles">
+                  <div className={`ops-tile ${bat != null && bat < 30 ? "ops-tile-bad" : ""}`}>
+                    <b>{bat ?? "-"}%</b>
                     <span className="ops-gauge"><span style={{ width: `${bat ?? 0}%` }} className={bat != null && bat < 30 ? "low" : ""} /></span>
-                    {bat ?? "-"}%・充電 {d["充電"]}・{d["電池温度℃"]}℃
-                  </dd>
-                  <dt>電池の推移</dt><dd><Spark values={hist} /></dd>
-                  <dt>回線</dt><dd>{d["回線"]} <Level value={d["電波レベル(0-4)"]} /> {d["電波dBm"] ? `${d["電波dBm"]}dBm` : ""}</dd>
-                  <dt>Bluetooth</dt><dd>{d["Bluetooth"]}</dd>
-                  <dt>画面</dt><dd>{d["画面"] || "-"}・{d["Doze"] || "-"}・電池最適化 {d["電池最適化"] || "-"}・省電力 {d["省電力"] || "-"}</dd>
-                  <dt>計測</dt><dd>{d["計測状態"]}</dd>
-                  <dt>受信</dt><dd>{d["受信/分"] || "-"} パケット/分・最終 {d["最終受信(秒前)"] || "-"}秒前</dd>
-                  <dt>時刻ズレ</dt><dd>{d["時刻ズレ(秒)"] || 0}秒</dd>
-                  <dt>空き容量</dt><dd>{d["空き容量MB"]}MB・未送信 {d["未送信KB"] || 0}KB</dd>
-                  <dt>稼働</dt><dd>{d["稼働(分)"]}分</dd>
-                </dl>
+                    <span>{d["充電"] === "あり" ? "⚡充電中" : "充電なし"}・{d["電池温度℃"]}℃</span>
+                  </div>
+                  <div className="ops-tile"><b><Level value={d["電波レベル(0-4)"]} /></b><span>{d["回線"]} {d["電波dBm"] ? `${d["電波dBm"]}dBm` : ""}</span></div>
+                  <div className={`ops-tile ${d["Bluetooth"] === "OFF" || String(d["計測状態"]).startsWith("停止") ? "ops-tile-bad" : ""}`}><b>{d["Bluetooth"]}</b><span>{d["計測状態"]}</span></div>
+                  <div className="ops-tile"><b>{d["受信/分"] || "-"}</b><span>パケット/分・最終 {d["最終受信(秒前)"] || "-"}秒前</span></div>
+                </div>
+                <details className="ops-more">
+                  <summary>詳細を見る</summary>
+                  <dl>
+                    <dt>電池の推移</dt><dd><Spark values={hist} /></dd>
+                    <dt>画面</dt><dd>{d["画面"] || "-"}・{d["Doze"] || "-"}・電池最適化 {d["電池最適化"] || "-"}・省電力 {d["省電力"] || "-"}</dd>
+                    <dt>時刻ズレ</dt><dd>{d["時刻ズレ(秒)"] || 0}秒</dd>
+                    <dt>空き容量</dt><dd>{d["空き容量MB"]}MB・未送信 {d["未送信KB"] || 0}KB</dd>
+                    <dt>稼働</dt><dd>{d["稼働(分)"]}分</dd>
+                  </dl>
+                </details>
               </article>
             );
           })}
           {!view.devices.length && <p className="ops-muted">まだ届いていません</p>}
         </div>
       </section>
+      </>)}
 
+      {tab === "laps" && (
       <LapPanel
         view={view}
         shown={shown}
+        serverTime={data.serverTime}
         filter={filter}
         setFilter={setFilter}
         sortBy={sortBy}
         setSortBy={setSortBy}
         onSetLaps={(list, msg) => act("addCommands", { list }, msg)}
-      />
+      />)}
 
+      {tab === "ops" && (<>
       <CommandPanel devices={view.devices} commands={view.commands} names={view.names} onSend={(p) => act("addCommand", p, "コマンドを登録しました（次の送信で端末が実行）")} />
-
-      <RunnerPanel runners={view.runners} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)} />
-
       <ConfigPanel config={view.config} onSave={(name, value) => act("setConfig", { name, value }, `${name} を ${value} に変更しました（次の送信で端末に反映）`)} />
+      </>)}
 
+      {tab === "runners" && (
+      <RunnerPanel runners={view.runners} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)} />)}
+
+      {tab === "passes" && (
       <PassPanel
         view={view}
         onDelete={(items, adjustLaps) =>
           act("deletePasses", { items, adjustLaps }, `${items.length}件を削除しました${adjustLaps ? "（周回だった記録の分は端末の周回数からも差し引きます）" : ""}`)
         }
-      />
+      />)}
 
-      <ExportPanel view={view} exportAll={() => call("export", key)} />
+      {tab === "export" && <ExportPanel view={view} exportAll={() => call("export", key)} />}
     </div>
   );
 }
@@ -415,8 +508,13 @@ function ExportPanel({ view, exportAll }) {
 }
 
 // ---------- 周回状況（選択して周回数を設定） ----------
-function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps }) {
+function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy, setSortBy, onSetLaps }) {
   const [sel, setSel] = useState(() => new Set());
+  const [stateF, setStateF] = useState("all");
+  const stOf = (c) => runState(sinceSec(c["最終通過"], serverTime))[0];
+  const counts = { run: 0, check: 0, rest: 0, none: 0 };
+  shownAll.forEach((c) => { counts[stOf(c)] += 1; });
+  const shown = stateF === "all" ? shownAll : shownAll.filter((c) => stOf(c) === stateF);
   const [laps, setLaps] = useState("0");
   const [err, setErr] = useState("");
   const toggle = (bib) => setSel((s) => { const n = new Set(s); n.has(bib) ? n.delete(bib) : n.add(bib); return n; });
@@ -443,7 +541,13 @@ function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="並び順">
           <option value="recent">最近の通過順</option>
           <option value="laps">周回数の多い順</option>
+          <option value="bib">ゼッケン順</option>
         </select>
+      </div>
+      <div className="ops-chips" role="group" aria-label="状態で絞り込み">
+        {[["all", `全員 ${shownAll.length}`], ["run", `🟢 走行中 ${counts.run}`], ["check", `🟡 要確認 ${counts.check}`], ["rest", `⚪ 休憩？ ${counts.rest}`], ["none", `未通過 ${counts.none}`]].map(([id, label]) => (
+          <button key={id} className={stateF === id ? "on" : ""} onClick={() => setStateF(id)}>{label}</button>
+        ))}
       </div>
       <div className="ops-form ops-bulk">
         <span>選択 {sel.size}人 → 計測周回を</span>
@@ -455,26 +559,29 @@ function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps
       </div>
       <div className="ops-scroll">
         <table className="ops-table">
-          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>#</th><th>タグ</th><th>ゼッケン</th><th>氏名</th><th>種目</th><th>事前</th><th>計測</th><th>合計</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
+          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>ゼッケン</th><th>氏名</th><th>状態</th><th>合計周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>事前+計測</th><th className="ops-dim">タグ</th><th className="ops-dim">種目</th><th className="ops-dim">RSSI</th></tr></thead>
           <tbody>
             {shown.map((c, i) => {
               const bib = String(c["ゼッケン"]);
+              const since = sinceSec(c["最終通過"], serverTime);
+              const st = runState(since);
               return (
                 <tr key={bib} className={sel.has(bib) ? "ops-selected" : ""}>
                   <td><input type="checkbox" checked={sel.has(bib)} onChange={() => toggle(bib)} aria-label={`No.${bib} を選択`} /></td>
-                  <td>{i + 1}</td>
-                  <td className="ops-num">{bib}</td>
-                  <td className="ops-num ops-strong">{c.short}</td>
+                  <td><b className="ops-bibchip">{c.short || `タグ${bib}`}</b></td>
                   <td title={[c.kana, c.sex].filter(Boolean).join(" / ")}>{c.runner["氏名"] || <span className="ops-muted">未登録</span>}</td>
-                  <td>{c.runner["種目"]}</td>
-                  <td className="ops-num ops-muted">{c.pre}</td>
-                  <td className="ops-num">{c["周回"]}</td>
-                  <td className="ops-num ops-strong">{c.total}</td>
-                  <td className="ops-num">{(c.total * LAP_METERS / 1000).toFixed(2)}km</td>
-                  <td>{c["最終通過"]}</td>
+                  <td><span className={`ops-state ops-state-${st[0]}`}>{st[1]}</span></td>
+                  <td className="ops-totalcell">
+                    <b className="ops-big">{c.total}</b>
+                    <span className="ops-bar" aria-hidden="true"><i style={{ width: `${(c.total / view.maxTotal) * 100}%` }} /></span>
+                  </td>
+                  <td className="ops-num">{(c.total * LAP_METERS / 1000).toFixed(1)}km</td>
+                  <td>{c["最終通過"]} <small className="ops-muted">{mins(since)}</small></td>
                   <td>{lapText(c["ラップ"])}</td>
-                  <td className="ops-num">{c["RSSI"] === "127" ? "-" : c["RSSI"]}</td>
-                  <td>{c["最終受信"]}</td>
+                  <td className="ops-num ops-muted">{c.pre}+{c["周回"]}</td>
+                  <td className="ops-num ops-dim">{bib}</td>
+                  <td className="ops-dim">{c.runner["種目"]}</td>
+                  <td className="ops-num ops-dim">{c["RSSI"] === "127" ? "-" : c["RSSI"]}</td>
                 </tr>
               );
             })}
