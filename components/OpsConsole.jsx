@@ -1,5 +1,6 @@
 "use client";
 
+import MIcon from "./MIcon";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // =========================================================
@@ -92,7 +93,8 @@ function runState(sec) {
   if (sec <= 3600) return ["check", "要確認"];
   return ["rest", "休憩？"];
 }
-const LV_ICON = { bad: "⛔", warn: "⚠️", info: "ℹ️" };
+const STATE_ICON = { run: "directions_run", check: "schedule", rest: "pause_circle" };
+const LV_ICON = { bad: "error", warn: "warning", info: "info" };
 
 // ラップ「43:12」がスプレッドシートで時刻（43:12:00）に変換されて届く場合があるので「43分12秒」に戻す
 const lapText = (v) => {
@@ -322,7 +324,7 @@ export default function OpsConsole() {
       <header className={`ops-hud ops-hud-${view.worst}`}>
         <div className="ops-hud-row">
           <div className="ops-pill" role="status">
-            <b>{view.worst === "bad" ? "⛔ 要対応" : view.worst === "warn" ? "⚠️ 注意" : "✅ 正常"}</b>
+            <b><MIcon name={view.worst === "bad" ? "error" : view.worst === "warn" ? "warning" : "check_circle"} />{view.worst === "bad" ? " 要対応" : view.worst === "warn" ? " 注意" : " 正常"}</b>
             <span>{view.alerts.filter((a) => a[0] !== "info").length ? `アラート ${view.alerts.filter((a) => a[0] !== "info").length}件` : "異常なし"}</span>
           </div>
           <h1>計測管制コンソール</h1>
@@ -344,7 +346,7 @@ export default function OpsConsole() {
             const bad = (age != null && age > 90) || (bat != null && bat < 15);
             return (
               <div key={d["端末"]} className={`ops-kpi ${bad ? "ops-kpi-bad" : ""}`}>
-                <b>🔋{bat ?? "-"}<small>%</small> {d["充電"] === "あり" ? "⚡" : ""}</b>
+                <b><MIcon name="battery_full" />{bat ?? "-"}<small>%</small>{d["充電"] === "あり" && <MIcon name="bolt" />}</b>
                 <span>{d["端末"]}・{mins(age)}</span>
               </div>
             );
@@ -368,8 +370,8 @@ export default function OpsConsole() {
       <section className="ops-sec">
         <h2>アラート</h2>
         {view.alerts.length ? (
-          <ul className="ops-alerts">{view.alerts.map(([lv, t], i) => <li key={i} className={`ops-${lv}`}><span aria-hidden="true">{LV_ICON[lv]}</span> {t}</li>)}</ul>
-        ) : <p className="ops-allok">✅ 異常はありません</p>}
+          <ul className="ops-alerts">{view.alerts.map(([lv, t], i) => <li key={i} className={`ops-${lv}`}><MIcon name={LV_ICON[lv]} /> {t}</li>)}</ul>
+        ) : <p className="ops-allok"><MIcon name="check_circle" /> 異常はありません</p>}
       </section>
 
       <section className="ops-sec">
@@ -403,7 +405,7 @@ export default function OpsConsole() {
                   <div className={`ops-tile ${bat != null && bat < 30 ? "ops-tile-bad" : ""}`}>
                     <b>{bat ?? "-"}%</b>
                     <span className="ops-gauge"><span style={{ width: `${bat ?? 0}%` }} className={bat != null && bat < 30 ? "low" : ""} /></span>
-                    <span>{d["充電"] === "あり" ? "⚡充電中" : "充電なし"}・{d["電池温度℃"]}℃</span>
+                    <span>{d["充電"] === "あり" ? <><MIcon name="bolt" />充電中</> : "充電なし"}・{d["電池温度℃"]}℃</span>
                   </div>
                   <div className="ops-tile"><b><Level value={d["電波レベル(0-4)"]} /></b><span>{d["回線"]} {d["電波dBm"] ? `${d["電波dBm"]}dBm` : ""}</span></div>
                   <div className={`ops-tile ${d["Bluetooth"] === "OFF" || String(d["計測状態"]).startsWith("停止") ? "ops-tile-bad" : ""}`}><b>{d["Bluetooth"]}</b><span>{d["計測状態"]}</span></div>
@@ -573,12 +575,12 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
         </select>
       </div>
       <div className="ops-chips" role="group" aria-label="状態で絞り込み">
-        {[["all", `全員 ${shownAll.length}`], ["run", `🟢 走行中 ${counts.run}`], ["check", `🟡 要確認 ${counts.check}`], ["rest", `⚪ 休憩？ ${counts.rest}`], ["none", `未通過 ${counts.none}`]].map(([id, label]) => (
-          <button key={id} className={stateF === id ? "on" : ""} onClick={() => setStateF(id)}>{label}</button>
+        {[["all", null, `全員 ${shownAll.length}`], ["run", "directions_run", `走行中 ${counts.run}`], ["check", "schedule", `要確認 ${counts.check}`], ["rest", "pause_circle", `休憩？ ${counts.rest}`], ["none", null, `未通過 ${counts.none}`]].map(([id, icon, label]) => (
+          <button key={id} className={`ops-chip-${id} ${stateF === id ? "on" : ""}`} onClick={() => setStateF(id)}>{icon && <MIcon name={icon} />}{label}</button>
         ))}
         {(view.hiddenRows.length > 0 || showHidden) && (
           <button className={`ops-chip-hidden ${showHidden ? "on" : ""}`} onClick={() => { setShowHidden(!showHidden); setSel(new Set()); }}>
-            {showHidden ? "← 通常表示に戻る" : `👁 非表示 ${view.hiddenRows.length}人`}
+            {showHidden ? <><MIcon name="arrow_back" />通常表示に戻る</> : <><MIcon name="visibility" />非表示 {view.hiddenRows.length}人</>}
           </button>
         )}
       </div>
@@ -606,7 +608,7 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
                   <td><input type="checkbox" checked={sel.has(bib)} onChange={() => toggle(bib)} aria-label={`No.${bib} を選択`} /></td>
                   <td><b className="ops-bibchip">{c.short || `タグ${bib}`}</b></td>
                   <td title={[c.kana, c.sex].filter(Boolean).join(" / ")}>{c.runner["氏名"] || <span className="ops-muted">{c.spare ? "予備・未登録チップ（自動除外）" : "未登録"}</span>}</td>
-                  <td><span className={`ops-state ops-state-${st[0]}`}>{st[1]}</span></td>
+                  <td><span className={`ops-state ops-state-${st[0]}`}>{STATE_ICON[st[0]] && <MIcon name={STATE_ICON[st[0]]} />}{st[1]}</span></td>
                   <td className="ops-totalcell">
                     <b className="ops-big">{c.total}</b>
                     <span className="ops-bar" aria-hidden="true"><i style={{ width: `${(c.total / view.maxTotal) * 100}%` }} /></span>
