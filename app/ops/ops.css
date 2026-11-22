@@ -122,3 +122,12 @@
   .ops-table th.ops-dim { display: none; }
 }
 .ops .ops-chips button.ops-chip-hidden { border-style: dashed; margin-left: auto; }
+.ops-mi { vertical-align: -0.2em; margin-right: .2em; flex: none; }
+.ops-kpi b .ops-mi { vertical-align: -0.1em; }
+.ops-alerts li { display: flex; align-items: center; gap: 6px; }
+.ops-alerts li .ops-mi { font-size: 1.3em; }
+.ops .ops-chips button { display: inline-flex; align-items: center; gap: 2px; }
+.ops-chip-run .ops-mi { color: #2e7d32; } .ops-chip-check .ops-mi { color: #c98a1e; } .ops-chip-rest .ops-mi { color: #777; }
+.ops-chips button.on .ops-mi { color: #fff !important; }
+.ops-state { display: inline-flex; align-items: center; }
+.ops-allok { display: flex; align-items: center; gap: 4px; }
