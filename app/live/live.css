@@ -1,53 +1,47 @@
 /* 速報ページ（/live/）専用。クラス名はすべて live- で始める */
 .live-main { padding-left: var(--gutter); padding-right: var(--gutter); }
-.live { max-width: 1100px; margin: 0 auto; color: var(--ink); }
-.live h1 { font-size: 24px; margin: 0; }
-.live-sub { margin: 4px 0 0; color: var(--sub); font-size: 13px; }
-.live-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 2px solid var(--pine); margin-bottom: 14px; }
+.live { max-width: 1200px; margin: 0 auto; color: var(--ink); }
+.live-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.live h1 { font-size: 26px; margin: 0; font-weight: 700; }
+.live h1 small { font-size: 14px; font-weight: 400; color: var(--sub); }
+.live-asof { color: #b3261e; margin-right: 6px; font-variant-numeric: tabular-nums; }
 .live-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 13px; }
-.live-clock { font-variant-numeric: tabular-nums; font-weight: 700; }
 .live-ok { color: var(--pine); } .live-bad { color: #c62828; }
+.live-total { color: var(--sub); }
 .live button { font: inherit; padding: 6px 14px; border: 1px solid var(--pine); background: var(--pine); color: #fff; border-radius: 4px; cursor: pointer; }
-.live-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-.live-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
-.live-tabs button { background: transparent; color: var(--pine); }
-.live-tabs button.on { background: var(--pine); color: #fff; }
-.live-tools input { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; min-width: 200px; }
-.live-total { margin-left: auto; color: var(--sub); font-size: 13px; }
-.live-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.live-table th, .live-table td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; }
-.live-table th { font-size: 12px; color: var(--sub); font-weight: 600; }
-.live-table .num { text-align: right; white-space: nowrap; }
-.live-table .rank { font-weight: 700; width: 3.5em; }
-.live-table .bib { font-weight: 700; white-space: nowrap; }
-.live-table .lap { font-weight: 700; font-size: 1.15em; }
-.live-table small { color: var(--sub); margin-left: 2px; }
+.live-tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.live-tools input { font: inherit; padding: 6px 10px; border: 1px solid var(--line); border-radius: 4px; min-width: 220px; }
+.live-note { color: var(--sub); font-size: 12px; }
 .live-empty { color: var(--sub); padding: 20px 0; }
 
-/* モニター全画面表示：サイトのヘッダー・フッターを覆い、大きな文字で表示 */
-.live-tv { position: fixed; inset: 0; z-index: 99999; max-width: none; margin: 0; padding: 2.2vh 3vw; background: #0b1a14; color: #f2f7f4; display: flex; flex-direction: column; overflow: hidden; }
-.live-tv h1 { font-size: 3.6vh; }
-.live-tv .live-sub { color: #9fc4b0; font-size: 2.6vh; }
-.live-tv .live-head { border-color: #2f6b52; margin-bottom: 1.5vh; padding-bottom: 1.5vh; }
-.live-tv .live-meta { font-size: 2.2vh; color: #cfe3d8; }
-.live-tv .live-clock { font-size: 4vh; color: #fff; }
-.live-tv .live-ok { color: #8fe0b4; }
-.live-tv .live-meta button { background: transparent; border-color: #4b8a6e; color: #cfe3d8; font-size: 1.8vh; opacity: .35; }
-.live-tv .live-meta button:hover { opacity: 1; }
-.live-tv .live-table { font-size: 3.2vh; }
-.live-tv .live-table th { font-size: 2vh; color: #9fc4b0; border-color: #2f6b52; }
-.live-tv .live-table td { border-color: #1d3a2d; padding: 0.9vh 1.2vw; }
-.live-tv .live-table small { color: #9fc4b0; }
-.live-tv .live-table .lap { font-size: 1.15em; color: #ffe08a; }
-.live-tv .live-table .rank { color: #8fe0b4; }
-@media (max-width: 640px) { .live-table th, .live-table td { padding: 8px 6px; font-size: 14px; } .live-total { margin-left: 0; } }
+/* 種目ごとの表：左に24時間走、右に12時間デイ／ナイトを縦に並べる */
+.live-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.live-col { display: grid; gap: 22px; }
+.live-cat h2 { font-size: 17px; margin: 0 0 6px; font-weight: 700; }
+.live-cat h2 small { font-size: 12px; color: var(--sub); font-weight: 400; }
+.live-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; background: #fff; border: 1px solid #b9c4bd; }
+.live-table th, .live-table td { border: 1px solid #b9c4bd; padding: 4px 8px; height: 30px; }
+.live-table thead th { background: #4a7a2c; color: #fff; font-size: 13px; line-height: 1.25; font-weight: 700; text-align: center; padding: 3px 6px; }
+.live-table tbody tr:nth-child(even) { background: #eef4e8; }
+.live-table .c { text-align: center; white-space: nowrap; }
+.live-table .name { white-space: nowrap; }
+.live-table .km { font-weight: 700; }
 
-/* 表としての見た目を強める：格子の罫線・見出しの背景・縞模様 */
-.live-table { border: 1px solid var(--line); background: #fff; }
-.live-table th, .live-table td { border: 1px solid var(--line); }
-.live-table thead th { background: var(--pine); color: #fff; font-size: 13px; }
-.live-table tbody tr:nth-child(even) { background: rgba(0, 0, 0, .035); }
-.live-tv .live-table { border-color: #2f6b52; background: transparent; }
-.live-tv .live-table th, .live-tv .live-table td { border: 1px solid #2f6b52; }
-.live-tv .live-table thead th { background: #1c4a38; color: #e8f4ed; font-size: 2.2vh; }
-.live-tv .live-table tbody tr:nth-child(even) { background: rgba(255, 255, 255, .05); }
+@media (max-width: 860px) {
+  .live-grid { grid-template-columns: 1fr; }
+  .live-table th, .live-table td { padding: 4px 5px; font-size: 14px; }
+}
+
+/* モニター全画面表示：サイトのヘッダー・フッターを覆い、1画面に収まる大きさで表示 */
+.live-tv { position: fixed; inset: 0; z-index: 99999; max-width: none; margin: 0; padding: 2vh 2.5vw; background: #fff; overflow: hidden; --rh: 4vh; }
+.live-tv h1 { font-size: 4.6vh; }
+.live-tv h1 small { font-size: 2.2vh; }
+.live-tv .live-meta { font-size: 1.8vh; }
+.live-tv .live-meta button { font-size: 1.6vh; opacity: .3; }
+.live-tv .live-meta button:hover { opacity: 1; }
+.live-tv .live-head { margin-bottom: 1vh; }
+.live-tv .live-grid { gap: 2.5vw; }
+.live-tv .live-col { gap: 1.6vh; }
+.live-tv .live-cat h2 { font-size: calc(var(--rh) * 0.8); margin-bottom: 0.4vh; }
+.live-tv .live-table th, .live-tv .live-table td { height: var(--rh); padding: 0 0.7vw; font-size: calc(var(--rh) * 0.58); line-height: 1.1; }
+.live-tv .live-table thead th { font-size: calc(var(--rh) * 0.42); height: auto; padding: 0.3vh 0.5vw; }
