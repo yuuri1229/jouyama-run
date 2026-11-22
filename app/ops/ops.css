@@ -134,3 +134,4 @@
 .ops-measure { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 700; white-space: nowrap; }
 .ops-measure input { width: 20px; height: 20px; }
 .ops-excluded td { background: #f0f0f0; color: var(--sub); }
+.ops-dirty td { background: #fff3c4; }

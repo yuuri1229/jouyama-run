@@ -221,12 +221,14 @@ export default function OpsConsole() {
     const gen = session.current;
     try {
       await call(action, key, payload);
-      if (gen !== session.current) return;
+      if (gen !== session.current) return false;
       setToast(msg);
       setTimeout(() => setToast(""), 4000);
       load(key);
+      return true;
     } catch (e) {
       if (gen === session.current) setToast(`失敗: ${e.message}`);
+      return false;
     }
   };
 
@@ -468,7 +470,9 @@ export default function OpsConsole() {
 
       {tab === "ops" && (<>
       <CommandPanel devices={view.devices} commands={view.commands} names={view.names} onSend={(p) => act("addCommand", p, "コマンドを登録しました（次の送信で端末が実行）")} />
-      <ConfigPanel config={view.config} onSave={(name, value) => act("setConfig", { name, value }, `${name} を ${value} に変更しました（次の送信で端末に反映）`)} />
+      <ConfigPanel config={view.config}
+        onSave={(name, value) => act("setConfig", { name, value }, `${name} を ${value} に変更しました（次の送信で端末に反映）`)}
+        onSaveAll={(list) => act("setConfigs", { list }, `${list.length}件の設定を変更しました（次の送信で端末に反映）`)} />
       </>)}
 
       {tab === "runners" && (
@@ -476,7 +480,8 @@ export default function OpsConsole() {
           const n = new Set(view.excluded);
           measure ? n.delete(String(bib)) : n.add(String(bib));
           act("setConfig", { name: "excludeTags", value: [...n].sort((a, b) => a - b).join(",") }, `タグ${bib} を${measure ? "計測する" : "計測しない"}に設定しました`);
-        }} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)} />)}
+        }} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)}
+        onSaveAll={(list) => act("setRunners", { list }, `${list.length}人の選手情報をまとめて保存しました`)} />)}
 
       {tab === "passes" && (
       <PassPanel
@@ -771,13 +776,10 @@ function CommandPanel({ devices, commands, names, onSend }) {
   );
 }
 
-function RunnerRow({ r, onSave, excluded, onMeasure }) {
-  const [name, setName] = useState(r["氏名"] || "");
-  const [cat, setCat] = useState(r["種目"] || "");
-  const [note, setNote] = useState(r["備考"] || "");
-  const dirty = name !== (r["氏名"] || "") || cat !== (r["種目"] || "") || note !== (r["備考"] || "");
+function RunnerRow({ r, d, onChange, onSave, excluded, onMeasure }) {
+  const dirty = d.name !== (r["氏名"] || "") || d.category !== (r["種目"] || "") || d.note !== (r["備考"] || "");
   return (
-    <tr className={excluded ? "ops-excluded" : ""}>
+    <tr className={`${excluded ? "ops-excluded" : ""} ${dirty ? "ops-dirty" : ""}`}>
       <td className="ops-num">{r["ゼッケン"]}</td>
       <td className="ops-num ops-strong">{r._short}</td>
       <td>
@@ -786,27 +788,45 @@ function RunnerRow({ r, onSave, excluded, onMeasure }) {
           <span>{excluded ? "計測しない" : "計測する"}</span>
         </label>
       </td>
-      <td><input value={name} onChange={(e) => setName(e.target.value)} placeholder={r._seed || "氏名"} /></td>
-      <td><select value={cat} onChange={(e) => setCat(e.target.value)}>{CATEGORIES.map((c) => <option key={c} value={c}>{c || "—"}</option>)}</select></td>
+      <td><input value={d.name} onChange={(e) => onChange({ name: e.target.value })} placeholder={r._seed || "氏名"} /></td>
+      <td><select value={d.category} onChange={(e) => onChange({ category: e.target.value })}>{CATEGORIES.map((c) => <option key={c} value={c}>{c || "—"}</option>)}</select></td>
       <td className="ops-mono">{r["MAC"]}</td>
       <td>{r["初回検出"]}</td>
-      <td><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="備考" /></td>
-      <td><button disabled={!dirty} onClick={() => onSave({ bib: r["ゼッケン"], name, category: cat, note })}>保存</button></td>
+      <td><input value={d.note} onChange={(e) => onChange({ note: e.target.value })} placeholder="備考" /></td>
+      <td><button disabled={!dirty} onClick={() => onSave({ bib: r["ゼッケン"], name: d.name, category: d.category, note: d.note })}>保存</button></td>
     </tr>
   );
 }
-
-function RunnerPanel({ runners, excluded, onMeasure, onSave }) {
+function RunnerPanel({ runners, excluded, onMeasure, onSave, onSaveAll }) {
   const [bib, setBib] = useState("");
+  // 編集中の内容（保存するまで画面だけ）。まとめて保存できる
+  const [drafts, setDrafts] = useState({});
+  const draftOf = (r) => ({ name: r["氏名"] || "", category: r["種目"] || "", note: r["備考"] || "", ...(drafts[String(r["ゼッケン"])] || {}) });
+  const dirtyList = runners.filter((r) => {
+    const d = draftOf(r);
+    return d.name !== (r["氏名"] || "") || d.category !== (r["種目"] || "") || d.note !== (r["備考"] || "");
+  });
   const [err, setErr] = useState("");
   const sorted = [...runners].sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]));
   return (
     <section className="ops-sec">
       <h2>選手・ビーコンの紐付け <small>受信したチップは自動で追加（ゼッケン＝iBeacon Minor）・「計測しない」にした選手は周回状況・集計に出ません（全スタッフ共通。端末の記録自体は続きます）</small></h2>
+      <div className="ops-form ops-bulk">
+        <button
+          disabled={!dirtyList.length}
+          onClick={async () => {
+            if (!window.confirm(`${dirtyList.length}人の変更をまとめて保存しますか？`)) return;
+            const list = dirtyList.map((r) => { const d = draftOf(r); return { bib: r["ゼッケン"], name: d.name, category: d.category, note: d.note }; });
+            if (await onSaveAll(list)) setDrafts({});
+          }}
+        >変更をまとめて保存（{dirtyList.length}人）</button>
+        <button className="ops-ghost" disabled={!dirtyList.length} onClick={() => setDrafts({})}>変更を破棄</button>
+        <span className="ops-muted">{dirtyList.length ? "黄色の行が未保存です" : "氏名・種目・備考を編集すると、ここからまとめて保存できます"}</span>
+      </div>
       <div className="ops-scroll">
         <table className="ops-table">
           <thead><tr><th>タグ</th><th>ゼッケン</th><th>計測</th><th>氏名</th><th>種目</th><th>MAC</th><th>初回検出</th><th>備考</th><th></th></tr></thead>
-          <tbody>{sorted.map((r) => <RunnerRow key={`${r["ゼッケン"]}-${r["氏名"]}-${r["種目"]}-${r["備考"]}`} r={r} onSave={onSave} excluded={excluded.has(String(r["ゼッケン"]))} onMeasure={onMeasure} />)}</tbody>
+          <tbody>{sorted.map((r) => <RunnerRow key={r["ゼッケン"]} r={r} d={draftOf(r)} onChange={(patch) => setDrafts((x) => ({ ...x, [String(r["ゼッケン"])]: { ...draftOf(r), ...patch } }))} onSave={async (p) => { if (await onSave(p)) setDrafts((x) => { const n = { ...x }; delete n[String(p.bib)]; return n; }); }} excluded={excluded.has(String(r["ゼッケン"]))} onMeasure={onMeasure} />)}</tbody>
         </table>
       </div>
       <form
@@ -828,20 +848,24 @@ function RunnerPanel({ runners, excluded, onMeasure, onSave }) {
   );
 }
 
-function ConfigRow({ c, onSave }) {
-  const [v, setV] = useState(c["値"]);
+function ConfigRow({ c, v, onChange, onSave }) {
   const readOnly = c["項目"].startsWith("latest");
+  const dirty = String(v) !== String(c["値"]);
   return (
-    <tr>
+    <tr className={dirty ? "ops-dirty" : ""}>
       <td className="ops-mono">{c["項目"]}</td>
-      <td>{readOnly ? c["値"] : <input value={v} onChange={(e) => setV(e.target.value)} />}</td>
+      <td>{readOnly ? c["値"] : <input value={v} onChange={(e) => onChange(e.target.value)} />}</td>
       <td className="ops-desc">{c["説明"]}</td>
-      <td>{!readOnly && <button disabled={v === c["値"]} onClick={() => { if (window.confirm(`${c["項目"]} を「${v}」に変更しますか？`)) onSave(c["項目"], v); }}>反映</button>}</td>
+      <td>{!readOnly && <button disabled={!dirty} onClick={() => { if (window.confirm(`${c["項目"]} を「${v}」に変更しますか？`)) onSave(c["項目"], v); }}>反映</button>}</td>
     </tr>
   );
 }
 
-function ConfigPanel({ config, onSave }) {
+function ConfigPanel({ config, onSave, onSaveAll }) {
+  const [drafts, setDrafts] = useState({});
+  const valOf = (c) => (Object.prototype.hasOwnProperty.call(drafts, c["項目"]) ? drafts[c["項目"]] : c["値"]);
+  const editable = config.filter((c) => c["項目"] !== "excludeTags" && !c["項目"].startsWith("latest"));
+  const dirtyList = editable.filter((c) => String(valOf(c)) !== String(c["値"]));
   const upInt = (config.find((c) => c["項目"] === "uploadIntervalSec") || {})["値"];
   return (
     <section className="ops-sec">
@@ -853,10 +877,21 @@ function ConfigPanel({ config, onSave }) {
         ))}
         <span className="ops-muted">現在 {upInt || "-"}秒ごとに端末が送受信（短いほど変更が早く届くが電池を使う）</span>
       </div>
+      <div className="ops-form ops-bulk">
+        <button
+          disabled={!dirtyList.length}
+          onClick={async () => {
+            const lines = dirtyList.map((c) => `${c["項目"]}: ${c["値"]} → ${valOf(c)}`).join("\n");
+            if (!window.confirm(`${dirtyList.length}件の設定をまとめて反映しますか？\n\n${lines}`)) return;
+            if (await onSaveAll(dirtyList.map((c) => ({ name: c["項目"], value: valOf(c) })))) setDrafts({});
+          }}
+        >変更をまとめて反映（{dirtyList.length}件）</button>
+        <button className="ops-ghost" disabled={!dirtyList.length} onClick={() => setDrafts({})}>変更を破棄</button>
+      </div>
       <div className="ops-scroll">
         <table className="ops-table">
           <thead><tr><th>項目</th><th>値</th><th>説明</th><th></th></tr></thead>
-          <tbody>{config.filter((c) => c["項目"] !== "excludeTags").map((c) => <ConfigRow key={`${c["項目"]}-${c["値"]}`} c={c} onSave={onSave} />)}</tbody>
+          <tbody>{config.filter((c) => c["項目"] !== "excludeTags").map((c) => <ConfigRow key={c["項目"]} c={c} v={valOf(c)} onChange={(val) => setDrafts((x) => ({ ...x, [c["項目"]]: val }))} onSave={async (n, val) => { if (await onSave(n, val)) setDrafts((x) => { const m = { ...x }; delete m[n]; return m; }); }} />)}</tbody>
         </table>
       </div>
     </section>
