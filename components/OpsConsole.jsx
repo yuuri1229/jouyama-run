@@ -238,8 +238,14 @@ export default function OpsConsole() {
       return { ...c, pre, total: pre + (num(c["周回"]) || 0), short: info.short || "", kana: info.kana || "", sex: info.sex || "", runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
     });
     current.sort((a, b) => b.total - a.total || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
-    const hiddenRows = current.filter((c) => hidden.has(String(c["ゼッケン"])));
-    const visible = current.filter((c) => !hidden.has(String(c["ゼッケン"])));
+    // 出走していない予備チップの誤検知を出さない：一覧に無いタグ・「予備」「計測器」の行は自動で除外する
+    // （一覧が空のときは判定できないので除外しない）
+    const hasIch = Object.keys(ich).length > 0;
+    const isSpare = (tag) => hasIch && (!ich[String(tag)] || /^(予備|計測器)/.test(ich[String(tag)].name || "") || !ich[String(tag)].name);
+    const isHid = (tag) => hidden.has(String(tag)) || isSpare(tag);
+    current.forEach((c) => { c.spare = isSpare(c["ゼッケン"]); });
+    const hiddenRows = current.filter((c) => isHid(c["ゼッケン"]));
+    const visible = current.filter((c) => !isHid(c["ゼッケン"]));
     const devices = toObjects(data.devices);
     const log = toObjects(data.deviceLog);
     const config = toObjects(data.config);
@@ -291,8 +297,8 @@ export default function OpsConsole() {
     const running = visible.filter((c) => { const x = sinceSec(c["最終通過"], data.serverTime); return x != null && x <= 900; }).length;
     const totalLaps = visible.reduce((a, c) => a + c.total, 0);
     const maxTotal = Math.max(1, ...visible.map((c) => c.total));
-    const recentOk = passes.filter((x) => x.status === "OK" && !hidden.has(String(x.bib))).slice(0, 8);
-    const pass5 = passes.filter((x) => x.status === "OK" && !hidden.has(String(x.bib)) && (ageSecFull(x.time, data.serverTime) ?? 1e9) <= 300).length;
+    const recentOk = passes.filter((x) => x.status === "OK" && !isHid(x.bib)).slice(0, 8);
+    const pass5 = passes.filter((x) => x.status === "OK" && !isHid(x.bib) && (ageSecFull(x.time, data.serverTime) ?? 1e9) <= 300).length;
     return { runners: Object.values(byBib), current: visible, allCurrent: current, hiddenRows, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich, worst, running, totalLaps, maxTotal, recentOk, pass5 };
   }, [data, hidden]);
 
@@ -570,7 +576,7 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
         {[["all", `全員 ${shownAll.length}`], ["run", `🟢 走行中 ${counts.run}`], ["check", `🟡 要確認 ${counts.check}`], ["rest", `⚪ 休憩？ ${counts.rest}`], ["none", `未通過 ${counts.none}`]].map(([id, label]) => (
           <button key={id} className={stateF === id ? "on" : ""} onClick={() => setStateF(id)}>{label}</button>
         ))}
-        {(hidden.size > 0 || showHidden) && (
+        {(view.hiddenRows.length > 0 || showHidden) && (
           <button className={`ops-chip-hidden ${showHidden ? "on" : ""}`} onClick={() => { setShowHidden(!showHidden); setSel(new Set()); }}>
             {showHidden ? "← 通常表示に戻る" : `👁 非表示 ${view.hiddenRows.length}人`}
           </button>
@@ -599,7 +605,7 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
                 <tr key={bib} className={sel.has(bib) ? "ops-selected" : ""}>
                   <td><input type="checkbox" checked={sel.has(bib)} onChange={() => toggle(bib)} aria-label={`No.${bib} を選択`} /></td>
                   <td><b className="ops-bibchip">{c.short || `タグ${bib}`}</b></td>
-                  <td title={[c.kana, c.sex].filter(Boolean).join(" / ")}>{c.runner["氏名"] || <span className="ops-muted">未登録</span>}</td>
+                  <td title={[c.kana, c.sex].filter(Boolean).join(" / ")}>{c.runner["氏名"] || <span className="ops-muted">{c.spare ? "予備・未登録チップ（自動除外）" : "未登録"}</span>}</td>
                   <td><span className={`ops-state ops-state-${st[0]}`}>{st[1]}</span></td>
                   <td className="ops-totalcell">
                     <b className="ops-big">{c.total}</b>
