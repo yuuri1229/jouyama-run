@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 // =========================================================
 // 計測管制コンソール（/ops/）
@@ -102,6 +102,9 @@ export default function OpsConsole() {
   const [fetchedAt, setFetchedAt] = useState(null);
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
+  // 「閉じる」のたびに進める番号。閉じる前に出した通信の結果は捨てる
+  // （閉じた後に合言葉が sessionStorage へ書き戻されるのを防ぐ）
+  const session = useRef(0);
 
   useEffect(() => {
     try {
@@ -113,18 +116,21 @@ export default function OpsConsole() {
   const load = useCallback(
     async (k = key) => {
       if (!k) return;
+      const gen = session.current;
       setBusy(true);
       try {
         const j = await call("console", k);
+        if (gen !== session.current) return;
         setData(j);
         setError("");
         setFetchedAt(new Date());
         try { sessionStorage.setItem(KEY_STORE, k); } catch {}
       } catch (e) {
+        if (gen !== session.current) return;
         setError(e.message === "key mismatch" ? "合言葉が違います" : `読み込み失敗: ${e.message}`);
         if (e.message === "key mismatch") { setKey(""); setData(null); try { sessionStorage.removeItem(KEY_STORE); } catch {} }
       } finally {
-        setBusy(false);
+        if (gen === session.current) setBusy(false);
       }
     },
     [key]
@@ -138,14 +144,22 @@ export default function OpsConsole() {
   }, [key, auto, load]);
 
   const act = async (action, payload, msg) => {
+    const gen = session.current;
     try {
       await call(action, key, payload);
+      if (gen !== session.current) return;
       setToast(msg);
       setTimeout(() => setToast(""), 4000);
       load(key);
     } catch (e) {
-      setToast(`失敗: ${e.message}`);
+      if (gen === session.current) setToast(`失敗: ${e.message}`);
     }
+  };
+
+  const close = () => {
+    session.current += 1;
+    try { sessionStorage.removeItem(KEY_STORE); } catch {}
+    setKey(""); setData(null); setBusy(false); setError("");
   };
 
   const view = useMemo(() => {
@@ -206,7 +220,7 @@ export default function OpsConsole() {
           <span>取得 {fetchedAt ? fetchedAt.toLocaleTimeString("ja-JP") : "-"}</span>
           <label><input type="checkbox" checked={auto} onChange={(e) => setAuto(e.target.checked)} /> {REFRESH_SEC}秒ごとに更新</label>
           <button onClick={() => load()} disabled={busy}>{busy ? "更新中…" : "今すぐ更新"}</button>
-          <button className="ops-ghost" onClick={() => { try { sessionStorage.removeItem(KEY_STORE); } catch {} setKey(""); setData(null); }}>閉じる</button>
+          <button className="ops-ghost" onClick={close}>閉じる</button>
         </div>
       </header>
       {toast && <p className="ops-toast" role="status">{toast}</p>}
@@ -394,6 +408,7 @@ function RunnerRow({ r, onSave }) {
 
 function RunnerPanel({ runners, onSave }) {
   const [bib, setBib] = useState("");
+  const [err, setErr] = useState("");
   const sorted = [...runners].sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]));
   return (
     <section className="ops-sec">
@@ -404,9 +419,20 @@ function RunnerPanel({ runners, onSave }) {
           <tbody>{sorted.map((r) => <RunnerRow key={`${r["ゼッケン"]}-${r["氏名"]}-${r["種目"]}-${r["備考"]}`} r={r} onSave={onSave} />)}</tbody>
         </table>
       </div>
-      <form className="ops-form" onSubmit={(e) => { e.preventDefault(); if (/^\d+$/.test(bib)) { onSave({ bib: Number(bib), name: "", category: "", note: "" }); setBib(""); } }}>
-        <input inputMode="numeric" placeholder="ゼッケンを手動追加" value={bib} onChange={(e) => setBib(e.target.value)} />
+      <form
+        className="ops-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!/^\d+$/.test(bib)) return setErr("ゼッケン番号を数字で入力してください");
+          // 登録済みの番号で送ると氏名などが空で上書きされるため、追加は未登録の番号だけ
+          if (runners.some((r) => String(r["ゼッケン"]) === String(Number(bib)))) return setErr(`No.${Number(bib)} は登録済みです（上の表で編集してください）`);
+          onSave({ bib: Number(bib), name: "", category: "", note: "" });
+          setBib(""); setErr("");
+        }}
+      >
+        <input inputMode="numeric" placeholder="ゼッケンを手動追加" value={bib} onChange={(e) => { setBib(e.target.value); setErr(""); }} />
         <button type="submit">追加</button>
+        {err && <span className="ops-error">{err}</span>}
       </form>
     </section>
   );
