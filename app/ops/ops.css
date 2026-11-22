@@ -121,3 +121,4 @@
   .ops-dim { display: none; }
   .ops-table th.ops-dim { display: none; }
 }
+.ops .ops-chips button.ops-chip-hidden { border-style: dashed; margin-left: auto; }

@@ -16,6 +16,7 @@ const ENDPOINT =
 const LAP_METERS = 960;
 const REFRESH_SEC = 15;
 const KEY_STORE = "ops-console-key";
+const HIDE_STORE = "ops-console-hidden-bibs";
 const CATEGORIES = ["", "24時間", "12時間デイ", "12時間ナイト", "スタッフ", "予備"];
 const COMMANDS = [
   { value: "setLaps", label: "周回数を設定", needBib: true, needValue: true },
@@ -154,6 +155,15 @@ export default function OpsConsole() {
   const [filter, setFilter] = useState("");
   const [sortBy, setSortBy] = useState("recent");
   const [tab, setTab] = useState("status");
+  // 非表示にした選手（タグ番号）。この端末のブラウザにだけ保存する（表示上の操作で、記録や端末の周回数は変わらない）
+  const [hidden, setHidden] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem(HIDE_STORE) || "[]")); } catch { return new Set(); }
+  });
+  const [showHidden, setShowHidden] = useState(false);
+  const setHiddenSaved = (next) => {
+    setHidden(next);
+    try { localStorage.setItem(HIDE_STORE, JSON.stringify([...next])); } catch {}
+  };
   // 「閉じる」のたびに進める番号。閉じる前に出した通信の結果は捨てる
   // （閉じた後に合言葉が sessionStorage へ書き戻されるのを防ぐ）
   const session = useRef(0);
@@ -228,6 +238,8 @@ export default function OpsConsole() {
       return { ...c, pre, total: pre + (num(c["周回"]) || 0), short: info.short || "", kana: info.kana || "", sex: info.sex || "", runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
     });
     current.sort((a, b) => b.total - a.total || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
+    const hiddenRows = current.filter((c) => hidden.has(String(c["ゼッケン"])));
+    const visible = current.filter((c) => !hidden.has(String(c["ゼッケン"])));
     const devices = toObjects(data.devices);
     const log = toObjects(data.deviceLog);
     const config = toObjects(data.config);
@@ -276,21 +288,22 @@ export default function OpsConsole() {
     const order = { bad: 0, warn: 1, info: 2 };
     alerts.sort((a, b) => order[a[0]] - order[b[0]]);
     const worst = alerts.some((a) => a[0] === "bad") ? "bad" : alerts.some((a) => a[0] === "warn") ? "warn" : "ok";
-    const running = current.filter((c) => { const x = sinceSec(c["最終通過"], data.serverTime); return x != null && x <= 900; }).length;
-    const totalLaps = current.reduce((a, c) => a + c.total, 0);
-    const maxTotal = Math.max(1, ...current.map((c) => c.total));
-    const recentOk = passes.filter((x) => x.status === "OK").slice(0, 8);
-    const pass5 = passes.filter((x) => x.status === "OK" && (ageSecFull(x.time, data.serverTime) ?? 1e9) <= 300).length;
-    return { runners: Object.values(byBib), current, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich, worst, running, totalLaps, maxTotal, recentOk, pass5 };
-  }, [data]);
+    const running = visible.filter((c) => { const x = sinceSec(c["最終通過"], data.serverTime); return x != null && x <= 900; }).length;
+    const totalLaps = visible.reduce((a, c) => a + c.total, 0);
+    const maxTotal = Math.max(1, ...visible.map((c) => c.total));
+    const recentOk = passes.filter((x) => x.status === "OK" && !hidden.has(String(x.bib))).slice(0, 8);
+    const pass5 = passes.filter((x) => x.status === "OK" && !hidden.has(String(x.bib)) && (ageSecFull(x.time, data.serverTime) ?? 1e9) <= 300).length;
+    return { runners: Object.values(byBib), current: visible, allCurrent: current, hiddenRows, devices, log, config, passes, commands, cfg, alerts, names, shorts, ich, worst, running, totalLaps, maxTotal, recentOk, pass5 };
+  }, [data, hidden]);
 
   if (!key) return <Login onLogin={(k) => setKey(k)} error={error} />;
   if (!view) return <p className="ops-loading">{error || "読み込み中…"}</p>;
 
   const q = filter.trim();
+  const list0 = showHidden ? view.hiddenRows : view.current;
   const base = q
-    ? view.current.filter((c) => String(c["ゼッケン"]).includes(q) || String(c.runner["氏名"] || "").includes(q))
-    : view.current;
+    ? list0.filter((c) => String(c["ゼッケン"]).includes(q) || String(c.short || "").includes(q) || String(c.runner["氏名"] || "").includes(q))
+    : list0;
   // 最近の通過順（既定）：いま走っている選手が上に来る
   const shown = sortBy === "recent"
     ? [...base].sort((a, b) => String(b["最終通過"]).localeCompare(String(a["最終通過"])))
@@ -418,6 +431,15 @@ export default function OpsConsole() {
         sortBy={sortBy}
         setSortBy={setSortBy}
         onSetLaps={(list, msg) => act("addCommands", { list }, msg)}
+        hidden={hidden}
+        showHidden={showHidden}
+        setShowHidden={setShowHidden}
+        onHide={(bibs, hide) => {
+          const n = new Set(hidden);
+          bibs.forEach((b) => (hide ? n.add(String(b)) : n.delete(String(b))));
+          setHiddenSaved(n);
+          if (!hide && n.size === 0) setShowHidden(false);
+        }}
       />)}
 
       {tab === "ops" && (<>
@@ -469,7 +491,7 @@ function ExportPanel({ view, exportAll }) {
   const [err, setErr] = useState("");
   const lapsCsv = () =>
     downloadCsv(`周回状況_${stamp()}.csv`, ["タグ番号", "ゼッケン", "氏名", "種目", "事前周回", "計測周回", "合計周回", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
-      [...view.current]
+      [...view.allCurrent]
         .sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]))
         .map((c) => [c["ゼッケン"], c.short, c.runner["氏名"] || "", c.runner["種目"] || "", c.pre, c["周回"], c.total,
           (c.total * LAP_METERS / 1000).toFixed(2), c["最終通過"], lapText(c["ラップ"]), c["RSSI"], c["最終受信"]]));
@@ -508,7 +530,7 @@ function ExportPanel({ view, exportAll }) {
 }
 
 // ---------- 周回状況（選択して周回数を設定） ----------
-function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy, setSortBy, onSetLaps }) {
+function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy, setSortBy, onSetLaps, hidden, showHidden, setShowHidden, onHide }) {
   const [sel, setSel] = useState(() => new Set());
   const [stateF, setStateF] = useState("all");
   const stOf = (c) => runState(sinceSec(c["最終通過"], serverTime))[0];
@@ -535,7 +557,7 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
   };
   return (
     <section className="ops-sec">
-      <h2>周回状況 <small>{view.current.length}人・1周{LAP_METERS}m・合計＝一覧の事前周回＋計測周回</small></h2>
+      <h2>{showHidden ? "非表示の選手" : "周回状況"} <small>{showHidden ? "この端末だけの表示設定です（記録・周回数は変わりません）・" : ""}{view.current.length}人・1周{LAP_METERS}m・合計＝一覧の事前周回＋計測周回</small></h2>
       <div className="ops-form">
         <input className="ops-filter" placeholder="ゼッケン・氏名で絞り込み" value={filter} onChange={(e) => setFilter(e.target.value)} />
         <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="並び順">
@@ -548,13 +570,21 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
         {[["all", `全員 ${shownAll.length}`], ["run", `🟢 走行中 ${counts.run}`], ["check", `🟡 要確認 ${counts.check}`], ["rest", `⚪ 休憩？ ${counts.rest}`], ["none", `未通過 ${counts.none}`]].map(([id, label]) => (
           <button key={id} className={stateF === id ? "on" : ""} onClick={() => setStateF(id)}>{label}</button>
         ))}
+        {(hidden.size > 0 || showHidden) && (
+          <button className={`ops-chip-hidden ${showHidden ? "on" : ""}`} onClick={() => { setShowHidden(!showHidden); setSel(new Set()); }}>
+            {showHidden ? "← 通常表示に戻る" : `👁 非表示 ${view.hiddenRows.length}人`}
+          </button>
+        )}
       </div>
       <div className="ops-form ops-bulk">
         <span>選択 {sel.size}人 → 計測周回を</span>
         <input inputMode="numeric" value={laps} onChange={(e) => { setLaps(e.target.value); setErr(""); }} style={{ width: "5em" }} aria-label="設定する周回数" />
         <span>周に</span>
         <button onClick={() => apply([...sel], laps)} disabled={!sel.size}>設定</button>
-        <button className="ops-ghost" onClick={() => apply(view.current.map((c) => String(c["ゼッケン"])), 0)}>全員を0周にリセット</button>
+        {showHidden
+          ? <button onClick={() => { onHide([...sel], false); setSel(new Set()); }} disabled={!sel.size}>選択を再表示</button>
+          : <button className="ops-ghost" onClick={() => { onHide([...sel], true); setSel(new Set()); }} disabled={!sel.size}>選択を非表示</button>}
+        {!showHidden && <button className="ops-ghost" onClick={() => apply(view.current.map((c) => String(c["ゼッケン"])), 0)}>全員を0周にリセット（非表示を除く）</button>}
         {err && <span className="ops-error">{err}</span>}
       </div>
       <div className="ops-scroll">
