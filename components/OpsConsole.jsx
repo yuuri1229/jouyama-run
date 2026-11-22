@@ -187,6 +187,8 @@ export default function OpsConsole() {
       const temp = num(d["電池温度℃"]);
       if (temp != null && temp >= 42) alerts.push(["warn", `${name}: 電池温度 ${temp}℃（日陰・風通しを確保）`]);
       if (d["Bluetooth"] === "OFF") alerts.push(["bad", `${name}: Bluetooth がオフです`]);
+      if (d["電池最適化"] === "未除外") alerts.push(["warn", `${name}: 電池の最適化が有効です（画面オフ中に通信が止まる恐れ。アプリの赤いボタンから解除）`]);
+      if (d["省電力"] === "ON") alerts.push(["warn", `${name}: 省電力モードがオンです（スキャン・送信が間引かれる恐れ）`]);
       if (String(d["計測状態"]).startsWith("停止")) alerts.push(["bad", `${name}: 計測が停止しています`]);
       const lp = num(d["最終受信(秒前)"]);
       if (lp != null && lp > 120) alerts.push(["warn", `${name}: ${Math.round(lp / 60)}分間 チップを受信していません`]);
@@ -254,6 +256,7 @@ export default function OpsConsole() {
                   <dt>電池の推移</dt><dd><Spark values={hist} /></dd>
                   <dt>回線</dt><dd>{d["回線"]} <Level value={d["電波レベル(0-4)"]} /> {d["電波dBm"] ? `${d["電波dBm"]}dBm` : ""}</dd>
                   <dt>Bluetooth</dt><dd>{d["Bluetooth"]}</dd>
+                  <dt>画面</dt><dd>{d["画面"] || "-"}・{d["Doze"] || "-"}・電池最適化 {d["電池最適化"] || "-"}・省電力 {d["省電力"] || "-"}</dd>
                   <dt>計測</dt><dd>{d["計測状態"]}</dd>
                   <dt>受信</dt><dd>{d["受信/分"] || "-"} パケット/分・最終 {d["最終受信(秒前)"] || "-"}秒前</dd>
                   <dt>時刻ズレ</dt><dd>{d["時刻ズレ(秒)"] || 0}秒</dd>
