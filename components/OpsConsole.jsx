@@ -49,6 +49,12 @@ function ageSec(mmddhhmmss, serverTime) {
   return Number.isNaN(t) || Number.isNaN(s) ? null : Math.round((s - t) / 1000);
 }
 
+// ラップ「43:12」がスプレッドシートで時刻（43:12:00）に変換されて届く場合があるので「43分12秒」に戻す
+const lapText = (v) => {
+  const m = String(v || "").match(/^(\d+):(\d\d)(?::00)?$/);
+  return m ? `${Number(m[1])}分${m[2]}秒` : v || "";
+};
+
 const num = (v) => (v === "" || v == null || Number.isNaN(Number(v)) ? null : Number(v));
 
 function Level({ value, max = 4 }) {
@@ -102,6 +108,7 @@ export default function OpsConsole() {
   const [fetchedAt, setFetchedAt] = useState(null);
   const [toast, setToast] = useState("");
   const [filter, setFilter] = useState("");
+  const [sortBy, setSortBy] = useState("recent");
   // 「閉じる」のたびに進める番号。閉じる前に出した通信の結果は捨てる
   // （閉じた後に合言葉が sessionStorage へ書き戻されるのを防ぐ）
   const session = useRef(0);
@@ -202,16 +209,21 @@ export default function OpsConsole() {
       const v = num(d["アプリ版"]);
       if (latest && v && v < latest) alerts.push(["info", `${d["端末"]}: アプリ更新待ち（端末 ${v} → 配信 ${latest}）`]);
     });
-    return { runners, current, devices, log, config, passes, commands, cfg, alerts };
+    const names = Object.fromEntries(runners.map((r) => [String(r["ゼッケン"]), r["氏名"]]));
+    return { runners, current, devices, log, config, passes, commands, cfg, alerts, names };
   }, [data]);
 
   if (!key) return <Login onLogin={(k) => setKey(k)} error={error} />;
   if (!view) return <p className="ops-loading">{error || "読み込み中…"}</p>;
 
   const q = filter.trim();
-  const shown = q
+  const base = q
     ? view.current.filter((c) => String(c["ゼッケン"]).includes(q) || String(c.runner["氏名"] || "").includes(q))
     : view.current;
+  // 最近の通過順（既定）：いま走っている選手が上に来る
+  const shown = sortBy === "recent"
+    ? [...base].sort((a, b) => String(b["最終通過"]).localeCompare(String(a["最終通過"])))
+    : base;
 
   return (
     <div className="ops">
@@ -270,48 +282,206 @@ export default function OpsConsole() {
         </div>
       </section>
 
-      <section className="ops-sec">
-        <h2>周回状況 <small>{view.current.length}人・1周{LAP_METERS}m</small></h2>
-        <input className="ops-filter" placeholder="ゼッケン・氏名で絞り込み" value={filter} onChange={(e) => setFilter(e.target.value)} />
-        <div className="ops-scroll">
-          <table className="ops-table">
-            <thead><tr><th>順</th><th>No.</th><th>氏名</th><th>種目</th><th>周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
-            <tbody>
-              {shown.map((c, i) => (
-                <tr key={c["ゼッケン"]}>
-                  <td>{i + 1}</td>
-                  <td className="ops-num">{c["ゼッケン"]}</td>
-                  <td>{c.runner["氏名"] || <span className="ops-muted">未登録</span>}</td>
-                  <td>{c.runner["種目"]}</td>
-                  <td className="ops-num ops-strong">{c["周回"]}</td>
-                  <td className="ops-num">{((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2)}km</td>
-                  <td>{c["最終通過"]}</td>
-                  <td>{c["ラップ"]}</td>
-                  <td className="ops-num">{c["RSSI"] === "127" ? "-" : c["RSSI"]}</td>
-                  <td>{c["最終受信"]}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <LapPanel
+        view={view}
+        shown={shown}
+        filter={filter}
+        setFilter={setFilter}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        onSetLaps={(list, msg) => act("addCommands", { list }, msg)}
+      />
 
-      <CommandPanel devices={view.devices} commands={view.commands} onSend={(p) => act("addCommand", p, "コマンドを登録しました（次の送信で端末が実行）")} />
+      <CommandPanel devices={view.devices} commands={view.commands} names={view.names} onSend={(p) => act("addCommand", p, "コマンドを登録しました（次の送信で端末が実行）")} />
 
       <RunnerPanel runners={view.runners} onSave={(p) => act("setRunner", p, `ゼッケン${p.bib} を保存しました`)} />
 
       <ConfigPanel config={view.config} onSave={(name, value) => act("setConfig", { name, value }, `${name} を ${value} に変更しました（次の送信で端末に反映）`)} />
 
-      <section className="ops-sec">
-        <h2>最近の通過記録 <small>新しい順・最大100件</small></h2>
-        <div className="ops-scroll">
-          <table className="ops-table">
-            <thead><tr><th>時刻</th><th>No.</th><th>周回</th><th>判定</th><th>最大RSSI</th><th>受信数</th><th>ラップ(秒)</th><th>端末</th></tr></thead>
-            <tbody>
-              {view.passes.map((p, i) => (
-                <tr key={i} className={`ops-st-${p.status}`}>
+      <PassPanel
+        view={view}
+        onDelete={(items, adjustLaps) =>
+          act("deletePasses", { items, adjustLaps }, `${items.length}件を削除しました${adjustLaps ? "（周回だった記録の分は端末の周回数からも差し引きます）" : ""}`)
+        }
+      />
+
+      <ExportPanel view={view} exportAll={() => call("export", key)} />
+    </div>
+  );
+}
+
+// ---------- CSV ----------
+function csvCell(v) {
+  const t = v == null ? "" : String(v);
+  return /[",\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+}
+function downloadCsv(name, head, rows) {
+  // Excel で文字化けしないよう BOM 付き UTF-8
+  const text = "\ufeff" + [head, ...rows].map((r) => r.map(csvCell).join(",")).join("\r\n");
+  const url = URL.createObjectURL(new Blob([text], { type: "text/csv;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const stamp = () => {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}`;
+};
+
+function ExportPanel({ view, exportAll }) {
+  const [busy, setBusy] = useState("");
+  const [err, setErr] = useState("");
+  const lapsCsv = () =>
+    downloadCsv(`周回状況_${stamp()}.csv`, ["ゼッケン", "氏名", "種目", "周回", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
+      [...view.current]
+        .sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]))
+        .map((c) => [c["ゼッケン"], c.runner["氏名"] || "", c.runner["種目"] || "", c["周回"],
+          ((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2), c["最終通過"], lapText(c["ラップ"]), c["RSSI"], c["最終受信"]]));
+  const allCsv = async (kind) => {
+    setBusy(kind); setErr("");
+    try {
+      const j = await exportAll();
+      if (kind === "passes") {
+        const names = Object.fromEntries(j.runners.rows.map((r) => [String(r[0]), r[1]]));
+        const ib = j.passes.head.indexOf("bib");
+        downloadCsv(`通過記録_${stamp()}.csv`, [...j.passes.head.slice(0, ib + 1), "name", ...j.passes.head.slice(ib + 1)],
+          j.passes.rows.map((r) => [...r.slice(0, ib + 1), names[String(r[ib])] || "", ...r.slice(ib + 1)]));
+      } else {
+        downloadCsv(`選手_${stamp()}.csv`, j.runners.head, j.runners.rows.filter((r) => String(r[0]).trim() !== ""));
+      }
+    } catch (e) {
+      setErr(`書き出し失敗: ${e.message}`);
+    } finally {
+      setBusy("");
+    }
+  };
+  return (
+    <section className="ops-sec">
+      <h2>CSV書き出し <small>Excelでそのまま開けます</small></h2>
+      <div className="ops-form">
+        <button onClick={lapsCsv}>周回状況</button>
+        <button onClick={() => allCsv("passes")} disabled={!!busy}>{busy === "passes" ? "取得中…" : "通過記録（全件）"}</button>
+        <button onClick={() => allCsv("runners")} disabled={!!busy}>{busy === "runners" ? "取得中…" : "選手・ビーコン紐付け"}</button>
+        {err && <span className="ops-error">{err}</span>}
+      </div>
+    </section>
+  );
+}
+
+// ---------- 周回状況（選択して周回数を設定） ----------
+function LapPanel({ view, shown, filter, setFilter, sortBy, setSortBy, onSetLaps }) {
+  const [sel, setSel] = useState(() => new Set());
+  const [laps, setLaps] = useState("0");
+  const [err, setErr] = useState("");
+  const toggle = (bib) => setSel((s) => { const n = new Set(s); n.has(bib) ? n.delete(bib) : n.add(bib); return n; });
+  const allShown = shown.length > 0 && shown.every((c) => sel.has(String(c["ゼッケン"])));
+  const toggleAll = () => setSel((s) => {
+    const n = new Set(s);
+    shown.forEach((c) => (allShown ? n.delete(String(c["ゼッケン"])) : n.add(String(c["ゼッケン"]))));
+    return n;
+  });
+  const apply = (bibs, value) => {
+    if (!/^\d+$/.test(String(value))) return setErr("周回数は0以上の整数で入力してください");
+    if (!bibs.length) return setErr("選手を選んでください");
+    setErr("");
+    const label = bibs.length > 5 ? `${bibs.length}人` : bibs.map((b) => `No.${b} ${view.names[b] || ""}`).join("、");
+    if (!window.confirm(`${label} の周回数を ${value}周 に設定しますか？\n（次の送信で端末に反映されます）`)) return;
+    onSetLaps(bibs.map((b) => ({ target: "all", cmd: "setLaps", bib: Number(b), value: Number(value) })), `${bibs.length}人の周回数を ${value}周 に設定しました（次の送信で端末に反映）`);
+    setSel(new Set());
+  };
+  return (
+    <section className="ops-sec">
+      <h2>周回状況 <small>{view.current.length}人・1周{LAP_METERS}m</small></h2>
+      <div className="ops-form">
+        <input className="ops-filter" placeholder="ゼッケン・氏名で絞り込み" value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} aria-label="並び順">
+          <option value="recent">最近の通過順</option>
+          <option value="laps">周回数の多い順</option>
+        </select>
+      </div>
+      <div className="ops-form ops-bulk">
+        <span>選択 {sel.size}人 → 周回数を</span>
+        <input inputMode="numeric" value={laps} onChange={(e) => { setLaps(e.target.value); setErr(""); }} style={{ width: "5em" }} aria-label="設定する周回数" />
+        <span>周に</span>
+        <button onClick={() => apply([...sel], laps)} disabled={!sel.size}>設定</button>
+        <button className="ops-ghost" onClick={() => apply(view.current.map((c) => String(c["ゼッケン"])), 0)}>全員を0周にリセット</button>
+        {err && <span className="ops-error">{err}</span>}
+      </div>
+      <div className="ops-scroll">
+        <table className="ops-table">
+          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>#</th><th>No.</th><th>氏名</th><th>種目</th><th>周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>RSSI</th><th>最終受信</th></tr></thead>
+          <tbody>
+            {shown.map((c, i) => {
+              const bib = String(c["ゼッケン"]);
+              return (
+                <tr key={bib} className={sel.has(bib) ? "ops-selected" : ""}>
+                  <td><input type="checkbox" checked={sel.has(bib)} onChange={() => toggle(bib)} aria-label={`No.${bib} を選択`} /></td>
+                  <td>{i + 1}</td>
+                  <td className="ops-num">{bib}</td>
+                  <td>{c.runner["氏名"] || <span className="ops-muted">未登録</span>}</td>
+                  <td>{c.runner["種目"]}</td>
+                  <td className="ops-num ops-strong">{c["周回"]}</td>
+                  <td className="ops-num">{((num(c["周回"]) || 0) * LAP_METERS / 1000).toFixed(2)}km</td>
+                  <td>{c["最終通過"]}</td>
+                  <td>{lapText(c["ラップ"])}</td>
+                  <td className="ops-num">{c["RSSI"] === "127" ? "-" : c["RSSI"]}</td>
+                  <td>{c["最終受信"]}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
+// ---------- 通過記録（選択して削除） ----------
+function PassPanel({ view, onDelete }) {
+  const [sel, setSel] = useState(() => new Set());
+  const [adjust, setAdjust] = useState(true);
+  const [onlyBib, setOnlyBib] = useState("");
+  const keyOf = (p) => `${p.device}|${p.offset}`;
+  const rows = onlyBib.trim() ? view.passes.filter((p) => String(p.bib) === onlyBib.trim()) : view.passes;
+  const allShown = rows.length > 0 && rows.every((p) => sel.has(keyOf(p)));
+  const toggle = (k) => setSel((s) => { const n = new Set(s); n.has(k) ? n.delete(k) : n.add(k); return n; });
+  const toggleAll = () => setSel((s) => { const n = new Set(s); rows.forEach((p) => (allShown ? n.delete(keyOf(p)) : n.add(keyOf(p)))); return n; });
+  const del = () => {
+    const items = view.passes.filter((p) => sel.has(keyOf(p))).map((p) => ({ device: p.device, offset: p.offset }));
+    if (!items.length) return;
+    const okCount = view.passes.filter((p) => sel.has(keyOf(p)) && (p.status === "OK" || p.status === "MANUAL_ADD")).length;
+    if (!window.confirm(`選択した ${items.length}件の通過記録を削除しますか？` +
+      (adjust && okCount ? `\nうち周回 ${okCount}件の分、選手の周回数を減らします。` : "") +
+      "\n（削除した記録は「削除済み」シートに控えが残ります）")) return;
+    onDelete(items, adjust);
+    setSel(new Set());
+  };
+  return (
+    <section className="ops-sec">
+      <h2>最近の通過記録 <small>新しい順・最大100件</small></h2>
+      <div className="ops-form ops-bulk">
+        <input inputMode="numeric" placeholder="No.で絞り込み" value={onlyBib} onChange={(e) => setOnlyBib(e.target.value)} style={{ width: "8em" }} />
+        <span>選択 {sel.size}件</span>
+        <label><input type="checkbox" checked={adjust} onChange={(e) => setAdjust(e.target.checked)} /> 周回数からも差し引く</label>
+        <button onClick={del} disabled={!sel.size}>選択した記録を削除</button>
+      </div>
+      <div className="ops-scroll">
+        <table className="ops-table">
+          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の記録をすべて選択" /></th><th>時刻</th><th>No.</th><th>氏名</th><th>周回</th><th>判定</th><th>最大RSSI</th><th>受信数</th><th>ラップ(秒)</th><th>端末</th></tr></thead>
+          <tbody>
+            {rows.map((p) => {
+              const k = keyOf(p);
+              return (
+                <tr key={k} className={`ops-st-${p.status} ${sel.has(k) ? "ops-selected" : ""}`}>
+                  <td><input type="checkbox" checked={sel.has(k)} onChange={() => toggle(k)} aria-label={`${String(p.time).slice(11, 19)} No.${p.bib} を選択`} /></td>
                   <td>{String(p.time).slice(11, 19)}</td>
                   <td className="ops-num">{p.bib}</td>
+                  <td>{view.names[String(p.bib)] || ""}</td>
                   <td className="ops-num">{p.lap}</td>
                   <td>{STATUS[p.status] || p.status}</td>
                   <td className="ops-num">{p.peak_rssi}</td>
@@ -319,12 +489,12 @@ export default function OpsConsole() {
                   <td className="ops-num">{p.lap_time_sec}</td>
                   <td>{p.device}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </div>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }
 
@@ -338,7 +508,7 @@ const STATUS = {
   MANUAL_SET: "手動設定",
 };
 
-function CommandPanel({ devices, commands, onSend }) {
+function CommandPanel({ devices, commands, names, onSend }) {
   const [cmd, setCmd] = useState("setLaps");
   const [bib, setBib] = useState("");
   const [value, setValue] = useState("");
@@ -379,7 +549,7 @@ function CommandPanel({ devices, commands, onSend }) {
               <tr key={c.ID}>
                 <td>{c["作成"]}</td><td>{c["対象端末"]}</td>
                 <td>{(COMMANDS.find((x) => x.value === c["コマンド"]) || {}).label || c["コマンド"]}</td>
-                <td>{c["ゼッケン"]}</td><td>{c["値"]}</td>
+                <td>{c["ゼッケン"]} {names[String(c["ゼッケン"])] || ""}</td><td>{c["値"]}</td>
                 <td className={c["状態"] === "pending" ? "ops-warn" : c["状態"] === "done" ? "ops-good" : "ops-bad"}>{c["状態"] === "pending" ? "待機中" : c["状態"] === "done" ? "完了" : c["状態"]}</td>
                 <td>{c["実行"]}</td>
               </tr>

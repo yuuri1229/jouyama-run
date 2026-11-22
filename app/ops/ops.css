@@ -61,3 +61,6 @@
 .ops-st-MANUAL_ADD td, .ops-st-MANUAL_DEL td, .ops-st-MANUAL_SET td { background: #fff6e0; }
 .ops-login { max-width: 360px; margin: 40px auto; display: grid; gap: 12px; text-align: center; }
 .ops-login h1 { font-size: 22px; margin: 0; }
+.ops-bulk { background: var(--mist); padding: 8px 10px; border-radius: 4px; }
+.ops-selected td { background: #fff3c4 !important; }
+.ops-table input[type="checkbox"] { width: auto; min-width: 0; }
