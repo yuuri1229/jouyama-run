@@ -262,20 +262,13 @@ export default function OpsConsole() {
     const mLag = mRows.length ? Math.min(...mRows.map((r) => sinceSec(r["更新"], data.serverTime)).filter((x) => x != null), 1e9) : null;
     const mergeStale = source === "merged" && mRows.length > 0 && mLag != null && mLag > 180;
     const useMerged = source === "merged" && !mergeStale && mRows.length > 0;
-    // 補正（誤カウント疑い・欠測推定）：公式の周回は変えず、目安として横に出す。更新が止まっていたら出さない
-    const reconRows = toObjects(data.recon || { head: [], rows: [] });
-    const reconLag = reconRows.length ? sinceSec(reconRows[0]["更新"], data.serverTime) : null;
-    const reconOk = useMerged && reconRows.length > 0 && reconLag != null && reconLag <= 300;
-    const reconMap = Object.fromEntries(reconRows.map((x) => [String(x["ゼッケン"]), { sus: num(x["誤カウント疑い"]) || 0, miss: num(x["欠測推定"]) || 0, med: num(x["中央値ラップ秒"]) || 0 }]));
     const current = toObjects(useMerged ? data.mcurrent : data.current).map((c) => {
       const r = byBib[String(c["ゼッケン"])] || {};
       const info = ich[String(c["ゼッケン"])] || {};
       const pre = info.pre || 0;
       // 0周の行の「最終通過/ラップ」は通過ではなく初回の近接受信（端末設置時など）なので表示しない
       if (useMerged && !(num(c["周回"]) > 0)) { c = { ...c, "最終通過": "", "ラップ": "" }; }
-      const rc = reconOk ? reconMap[String(c["ゼッケン"])] : null;
-      const adj = rc ? Math.max(-(num(c["周回"]) || 0), rc.miss - rc.sus) : 0;
-      return { ...c, pre, total: pre + (num(c["周回"]) || 0), short: info.short || "", kana: info.kana || "", sex: info.sex || "", recon: rc ? { ...rc, adj, flag: Math.abs(adj) >= 2 || rc.sus + rc.miss >= 3 } : null, runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
+      return { ...c, pre, total: pre + (num(c["周回"]) || 0), short: info.short || "", kana: info.kana || "", sex: info.sex || "", runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
     });
     current.sort((a, b) => b.total - a.total || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
     // 出走していない予備チップの誤検知を出さない：一覧に無いタグ・「予備」「計測器」の行は自動で除外する
@@ -366,11 +359,6 @@ export default function OpsConsole() {
       if (unseenRan.length) parts.push(`リセット後 未受信 ${unseenRan.length}人 — ${pick(unseenRan, (t) => `${ich[t].short || "-"} ${ich[t].name}(タグ${t})`)}`);
       alerts.push(["warn", `欠測の確認（休憩・リタイアなら問題なし。走っているなら目視・チップ確認）: ${parts.join(" ／ ")}`]);
     }
-    const reconFlag = visible.filter((c) => c.recon && c.recon.flag && c["周回"] > 0).sort((a, b) => Math.abs(b.recon.adj) - Math.abs(a.recon.adj) || b.recon.sus + b.recon.miss - a.recon.sus - a.recon.miss);
-    if (reconFlag.length) {
-      const sg = (n) => (n > 0 ? `+${n}` : `${n}`);
-      alerts.push(["warn", `周回の要確認（補正の目安との差）: ${reconFlag.length}人 — ${reconFlag.slice(0, 8).map((c) => `${c.short || "-"} ${c.runner["氏名"] || ""}(誤${c.recon.sus}・欠${c.recon.miss} → ${sg(c.recon.adj)}周)`).join("、")}${reconFlag.length > 8 ? " ほか" : ""}。目視で確認し、必要なら周回を直してください`]);
-    }
     const order = { bad: 0, warn: 1, info: 2 };
     alerts.sort((a, b) => order[a[0]] - order[b[0]]);
     const worst = alerts.some((a) => a[0] === "bad") ? "bad" : alerts.some((a) => a[0] === "warn") ? "warn" : "ok";
@@ -444,7 +432,7 @@ export default function OpsConsole() {
       {view.cfg.message && <p className="ops-banner">端末に表示中のお知らせ：{view.cfg.message}</p>}
 
       <nav className="ops-tabs" role="tablist" aria-label="表示切替">
-        {[["status", "状況"], ["laps", "周回"], ["passes", "通過記録"], ["compare", "2拠点比較"], ["ops", "操作・設定"], ["runners", "選手"], ["export", "CSV"]].map(([id, label]) => (
+        {[["status", "状況"], ["laps", "周回"], ["passes", "通過記録"], ["ops", "操作・設定"], ["runners", "選手"], ["export", "CSV"]].map(([id, label]) => (
           <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? "on" : ""} onClick={() => setTab(id)}>
             {label}
             {id === "status" && view.alerts.filter((a) => a[0] !== "info").length > 0 && <i className={`ops-badge ops-badge-${view.worst}`}>{view.alerts.filter((a) => a[0] !== "info").length}</i>}
@@ -560,14 +548,6 @@ export default function OpsConsole() {
         }
       />)}
 
-      {tab === "compare" && (
-      <ComparePanel
-        view={view}
-        rawPasses={toObjects(data.passes)}
-        mPasses={toObjects(data.mpasses || { head: [], rows: [] })}
-        onSaveAll={(list) => act("setRunners", { list }, `${list.length}人の採用・コメントを保存しました`)}
-      />)}
-
       {tab === "export" && <ExportPanel view={view} exportAll={() => call("export", key)} />}
     </div>
   );
@@ -600,10 +580,10 @@ function ExportPanel({ view, exportAll }) {
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
   const lapsCsv = () =>
-    downloadCsv(`周回状況_${stamp()}.csv`, ["タグ番号", "ゼッケン", "氏名", "種目", "事前周回", "計測周回", "合計周回", "誤カウント疑い", "欠測推定", "補正後合計", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
+    downloadCsv(`周回状況_${stamp()}.csv`, ["タグ番号", "ゼッケン", "氏名", "種目", "事前周回", "計測周回", "合計周回", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
       [...view.allCurrent]
         .sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]))
-        .map((c) => [c["ゼッケン"], c.short, c.runner["氏名"] || "", c.runner["種目"] || "", c.pre, c["周回"], c.total, c.recon ? c.recon.sus : "", c.recon ? c.recon.miss : "", c.recon ? c.total + c.recon.adj : "",
+        .map((c) => [c["ゼッケン"], c.short, c.runner["氏名"] || "", c.runner["種目"] || "", c.pre, c["周回"], c.total,
           (c.total * LAP_METERS / 1000).toFixed(2), c["最終通過"], lapText(c["ラップ"]), c["RSSI"], c["最終受信"]]));
   const allCsv = async (kind) => {
     setBusy(kind); setErr("");
@@ -697,37 +677,9 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
         {!showHidden && <button className="ops-ghost" onClick={() => apply(view.current.map((c) => String(c["ゼッケン"])), 0)}>全員を0周にリセット（非表示を除く）</button>}
         {err && <span className="ops-error">{err}</span>}
       </div>
-      <details className="ops-more ops-criteria">
-        <summary>補正・判定の基準（誤カウントと欠測の見方）</summary>
-        <div className="ops-criteria-body">
-          <h4>公式の周回数（変更しない）</h4>
-          <ul>
-            <li>受信強度 {view.cfg.threshold ?? "-"} dBm 以上を通過候補にし、{view.cfg.gapSec ?? "-"}秒以内の受信を1回の通過にまとめます。</li>
-            <li>前回の通過から {view.cfg.minLapSec ?? "-"}秒未満は二重検出（DUP）、{view.cfg.awaySec ?? "-"}秒以上離れていない滞留（STAY）は数えません。</li>
-            <li>前回から300秒未満で、1〜2パケット・−85dBm未満の弱い検知は保留（HOLD）にして数えません。</li>
-            <li>弱い単発（件数1以下・−90dBm未満）が、周回0または1800秒以上空いた後に来た場合も保留（HOLD）です。</li>
-            <li>12時間ナイト（タグ22〜30）は 11/23 0:00 より前の検知を数えません（PRE）。</li>
-          </ul>
-          <h4>補正列（目安・公式の周回は書き換えません）</h4>
-          <ul>
-            <li>同じ選手の直前3周以上のラップ中央値（直近6周）を基準にします。</li>
-            <li><b>誤カウント疑い</b>：ラップが中央値の0.6倍未満で、かつ検知が弱い（件数1以下 または −90dBm未満）通過。</li>
-            <li><b>欠測推定</b>：ラップが中央値の1.7倍を超え4倍以下の空き。round(ラップ÷中央値)−1 周を加算（1回あたり最大5周）。</li>
-            <li><b>補正後</b> ＝ 現在の合計 − 誤カウント疑い ＋ 欠測推定（0周を下回らない）。</li>
-            <li>手動の周回変更や周回数の減少があると、その時点から基準を取り直します。補正は45秒ごとに更新します。</li>
-          </ul>
-          <h4>「要確認」の出し方</h4>
-          <ul>
-            <li>周回の要確認：補正後との差が2周以上、または 疑い＋欠測 が3以上。</li>
-            <li>欠測の確認：合計周回が1以上で、最終通過から30分以上たった選手。</li>
-            <li>走行状態：最終通過から900秒以内=走行中、3600秒以内=要確認、それ以上=休憩？、通過なし=未通過。</li>
-          </ul>
-          <p className="ops-muted">補正は推定です。夜間や受信が弱いときは外れることがあります。目視や記録員の確認で最終判断してください。</p>
-        </div>
-      </details>
       <div className="ops-scroll">
         <table className="ops-table">
-          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>ゼッケン</th><th>氏名</th><th>状態</th><th>合計周回</th><th>補正</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>事前+計測</th><th className="ops-dim">タグ</th><th className="ops-dim">種目</th><th className="ops-dim">RSSI</th></tr></thead>
+          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>ゼッケン</th><th>氏名</th><th>状態</th><th>合計周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>事前+計測</th><th className="ops-dim">タグ</th><th className="ops-dim">種目</th><th className="ops-dim">RSSI</th></tr></thead>
           <tbody>
             {shown.map((c, i) => {
               const bib = String(c["ゼッケン"]);
@@ -742,9 +694,6 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
                   <td className="ops-totalcell">
                     <b className="ops-big">{c.total}</b>
                     <span className="ops-bar" aria-hidden="true"><i style={{ width: `${(c.total / view.maxTotal) * 100}%` }} /></span>
-                  </td>
-                  <td className="ops-num" title={c.recon ? `誤カウント疑い ${c.recon.sus} ・ 欠測推定 ${c.recon.miss}（公式の周回は変えていません。目視確認の目安）` : "補正データなし"}>
-                    {c.recon && c.recon.adj !== 0 ? <b className={c.recon.flag ? "ops-recon ops-recon-flag" : "ops-recon"}>補正後 {c.total + c.recon.adj}（{c.recon.adj > 0 ? "+" : ""}{c.recon.adj}）</b> : <span className="ops-muted">{c.recon ? "差なし" : "-"}</span>}
                   </td>
                   <td className="ops-num">{(c.total * LAP_METERS / 1000).toFixed(1)}km</td>
                   <td>{c["最終通過"]} <small className="ops-muted">{mins(since)}</small></td>
@@ -764,104 +713,6 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
 }
 
 // ---------- 通過記録（選択して削除） ----------
-
-// ---- 2拠点比較：中間とゴール手前の計測を並べて比べ、どちらを採用するか・引き継ぎコメントを残す ----
-// 採用の選択とコメントは「選手」シートの備考に保存する（〔採用:中間〕のような印を末尾に付ける）。
-// 公式の周回数は変えない。ここで選んだ「採用周回数」は目安として横に出すだけ。
-const COMPARE_START_STORE = "ops-compare-start";
-const ADOPT_RE = /\s*〔採用:(中間|ゴール|手入力)(?:=(-?\d+))?〕\s*$/;
-const normT = (t) => String(t || "").replace(/^(\d{4}-\d\d-\d\d) (\d):/, "$1 0$2:");
-function parseNote(note) {
-  const s = String(note || "");
-  const m = s.match(ADOPT_RE);
-  return { comment: s.replace(ADOPT_RE, "").trim(), adopt: m ? m[1] : "自動", manual: m && m[2] != null ? m[2] : "" };
-}
-function buildNote({ comment, adopt, manual }) {
-  const c = String(comment || "").trim();
-  const tag = adopt === "手入力" ? `〔採用:手入力=${manual === "" ? 0 : Number(manual)}〕` : adopt === "中間" || adopt === "ゴール" ? `〔採用:${adopt}〕` : "";
-  return [c, tag].filter(Boolean).join(" ");
-}
-function ComparePanel({ view, rawPasses, mPasses, onSaveAll }) {
-  const [start, setStart] = useState(() => {
-    try { return localStorage.getItem(COMPARE_START_STORE) || "2026-11-23T07:34"; } catch { return "2026-11-23T07:34"; }
-  });
-  const [onlyDiff, setOnlyDiff] = useState(false);
-  const [drafts, setDrafts] = useState({});
-  const startT = `${start.replace("T", " ")}:00`;
-  const midDev = String(view.cfg.preDevice || "");
-  const names = (view.devices || []).map((d) => d["端末"]);
-  const goalDev = names.find((n) => n !== midDev) || "";
-  const covered = rawPasses.length ? normT(rawPasses[0].time) : "";
-  const coverNote = covered && covered > startT ? `取得できた通過記録は ${covered.slice(5, 16)} 以降です（それ以前の分は数えられていません）` : "";
-  const rows = useMemo(() => {
-    const cnt = {};
-    const bump = (k, f) => { cnt[k] = cnt[k] || { mid: 0, goal: 0, mrg: 0 }; cnt[k][f] += 1; };
-    rawPasses.forEach((p) => { if (p.status === "OK" && normT(p.time) >= startT) { if (p.device === midDev) bump(String(p.bib), "mid"); else if (p.device === goalDev) bump(String(p.bib), "goal"); } });
-    mPasses.forEach((p) => { if (p.status === "OK" && normT(p.time) >= startT) bump(String(p.bib), "mrg"); });
-    return view.current.map((c) => {
-      const tag = String(c["ゼッケン"]);
-      const k = cnt[tag] || { mid: 0, goal: 0, mrg: 0 };
-      const r = c.runner || {};
-      const base = parseNote(r["備考"]);
-      const d = { ...base, ...(drafts[tag] || {}) };
-      const mx = Math.max(k.mid, k.goal);
-      const judge = !k.mid && !k.goal && !k.mrg ? "-" : k.mid === k.goal ? (k.mrg === k.mid ? "一致" : "統合差あり") : k.mid > k.goal ? "中間多" : "ゴール多";
-      const cur = c.total;
-      const adopted = d.adopt === "中間" ? cur - k.mrg + k.mid : d.adopt === "ゴール" ? cur - k.mrg + k.goal : d.adopt === "手入力" ? num(d.manual) ?? 0 : cur;
-      const dirty = d.comment !== base.comment || d.adopt !== base.adopt || (d.adopt === "手入力" && String(d.manual) !== String(base.manual));
-      return { tag, c, r, k, mx, judge, cur, adopted, d, base, dirty, diff: mx - k.mrg };
-    });
-  }, [view.current, rawPasses, mPasses, startT, midDev, goalDev, drafts]);
-  const shownRows = (onlyDiff ? rows.filter((x) => x.judge !== "一致" && x.judge !== "-") : rows).sort((a, b) => b.diff - a.diff || num(a.c.short) - num(b.c.short));
-  const dirtyRows = rows.filter((x) => x.dirty);
-  const patch = (tag, v) => setDrafts((x) => ({ ...x, [tag]: { ...(x[tag] || {}), ...v } }));
-  const save = async (list) => {
-    const items = list.map((x) => ({ bib: x.r["ゼッケン"] ?? x.tag, name: x.r["氏名"] || "", category: x.r["種目"] || "", note: buildNote(x.d) }));
-    if (await onSaveAll(items)) setDrafts((cur) => { const n = { ...cur }; list.forEach((x) => delete n[x.tag]); return n; });
-  };
-  return (
-    <section className="ops-sec">
-      <h2>2拠点比較 <small>中間（{midDev || "未設定"}）とゴール手前（{goalDev || "—"}）が数えた周回を比べ、どちらを採用するか・引き継ぎコメントを残します。公式の周回数は変わりません</small></h2>
-      <div className="ops-form ops-bulk">
-        <label>比較の開始 <input type="datetime-local" value={start} onChange={(e) => { setStart(e.target.value); try { localStorage.setItem(COMPARE_START_STORE, e.target.value); } catch {} }} /></label>
-        <label className="ops-measure"><input type="checkbox" checked={onlyDiff} onChange={(e) => setOnlyDiff(e.target.checked)} /><span>差のある選手だけ</span></label>
-        <button disabled={!dirtyRows.length} onClick={() => { if (window.confirm(`${dirtyRows.length}人の採用・コメントを保存しますか？（選手の備考に保存されます）`)) save(dirtyRows); }}>まとめて保存（{dirtyRows.length}人）</button>
-        <button className="ops-ghost" disabled={!dirtyRows.length} onClick={() => setDrafts({})}>変更を破棄</button>
-      </div>
-      {coverNote && <p className="ops-warn">{coverNote}</p>}
-      <div className="ops-scroll">
-        <table className="ops-table">
-          <thead><tr><th>ゼッケン</th><th>氏名</th><th>現在の周回</th><th>中間</th><th>ゴール手前</th><th>統合</th><th>判定</th><th>採用</th><th>手入力</th><th>採用周回数</th><th>コメント（引き継ぎ）</th><th></th></tr></thead>
-          <tbody>
-            {shownRows.map((x) => (
-              <tr key={x.tag} className={x.dirty ? "ops-dirty" : ""}>
-                <td className="ops-num ops-strong">{x.c.short || x.tag}</td>
-                <td>{(x.c.runner || {})["氏名"] || "未登録"}</td>
-                <td className="ops-num">{x.cur}</td>
-                <td className="ops-num">{x.k.mid}</td>
-                <td className="ops-num">{x.k.goal}</td>
-                <td className="ops-num">{x.k.mrg}</td>
-                <td className={x.judge === "一致" || x.judge === "-" ? "" : "ops-bad"}>{x.judge}</td>
-                <td>
-                  <select value={x.d.adopt} onChange={(e) => patch(x.tag, { adopt: e.target.value })}>
-                    {["自動", "中間", "ゴール", "手入力"].map((o) => <option key={o} value={o}>{o === "自動" ? "自動（統合）" : o}</option>)}
-                  </select>
-                </td>
-                <td><input className="ops-narrow" inputMode="numeric" disabled={x.d.adopt !== "手入力"} value={x.d.manual} onChange={(e) => patch(x.tag, { manual: e.target.value.replace(/[^\d-]/g, "") })} /></td>
-                <td className={`ops-num ${x.adopted !== x.cur ? "ops-strong" : ""}`}>{x.adopted}</td>
-                <td><input value={x.d.comment} onChange={(e) => patch(x.tag, { comment: e.target.value })} placeholder="例：ゴール手前が弱い・目視で+1確認" /></td>
-                <td><button disabled={!x.dirty} onClick={() => save([x])}>保存</button></td>
-              </tr>
-            ))}
-            {!shownRows.length && <tr><td colSpan={12} className="ops-muted">該当する選手がいません</td></tr>}
-          </tbody>
-        </table>
-      </div>
-      <p className="ops-muted">「中間」「ゴール手前」は各端末が周回として判定した件数です。端末ごとに数え方が少し違うため、差があっても取りこぼしとは限りません。採用周回数は参考値で、周回タブ・速報には反映されません。</p>
-    </section>
-  );
-}
-
 function PassPanel({ view, onDelete }) {
   const [sel, setSel] = useState(() => new Set());
   const [adjust, setAdjust] = useState(true);
