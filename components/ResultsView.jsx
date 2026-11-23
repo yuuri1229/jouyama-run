@@ -2,19 +2,20 @@
 
 import { useState } from "react";
 
-// リザルトの切替表示。上段で大会（第2回／第1回）、下段で種目を選ぶ。
+// リザルトの切替表示。上段で大会（第3回／第2回／第1回）、下段で種目を選ぶ。
 // データは data/results.js。表彰対象の強調はしない（全員同じ見た目）。
 // 距離は数値のみ（比率バーは付けない）。
 
-const fmt = (n) => n.toFixed(1);
+// 第3回は小数第2位まで（0.96km×周回）。それ以前は小数第1位まで。
+const fmt = (n, d = 1) => n.toFixed(d);
 const sexLabel = (sex, rank) =>
   sex ? `${sex === "M" ? "男子" : "女子"} ${rank}位` : "";
 
-function DistanceCell({ km }) {
+function DistanceCell({ km, digits }) {
   return (
     <td className="res-dist">
       <span className="res-km">
-        {fmt(km)}
+        {fmt(km, digits)}
         <small>km</small>
       </span>
     </td>
@@ -24,6 +25,7 @@ function DistanceCell({ km }) {
 function ResultTable({ category }) {
   const { columns, rows } = category;
   const dist = (r) => r[r.length - 1];
+  const digits = rows.some((r) => !Number.isInteger(Math.round(dist(r) * 10 * 1e6) / 1e6)) ? 2 : 1;
 
   if (columns === "full") {
     const hasSex = rows.some((r) => r[3]);
@@ -50,7 +52,7 @@ function ResultTable({ category }) {
                 </span>
               </td>
               <td className="res-wide">{home}</td>
-              <DistanceCell km={km} />
+              <DistanceCell km={km} digits={digits} />
               {hasSex ? (
                 <td className="res-wide res-sex">{sexLabel(sex, sexRank)}</td>
               ) : null}
@@ -86,7 +88,7 @@ function ResultTable({ category }) {
             <td className="res-name">{r[1]}</td>
             <td className="res-wide res-num">{r[2]}</td>
             {twoLaps ? <td className="res-wide res-num">{r[3]}</td> : null}
-            <DistanceCell km={dist(r)} />
+            <DistanceCell km={dist(r)} digits={digits} />
           </tr>
         ))}
       </tbody>
@@ -151,7 +153,7 @@ export default function ResultsView({ editions }) {
           記録者 <b>{category.rows.length}</b> 名
         </span>
         <span>
-          最長距離 <b>{fmt(max)}</b> km
+          最長距離 <b>{fmt(max, category.rows.some((r) => Math.abs(r[r.length - 1] * 10 - Math.round(r[r.length - 1] * 10)) > 1e-6) ? 2 : 1)}</b> km
         </span>
       </p>
 

@@ -42,7 +42,7 @@ export default function ResultsPage() {
         </header>
 
         <p className="res-lead">
-          過去大会の最終結果です。大会ごと・種目ごとに切り替えて見られます。
+          大会ごとの最終結果です。大会ごと・種目ごとに切り替えて見られます。
         </p>
 
         <ResultsView editions={RESULTS} />
