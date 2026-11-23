@@ -262,20 +262,13 @@ export default function OpsConsole() {
     const mLag = mRows.length ? Math.min(...mRows.map((r) => sinceSec(r["更新"], data.serverTime)).filter((x) => x != null), 1e9) : null;
     const mergeStale = source === "merged" && mRows.length > 0 && mLag != null && mLag > 180;
     const useMerged = source === "merged" && !mergeStale && mRows.length > 0;
-    // 補正（誤カウント疑い・欠測推定）：公式の周回は変えず、目安として横に出す。更新が止まっていたら出さない
-    const reconRows = toObjects(data.recon || { head: [], rows: [] });
-    const reconLag = reconRows.length ? sinceSec(reconRows[0]["更新"], data.serverTime) : null;
-    const reconOk = useMerged && reconRows.length > 0 && reconLag != null && reconLag <= 300;
-    const reconMap = Object.fromEntries(reconRows.map((x) => [String(x["ゼッケン"]), { sus: num(x["誤カウント疑い"]) || 0, miss: num(x["欠測推定"]) || 0, med: num(x["中央値ラップ秒"]) || 0 }]));
     const current = toObjects(useMerged ? data.mcurrent : data.current).map((c) => {
       const r = byBib[String(c["ゼッケン"])] || {};
       const info = ich[String(c["ゼッケン"])] || {};
       const pre = info.pre || 0;
       // 0周の行の「最終通過/ラップ」は通過ではなく初回の近接受信（端末設置時など）なので表示しない
       if (useMerged && !(num(c["周回"]) > 0)) { c = { ...c, "最終通過": "", "ラップ": "" }; }
-      const rc = reconOk ? reconMap[String(c["ゼッケン"])] : null;
-      const adj = rc ? Math.max(-(num(c["周回"]) || 0), rc.miss - rc.sus) : 0;
-      return { ...c, pre, total: pre + (num(c["周回"]) || 0), short: info.short || "", kana: info.kana || "", sex: info.sex || "", recon: rc ? { ...rc, adj, flag: Math.abs(adj) >= 2 || rc.sus + rc.miss >= 3 } : null, runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
+      return { ...c, pre, total: pre + (num(c["周回"]) || 0), short: info.short || "", kana: info.kana || "", sex: info.sex || "", runner: { ...r, "氏名": nameOf(c["ゼッケン"], r) } };
     });
     current.sort((a, b) => b.total - a.total || String(a["最終通過"]).localeCompare(String(b["最終通過"])));
     // 出走していない予備チップの誤検知を出さない：一覧に無いタグ・「予備」「計測器」の行は自動で除外する
@@ -365,11 +358,6 @@ export default function OpsConsole() {
       if (silent.length) parts.push(`${SILENT_MIN}分以上通過なし ${silent.length}人 — ${pick(silent, (x) => `${x.c.short || "-"} ${x.c.runner["氏名"] || ""}(${Math.round(x.s / 60)}分)`)}`);
       if (unseenRan.length) parts.push(`リセット後 未受信 ${unseenRan.length}人 — ${pick(unseenRan, (t) => `${ich[t].short || "-"} ${ich[t].name}(タグ${t})`)}`);
       alerts.push(["warn", `欠測の確認（休憩・リタイアなら問題なし。走っているなら目視・チップ確認）: ${parts.join(" ／ ")}`]);
-    }
-    const reconFlag = visible.filter((c) => c.recon && c.recon.flag && c["周回"] > 0).sort((a, b) => Math.abs(b.recon.adj) - Math.abs(a.recon.adj) || b.recon.sus + b.recon.miss - a.recon.sus - a.recon.miss);
-    if (reconFlag.length) {
-      const sg = (n) => (n > 0 ? `+${n}` : `${n}`);
-      alerts.push(["warn", `周回の要確認（補正の目安との差）: ${reconFlag.length}人 — ${reconFlag.slice(0, 8).map((c) => `${c.short || "-"} ${c.runner["氏名"] || ""}(誤${c.recon.sus}・欠${c.recon.miss} → ${sg(c.recon.adj)}周)`).join("、")}${reconFlag.length > 8 ? " ほか" : ""}。目視で確認し、必要なら周回を直してください`]);
     }
     const order = { bad: 0, warn: 1, info: 2 };
     alerts.sort((a, b) => order[a[0]] - order[b[0]]);
@@ -592,10 +580,10 @@ function ExportPanel({ view, exportAll }) {
   const [busy, setBusy] = useState("");
   const [err, setErr] = useState("");
   const lapsCsv = () =>
-    downloadCsv(`周回状況_${stamp()}.csv`, ["タグ番号", "ゼッケン", "氏名", "種目", "事前周回", "計測周回", "合計周回", "誤カウント疑い", "欠測推定", "補正後合計", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
+    downloadCsv(`周回状況_${stamp()}.csv`, ["タグ番号", "ゼッケン", "氏名", "種目", "事前周回", "計測周回", "合計周回", "距離km", "最終通過", "ラップ", "RSSI", "最終受信"],
       [...view.allCurrent]
         .sort((a, b) => num(a["ゼッケン"]) - num(b["ゼッケン"]))
-        .map((c) => [c["ゼッケン"], c.short, c.runner["氏名"] || "", c.runner["種目"] || "", c.pre, c["周回"], c.total, c.recon ? c.recon.sus : "", c.recon ? c.recon.miss : "", c.recon ? c.total + c.recon.adj : "",
+        .map((c) => [c["ゼッケン"], c.short, c.runner["氏名"] || "", c.runner["種目"] || "", c.pre, c["周回"], c.total,
           (c.total * LAP_METERS / 1000).toFixed(2), c["最終通過"], lapText(c["ラップ"]), c["RSSI"], c["最終受信"]]));
   const allCsv = async (kind) => {
     setBusy(kind); setErr("");
@@ -691,7 +679,7 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
       </div>
       <div className="ops-scroll">
         <table className="ops-table">
-          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>ゼッケン</th><th>氏名</th><th>状態</th><th>合計周回</th><th>補正</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>事前+計測</th><th className="ops-dim">タグ</th><th className="ops-dim">種目</th><th className="ops-dim">RSSI</th></tr></thead>
+          <thead><tr><th><input type="checkbox" checked={allShown} onChange={toggleAll} aria-label="表示中の選手をすべて選択" /></th><th>ゼッケン</th><th>氏名</th><th>状態</th><th>合計周回</th><th>距離</th><th>最終通過</th><th>ラップ</th><th>事前+計測</th><th className="ops-dim">タグ</th><th className="ops-dim">種目</th><th className="ops-dim">RSSI</th></tr></thead>
           <tbody>
             {shown.map((c, i) => {
               const bib = String(c["ゼッケン"]);
@@ -706,9 +694,6 @@ function LapPanel({ view, shown: shownAll, serverTime, filter, setFilter, sortBy
                   <td className="ops-totalcell">
                     <b className="ops-big">{c.total}</b>
                     <span className="ops-bar" aria-hidden="true"><i style={{ width: `${(c.total / view.maxTotal) * 100}%` }} /></span>
-                  </td>
-                  <td className="ops-num" title={c.recon ? `誤カウント疑い ${c.recon.sus} ・ 欠測推定 ${c.recon.miss}（公式の周回は変えていません。目視確認の目安）` : "補正データなし"}>
-                    {c.recon && c.recon.adj !== 0 ? <b className={c.recon.flag ? "ops-recon ops-recon-flag" : "ops-recon"}>補正後 {c.total + c.recon.adj}（{c.recon.adj > 0 ? "+" : ""}{c.recon.adj}）</b> : <span className="ops-muted">{c.recon ? "差なし" : "-"}</span>}
                   </td>
                   <td className="ops-num">{(c.total * LAP_METERS / 1000).toFixed(1)}km</td>
                   <td>{c["最終通過"]} <small className="ops-muted">{mins(since)}</small></td>
