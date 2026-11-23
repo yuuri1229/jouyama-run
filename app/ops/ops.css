@@ -139,6 +139,3 @@
 .ops-recon-flag { background: #fff0c2; color: #7a5200; }
 
 .ops-criteria { margin: 8px 0 12px; } .ops-criteria-body { font-size: 13px; line-height: 1.7; padding: 4px 4px 8px; } .ops-criteria-body h4 { margin: 10px 0 2px; color: var(--pine); font-size: 13px; } .ops-criteria-body ul { margin: 0; padding-left: 1.3em; }
-
-/* 2拠点比較 */
-.ops-narrow { width: 4.5em; }
