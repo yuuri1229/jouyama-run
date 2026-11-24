@@ -10,6 +10,7 @@ import {
   DaysLeft,
   WhenEntryOpen,
 } from "../components/EntryClock";
+import PublicBoard from "../components/PublicBoard";
 import StickyEntryBar from "../components/StickyEntryBar";
 import { getNewsItems } from "../lib/microcms";
 import { asset, SITE } from "../lib/site";
@@ -724,6 +725,9 @@ export default async function HomePage() {
             </Reveal>
           </div>
         </section>
+
+        {/* ================= 交流掲示板（閲覧専用） ================= */}
+        <PublicBoard />
       </main>
 
       <StickyEntryBar />
