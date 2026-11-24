@@ -16,6 +16,8 @@ const REPLY_MAX = 500;
 
 const ERRORS = {
   turnstile: "スパム防止の確認に失敗しました。もう一度お試しください。",
+  bot: "送信に失敗しました。少し待ってから、もう一度お試しください。",
+  link: "リンク（http://〜）は書き込めません。外部のブラウザ（Safari・Chrome）で開くと書き込めます。",
   rate: "続けて書き込みすぎています。少し時間をおいてからお試しください。",
   bad_name: "お名前は1〜20文字で入力してください。",
   bad_body: "文章の文字数を確認してください。",
@@ -59,6 +61,8 @@ function Form({ siteKey, parentId, onDone, onCancel, label, max }) {
   const tsBox = useRef(null);
   const tsId = useRef(null);
   const token = useRef("");
+  const [hp, setHp] = useState(""); // ボット用の隠し欄（人は入力しない）
+  const opened = useRef(Date.now());
   const idp = useRef(`f${Math.random().toString(36).slice(2, 8)}`).current;
 
   useEffect(() => {
@@ -76,7 +80,7 @@ function Form({ siteKey, parentId, onDone, onCancel, label, max }) {
           "expired-callback": () => (token.current = ""),
         });
       })
-      .catch(() => setErr("スパム防止の読み込みに失敗しました。ページを再読み込みしてください。"));
+      .catch(() => {}); // 読み込めなくても投稿できる（確認なしで送る）
     return () => {
       gone = true;
       if (tsId.current != null && window.turnstile) window.turnstile.remove(tsId.current);
@@ -87,13 +91,13 @@ function Form({ siteKey, parentId, onDone, onCancel, label, max }) {
     e.preventDefault();
     setErr("");
     if (!name.trim() || !body.trim()) return setErr("お名前と文章を入力してください。");
-    if (!token.current) return setErr("スパム防止の確認が終わるまでお待ちください。");
+    // 確認（Turnstile）が使えない環境（アプリ内ブラウザなど）では、確認なしで送る。サーバー側が厳しめの条件で受け付ける
     setBusy(true);
     try {
       const res = await fetch(API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, body, parentId, token: token.current }),
+        body: JSON.stringify({ name, body, parentId, token: token.current, website: hp, elapsed: Date.now() - opened.current }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -144,6 +148,12 @@ function Form({ siteKey, parentId, onDone, onCancel, label, max }) {
         <div className="board-count" aria-live="off">
           {body.length} / {max}
         </div>
+      </div>
+      <div className="board-hp" aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}>
+        <label>
+          ウェブサイト（入力しないでください）
+          <input tabIndex={-1} autoComplete="off" value={hp} onChange={(e) => setHp(e.target.value)} />
+        </label>
       </div>
       <div ref={tsBox} className="board-ts" />
       {err && (
