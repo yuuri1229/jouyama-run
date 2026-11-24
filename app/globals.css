@@ -1705,3 +1705,22 @@ html[data-menu-open] .sticky-entry { display: none; }
   .hero-bib, .hero-num-row, .hero-lede, .hero-actions { animation: none; opacity: 1; }
   .reveal { opacity: 1; transform: none; transition: none; }
 }
+
+/* ---------- 交流掲示板の閲覧専用表示（トップ・大会ルールの下） ---------- */
+.pbb-head { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 14px; }
+.pbb-head span { font-size: var(--fs-xs); color: var(--sub); }
+.pbb-thread { background: var(--paper); border: 1px solid var(--line); padding: 16px 18px; margin-bottom: 12px; }
+.pbb-ph { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin-bottom: 4px; }
+.pbb-name { font-weight: 700; }
+.pbb-ph time { font-size: var(--fs-micro); color: var(--sub); }
+.pbb-body { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.pbb-replies { margin-top: 12px; padding-left: 16px; border-left: 1px solid var(--line); }
+.pbb-reply { padding: 8px 0; }
+.pbb-reply + .pbb-reply { border-top: 1px solid var(--line-soft); }
+.pbb-reply .pbb-body { font-size: var(--fs-sm); }
+.pbb-more { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 16px; }
+.pbb-more .btn { min-height: 44px; padding: 10px 24px; background: var(--paper); border-radius: var(--radius); cursor: pointer; font-family: inherit; }
+.pbb-more .btn[disabled] { opacity: .6; cursor: default; }
+.pbb-err { color: #9e2a1c; font-size: var(--fs-sm); margin: 0; }
+.pbb-empty { border: 1px dashed #9aa39a; background: var(--paper); padding: 28px 18px; text-align: center; color: var(--sub); margin: 0; }
+.pbb-foot { margin: 16px 0 0; font-size: var(--fs-xs); color: var(--sub); }

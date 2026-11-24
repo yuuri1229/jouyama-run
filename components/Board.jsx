@@ -125,7 +125,7 @@ function Form({ siteKey, parentId, onDone, onCancel, label, max }) {
           value={name}
           maxLength={NAME_MAX}
           autoComplete="nickname"
-          placeholder="例：しろやま太郎"
+          placeholder="例：じょうやま太郎"
           onChange={(e) => setName(e.target.value)}
         />
       </div>
@@ -222,7 +222,7 @@ export default function Board({ siteKey }) {
         <div>
           <strong>ご利用にあたって</strong>
           <ul>
-            <li>このページは検索エンジンに表示されませんが、URLを知っている方は誰でも閲覧できます。</li>
+            <li>書き込み内容は、大会公式サイトの「大会ルール」の下で、どなたでも閲覧できます。</li>
             <li>電話番号・住所・メールアドレスなどの個人情報は書き込まないでください。</li>
             <li>ほかの方が不快になる投稿や宣伝は、運営が削除することがあります。</li>
           </ul>
