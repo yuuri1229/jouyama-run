@@ -108,10 +108,6 @@ export async function onRequestPost({ request, env }) {
     const filled = Number(input?.elapsed);
     if (input?.website || !(filled >= FB_MIN_FILL_MS)) return json({ error: "bot" }, 400);
     if (/https?:\/\/|www\./i.test(`${name}\n${body}`)) return json({ error: "link" }, 400);
-    const all = await env.DB.prepare(
-      "SELECT COUNT(*) AS n FROM posts WHERE created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-1 hour')",
-    ).first();
-    if ((all?.n ?? 0) >= FB_ALL_HOURLY_MAX) return json({ error: "rate" }, 429);
   }
 
   // IP は保存せず、ハッシュ化して連続投稿の制限に使うだけにする
@@ -130,9 +126,10 @@ export async function onRequestPost({ request, env }) {
     `INSERT INTO posts (parent_id, name, body, ip_hash)
      SELECT ?1, ?2, ?3, ?4
      WHERE (SELECT COUNT(*) FROM posts WHERE ip_hash = ?4 AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-1 hour')) < ?5
-       AND NOT EXISTS (SELECT 1 FROM posts WHERE ip_hash = ?4 AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?6))`,
+       AND NOT EXISTS (SELECT 1 FROM posts WHERE ip_hash = ?4 AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?6))
+       AND (?7 = 0 OR (SELECT COUNT(*) FROM posts WHERE created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-1 hour')) < ?7)`,
   )
-    .bind(parentId, name, body, ipHash, fallback ? FB_HOURLY_MAX : HOURLY_MAX, `-${fallback ? FB_GAP_SEC : GAP_SEC} seconds`)
+    .bind(parentId, name, body, ipHash, fallback ? FB_HOURLY_MAX : HOURLY_MAX, `-${fallback ? FB_GAP_SEC : GAP_SEC} seconds`, fallback ? FB_ALL_HOURLY_MAX : 0)
     .run();
   if (!done.meta.changes) return json({ error: "rate" }, 429);
   return json({ ok: true }, 201);
