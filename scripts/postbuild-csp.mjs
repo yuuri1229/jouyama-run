@@ -39,18 +39,21 @@ const FRAMES = [
 // 計測管制コンソール（/ops/）だけが通信する Google Apps Script。
 // 他のページには許可しない
 const OPS_CONNECT = ["https://script.google.com", "https://script.googleusercontent.com"];
+// 交流掲示板（スパム防止の Cloudflare Turnstile を読み込むページだけに許可）
+const TURNSTILE = ["https://challenges.cloudflare.com"];
+const isBoardPage = (file) => file.split(path.sep).some((x) => x.startsWith("kouryu-"));
 const isOpsPage = (file) => file.split(path.sep).some((x) => x === "ops" || x === "live");
 
-function policy(scriptHashes, extraConnect = []) {
+function policy(scriptHashes, extraConnect = [], turnstile = false) {
   const directives = {
     "default-src": ["'self'"],
-    "script-src": ["'self'", ...scriptHashes, ...GA_SCRIPT],
+    "script-src": ["'self'", ...scriptHashes, ...GA_SCRIPT, ...(turnstile ? TURNSTILE : [])],
     // React の style 属性（タイムバンドの色など）があるため、スタイルだけはインラインを許可
     "style-src": ["'self'", "'unsafe-inline'"],
     "img-src": ["'self'", "data:", ...MICROCMS_IMG, ...GA_IMG],
     "font-src": ["'self'"],
     "connect-src": ["'self'", ...GA_CONNECT, ...extraConnect],
-    "frame-src": FRAMES,
+    "frame-src": [...FRAMES, ...(turnstile ? TURNSTILE : [])],
     "object-src": ["'none'"],
     "base-uri": ["'self'"],
     "form-action": ["'self'"],
@@ -93,7 +96,7 @@ for await (const file of htmlFiles(OUT_DIR)) {
 
   // CSP の meta は、それより後ろに書かれたものにしか効かない。
   // 文字コード指定の直後＝どのスクリプトよりも前に置く。
-  const meta = `<meta http-equiv="Content-Security-Policy" content="${policy([...hashes], isOpsPage(file) ? OPS_CONNECT : [])}"/>`;
+  const meta = `<meta http-equiv="Content-Security-Policy" content="${policy([...hashes], isOpsPage(file) ? OPS_CONNECT : [], isBoardPage(file))}"/>`;
   const charset = /<meta charSet="utf-8"\/>/i;
   if (!charset.test(html)) throw new Error(`[csp] ${file} に <meta charSet> が見つかりません`);
   html = html.replace(charset, (m) => `${m}${meta}`);
