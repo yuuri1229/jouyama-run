@@ -27,22 +27,24 @@ const when = (iso) => fmt.format(new Date(iso)).replace(/-/g, "/");
 export default function PublicBoard() {
   const [posts, setPosts] = useState(null);
   const [total, setTotal] = useState(0);
+  const [rest, setRest] = useState(0);
   const [busy, setBusy] = useState(false);
   const [moreErr, setMoreErr] = useState(false);
 
-  const fetchPage = useCallback(async (offset, limit) => {
-    const res = await fetch(`${API}?offset=${offset}&limit=${limit}`, { cache: "no-store" });
+  const fetchPage = useCallback(async (before, limit) => {
+    const res = await fetch(`${API}?limit=${limit}${before ? `&before=${before}` : ""}`, { cache: "no-store" });
     if (!res.ok) throw new Error(String(res.status));
     return res.json();
   }, []);
 
   useEffect(() => {
     let gone = false;
-    fetchPage(0, FIRST)
+    fetchPage(null, FIRST)
       .then((j) => {
         if (gone) return;
         setPosts(j.posts);
         setTotal(j.total);
+        setRest(j.remaining);
       })
       .catch(() => {});
     return () => {
@@ -54,9 +56,10 @@ export default function PublicBoard() {
     setBusy(true);
     setMoreErr(false);
     try {
-      const j = await fetchPage(posts.length, MORE);
+      const j = await fetchPage(posts[posts.length - 1].id, MORE);
       setPosts((cur) => [...cur, ...j.posts.filter((p) => !cur.some((c) => c.id === p.id))]);
       setTotal(j.total);
+      setRest(j.remaining);
     } catch {
       setMoreErr(true);
     } finally {
@@ -65,8 +68,6 @@ export default function PublicBoard() {
   }
 
   if (!posts) return null; // 読み込み前・未設定・失敗のときは何も出さない
-
-  const rest = Math.max(0, total - posts.length);
 
   return (
     <section className="section" id="board" aria-labelledby="board-h">
@@ -88,7 +89,7 @@ export default function PublicBoard() {
             <div className="pbb-head">
               <strong>書き込み一覧</strong>
               <span>
-                全{total}件のうち{posts.length}件を表示（新しい順）
+                新しい順に{posts.length}件を表示（全{total}件）
               </span>
             </div>
             {posts.map((p) => (
