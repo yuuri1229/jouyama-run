@@ -208,7 +208,7 @@ export default function Board({ siteKey }) {
   return (
     <div className="board">
       <h1>選手＆スタッフ交流掲示板</h1>
-      <p className="board-lead">選手とスタッフの連絡・相談・交流にご利用ください。</p>
+      <p className="board-lead">第3回大会（2026年）専用の掲示板です。選手とスタッフの連絡・相談・交流にご利用ください。</p>
 
       <div className="board-notice" role="note">
         <Icon name="info" />
