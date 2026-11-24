@@ -7,7 +7,7 @@ import { SITE } from "../../lib/site";
 // アルバムは lib/site.js の SITE.photoAlbums（新しい大会を先頭）。
 
 const description =
-  "新潟・城山運動公園24＆12時間走の過去大会の写真（Googleフォトの共有アルバム）。";
+  "新潟・城山運動公園24＆12時間走の大会の写真（Googleフォトの共有アルバム）。";
 
 export const metadata = {
   title: "フォト",
@@ -44,7 +44,7 @@ export default function PhotosPage() {
         </header>
 
         <p className="res-lead">
-          過去大会の写真は、Googleフォトの共有アルバムでご覧いただけます。写真のダウンロードもアルバムから行えます。
+          大会の写真は、Googleフォトの共有アルバムでご覧いただけます。写真のダウンロードもアルバムから行えます。
         </p>
 
         <ul className="albums">
