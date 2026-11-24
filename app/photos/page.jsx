@@ -49,13 +49,15 @@ export default function PhotosPage() {
 
         <ul className="albums">
           {SITE.photoAlbums.map((a) => (
-            <li className="album" key={a.id}>
+            <li className="album-item" key={a.id}>
+              <div className="album">
               <div className="album-txt">
                 <p className="album-ed">
                   {a.year}
                   {a.sub ? `・${a.sub}` : ""}
                 </p>
                 <h2 className="album-title">{a.title}</h2>
+                {a.addNote && <p className="album-add">{a.addNote}</p>}
               </div>
               <div className="album-act">
                 <a
@@ -69,6 +71,7 @@ export default function PhotosPage() {
                   <Icon name="open_in_new" />
                 </a>
                 <span className="album-note">Googleフォトが新しいタブで開きます</span>
+              </div>
               </div>
             </li>
           ))}
