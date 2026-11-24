@@ -17,6 +17,11 @@ const REPLY_MAX = 500;
 const LIST_LIMIT = 100; // 一覧に出す親投稿の数
 const GAP_SEC = 30; // 同じ人の連続投稿の最短間隔
 const HOURLY_MAX = 20; // 同じ人の1時間あたりの上限
+// Turnstile を通せない環境（LINE・Instagram などのアプリ内ブラウザ）向けの代替ルール。通常より厳しくする
+const FB_GAP_SEC = 60; // 同じ人の連続投稿の最短間隔
+const FB_HOURLY_MAX = 5; // 同じ人の1時間あたりの上限
+const FB_ALL_HOURLY_MAX = 60; // 全体の1時間あたりの投稿数がこれ以上のときは、確認なしの投稿を止める
+const FB_MIN_FILL_MS = 4000; // 画面を開いてから送信までの最短時間（ボット対策）
 
 const json = (data, status = 200) =>
   new Response(JSON.stringify(data), {
@@ -64,7 +69,7 @@ export async function onRequestGet({ env }) {
 }
 
 export async function onRequestPost({ request, env }) {
-  if (!env.DB || !env.TURNSTILE_SECRET) return json({ error: "not_ready" }, 503);
+  if (!env.DB) return json({ error: "not_ready" }, 503);
 
   // 別のサイトのページからの書き込みは受け付けない
   const origin = request.headers.get("Origin");
@@ -80,23 +85,33 @@ export async function onRequestPost({ request, env }) {
   const body = String(input?.body ?? "").replace(/\r\n/g, "\n").trim();
   const parentId = input?.parentId == null ? null : Number(input.parentId);
   const token = String(input?.token ?? "");
+  // Turnstile なしで送られた投稿（アプリ内ブラウザなど）。代替ルールで受け付ける
+  const fallback = !token;
 
   const max = parentId == null ? POST_MAX : REPLY_MAX;
   if (!name || name.length > NAME_MAX) return json({ error: "bad_name" }, 400);
   if (!body || body.length > max) return json({ error: "bad_body" }, 400);
   if (parentId != null && !Number.isInteger(parentId)) return json({ error: "bad_request" }, 400);
 
-  // スパム防止（Turnstile）
   const ip = request.headers.get("CF-Connecting-IP") || "";
-  const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
-  });
-  const result = await verify.json().catch(() => ({}));
-  if (!result.success) return json({ error: "turnstile" }, 400);
+  if (!fallback) {
+    // スパム防止（Turnstile）
+    if (!env.TURNSTILE_SECRET) return json({ error: "not_ready" }, 503);
+    const verify = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: new URLSearchParams({ secret: env.TURNSTILE_SECRET, response: token, remoteip: ip }),
+    });
+    const result = await verify.json().catch(() => ({}));
+    if (!result.success) return json({ error: "turnstile" }, 400);
+  } else {
+    // 確認なしの投稿：隠し欄が空・画面を開いてから数秒以上・本文にリンクがない、を満たすものだけ
+    const filled = Number(input?.elapsed);
+    if (input?.website || !(filled >= FB_MIN_FILL_MS)) return json({ error: "bot" }, 400);
+    if (/https?:\/\/|www\./i.test(`${name}\n${body}`)) return json({ error: "link" }, 400);
+  }
 
   // IP は保存せず、ハッシュ化して連続投稿の制限に使うだけにする
-  const ipHash = await sha256(`${ip}|${env.ADMIN_KEY || env.TURNSTILE_SECRET}`);
+  const ipHash = await sha256(`${ip}|${env.ADMIN_KEY || env.TURNSTILE_SECRET || "board"}`);
 
   // 返信は親の投稿にだけ（返信への返信は不可）
   if (parentId != null) {
@@ -111,9 +126,10 @@ export async function onRequestPost({ request, env }) {
     `INSERT INTO posts (parent_id, name, body, ip_hash)
      SELECT ?1, ?2, ?3, ?4
      WHERE (SELECT COUNT(*) FROM posts WHERE ip_hash = ?4 AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-1 hour')) < ?5
-       AND NOT EXISTS (SELECT 1 FROM posts WHERE ip_hash = ?4 AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?6))`,
+       AND NOT EXISTS (SELECT 1 FROM posts WHERE ip_hash = ?4 AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?6))
+       AND (?7 = 0 OR (SELECT COUNT(*) FROM posts WHERE created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-1 hour')) < ?7)`,
   )
-    .bind(parentId, name, body, ipHash, HOURLY_MAX, `-${GAP_SEC} seconds`)
+    .bind(parentId, name, body, ipHash, fallback ? FB_HOURLY_MAX : HOURLY_MAX, `-${fallback ? FB_GAP_SEC : GAP_SEC} seconds`, fallback ? FB_ALL_HOURLY_MAX : 0)
     .run();
   if (!done.meta.changes) return json({ error: "rate" }, 429);
   return json({ ok: true }, 201);
