@@ -95,15 +95,8 @@ export async function onRequestPost({ request, env }) {
   const result = await verify.json().catch(() => ({}));
   if (!result.success) return json({ error: "turnstile" }, 400);
 
-  // 連続投稿の制限。IP は保存せず、ハッシュ化して比べるだけにする
+  // IP は保存せず、ハッシュ化して連続投稿の制限に使うだけにする
   const ipHash = await sha256(`${ip}|${env.ADMIN_KEY || env.TURNSTILE_SECRET}`);
-  const recent = await env.DB.prepare(
-    "SELECT COUNT(*) AS n, MAX(created_at) AS last FROM posts WHERE ip_hash = ? AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-1 hour')",
-  )
-    .bind(ipHash)
-    .first();
-  if (recent.n >= HOURLY_MAX) return json({ error: "rate" }, 429);
-  if (recent.last && Date.now() - Date.parse(recent.last) < GAP_SEC * 1000) return json({ error: "rate" }, 429);
 
   // 返信は親の投稿にだけ（返信への返信は不可）
   if (parentId != null) {
@@ -113,9 +106,16 @@ export async function onRequestPost({ request, env }) {
     if (!parent) return json({ error: "no_parent" }, 400);
   }
 
-  await env.DB.prepare("INSERT INTO posts (parent_id, name, body, ip_hash) VALUES (?, ?, ?, ?)")
-    .bind(parentId, name, body, ipHash)
+  // 連続投稿の確認と書き込みを1つの SQL で行う（同時に送られても制限をすり抜けない）
+  const done = await env.DB.prepare(
+    `INSERT INTO posts (parent_id, name, body, ip_hash)
+     SELECT ?1, ?2, ?3, ?4
+     WHERE (SELECT COUNT(*) FROM posts WHERE ip_hash = ?4 AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-1 hour')) < ?5
+       AND NOT EXISTS (SELECT 1 FROM posts WHERE ip_hash = ?4 AND created_at > strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?6))`,
+  )
+    .bind(parentId, name, body, ipHash, HOURLY_MAX, `-${GAP_SEC} seconds`)
     .run();
+  if (!done.meta.changes) return json({ error: "rate" }, 429);
   return json({ ok: true }, 201);
 }
 

@@ -187,10 +187,14 @@ export default function Board({ siteKey }) {
 
   useEffect(() => {
     load();
-    setAdmin(window.location.hash === "#admin");
+    // #admin を後から付けた場合（ページを開いたまま）にも切り替わるようにする
+    const sync = () => setAdmin(window.location.hash === "#admin");
+    sync();
+    window.addEventListener("hashchange", sync);
     try {
       setKey(sessionStorage.getItem("board-admin") || "");
     } catch {}
+    return () => window.removeEventListener("hashchange", sync);
   }, [load]);
 
   async function remove(id) {
